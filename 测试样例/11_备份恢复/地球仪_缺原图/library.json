@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "photos": [
+    {
+      "id": "fixture-photo-0",
+      "hash": "330e289c26d387c00c5871f92e85accb1a2c389784a13125c70f83ded91b5462",
+      "location": "杭州",
+      "caption": "合成备份样例0",
+      "date": "2025-03-01",
+      "dateSource": "exif",
+      "latitude": 30.2741,
+      "longitude": 120.1551,
+      "locationSource": "exif",
+      "locationStatus": "confirmed",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "deletedAt": null
+    },
+    {
+      "id": "fixture-photo-1",
+      "hash": "43c1ca34e00adc83c9f44f825abb9671c8d292004fed5f303fd2d7ed2c142e16",
+      "location": "杭州",
+      "caption": "合成备份样例1",
+      "date": "2025-03-01",
+      "dateSource": "exif",
+      "latitude": 30.2741,
+      "longitude": 120.1551,
+      "locationSource": "exif",
+      "locationStatus": "confirmed",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "deletedAt": null
+    },
+    {
+      "id": "fixture-photo-2",
+      "hash": "b5b93f9ad1c54498068d8a68c8e97c47e54d878e1e6b2954eb740fca2cfa9253",
+      "location": "杭州",
+      "caption": "合成备份样例2",
+      "date": "2025-03-01",
+      "dateSource": "exif",
+      "latitude": 30.2741,
+      "longitude": 120.1551,
+      "locationSource": "exif",
+      "locationStatus": "confirmed",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "deletedAt": "2026-11-14T00:01:00Z"
+    },
+    {
+      "id": "fixture-photo-3",
+      "hash": "998f2bc772581f0f17b1f484087b65f4b6ab96088aa7942dcb94a12294a2d388",
+      "location": "",
+      "caption": "合成备份样例3",
+      "date": "2025-03-01",
+      "dateSource": "exif",
+      "latitude": null,
+      "longitude": null,
+      "locationSource": "unknown",
+      "locationStatus": "pending",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "deletedAt": null
+    }
+  ],
+  "migrations": []
+}

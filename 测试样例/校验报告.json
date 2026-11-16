@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "checks": {
+    "图片实际解码": 371,
+    "PDF页数与文字层": 11,
+    "DOCX结构与表格": 3,
+    "EPUB容器目录链接": 3,
+    "音频完整解码": 74,
+    "文本编码": 3,
+    "生产JPEG解析器坐标日期324张": 1,
+    "重复文件字节一致": 4
+  },
+  "failures": [],
+  "files": 689,
+  "bytes": 100081337,
+  "acceptanceCriteria": 251,
+  "scope": "文件解码与结构校验，不是应用端到端验收",
+  "intentionalInvalidFiles": "09_异常样例与12_场景包/异常不计入正常解码通过要求",
+  "additionalChecks": {
+    "currentGlobeBackup": "首次新增4，第二次新增0；错版本/缺原图拒绝且原记录不变",
+    "sceneValidator": "正常通过，重复ID/路径越界/非法视野拒绝；缺模型需加载器实测",
+    "visualReview": "文字PDF第2页、双栏图表第1页、Word格式保护稿、代表性照片已渲染检查；修复了PDF字体嵌入与Word中文字体问题",
+    "mockAI": "五种响应处理逻辑通过；执行环境限制监听端口，未完成HTTP端到端测试"
+  }
+}

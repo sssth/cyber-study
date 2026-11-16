@@ -1,0 +1,17 @@
+{
+  "fixtureSchema": "neutral-adapter-v1",
+  "items": [
+    {
+      "id": "TEST-001",
+      "title": "城市回声",
+      "version": "studio",
+      "rating": 4
+    },
+    {
+      "id": "TEST-003",
+      "title": "沿河慢行",
+      "rating": 5
+    }
+  ],
+  "expected": "新增003，更新001，保留本地002及人工笔记"
+}

@@ -1,0 +1,602 @@
+[
+  {
+    "id": "M01",
+    "title": "归途",
+    "year": 1996,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 1,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-01-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M01_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M02",
+    "title": "归途",
+    "year": 1997,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 2,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-02-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M02_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M03",
+    "title": "雨夜书店",
+    "year": 1998,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 3,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-03-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "雨夜书店的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M03_雨夜书店.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M04",
+    "title": "桥上的星期天",
+    "year": 1999,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 4,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-04-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "桥上的星期天的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M04_桥上的星期天.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M05",
+    "title": "无声地图",
+    "year": 2000,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 5,
+    "publicRating": 6.0,
+    "status": "wish",
+    "watchedAt": "2025-05-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "无声地图的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M05_无声地图.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M06",
+    "title": "记忆回声",
+    "year": 2001,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 1,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-06-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "记忆回声的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M06_记忆回声.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M07",
+    "title": "归途",
+    "year": 2002,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 2,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-07-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M07_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M08",
+    "title": "归途",
+    "year": 2003,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 3,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-08-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M08_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M09",
+    "title": "雨夜书店",
+    "year": 2004,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 4,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-09-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "雨夜书店的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M09_雨夜书店.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M10",
+    "title": "桥上的星期天",
+    "year": 2005,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 5,
+    "publicRating": 6.7,
+    "status": "wish",
+    "watchedAt": "2025-10-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "桥上的星期天的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M10_桥上的星期天.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M11",
+    "title": "无声地图",
+    "year": 2006,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 1,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-11-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "无声地图的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M11_无声地图.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M12",
+    "title": "记忆回声",
+    "year": 2007,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 2,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-12-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "记忆回声的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M12_记忆回声.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M13",
+    "title": "归途",
+    "year": 2008,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 3,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-01-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M13_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M14",
+    "title": "归途",
+    "year": 2009,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 4,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-02-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M14_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M15",
+    "title": "雨夜书店",
+    "year": 2010,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 5,
+    "publicRating": 7.4,
+    "status": "wish",
+    "watchedAt": "2025-03-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "雨夜书店的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M15_雨夜书店.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M16",
+    "title": "桥上的星期天",
+    "year": 2011,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 1,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-04-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "桥上的星期天的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M16_桥上的星期天.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M17",
+    "title": "无声地图",
+    "year": 2012,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 2,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-05-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "无声地图的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M17_无声地图.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M18",
+    "title": "记忆回声",
+    "year": 2013,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 3,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-06-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "记忆回声的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M18_记忆回声.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M19",
+    "title": "归途",
+    "year": 2014,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 4,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-07-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M19_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M20",
+    "title": "归途",
+    "year": 2015,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 5,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-08-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M20_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M21",
+    "title": "雨夜书店",
+    "year": 2016,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 1,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-09-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "雨夜书店的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M21_雨夜书店.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M22",
+    "title": "桥上的星期天",
+    "year": 2017,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 2,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-10-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "桥上的星期天的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M22_桥上的星期天.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M23",
+    "title": "无声地图",
+    "year": 2018,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 3,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-11-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "无声地图的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M23_无声地图.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M24",
+    "title": "记忆回声",
+    "year": 2019,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 4,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-12-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "记忆回声的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M24_记忆回声.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M25",
+    "title": "归途",
+    "year": 2020,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 5,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-01-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M25_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M26",
+    "title": "归途",
+    "year": 2021,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 1,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-02-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "归途的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M26_归途.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M27",
+    "title": "雨夜书店",
+    "year": 2022,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 2,
+    "publicRating": 7.4,
+    "status": "watched",
+    "watchedAt": "2025-03-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "雨夜书店的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M27_雨夜书店.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M28",
+    "title": "桥上的星期天",
+    "year": 2023,
+    "region": "中国 / 法国",
+    "genres": "剧情",
+    "personalRating": 3,
+    "publicRating": 8.1,
+    "status": "watched",
+    "watchedAt": "2025-04-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "桥上的星期天的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M28_桥上的星期天.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M29",
+    "title": "无声地图",
+    "year": 2024,
+    "region": "日本",
+    "genres": "纪录片",
+    "personalRating": 4,
+    "publicRating": 6.0,
+    "status": "watched",
+    "watchedAt": "2025-05-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "无声地图的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M29_无声地图.jpg",
+    "source": "synthetic",
+    "externalId": null
+  },
+  {
+    "id": "M30",
+    "title": "记忆回声",
+    "year": 2025,
+    "region": "美国",
+    "genres": "科幻",
+    "personalRating": 5,
+    "publicRating": 6.7,
+    "status": "watched",
+    "watchedAt": "2025-06-15",
+    "tags": [
+      "城市记忆",
+      "旅行"
+    ],
+    "shortComment": "路线成为叙事线索，主观回忆可能被后来重写。",
+    "review": "记忆回声的第十二分钟，主角在桥边停下。这让我联想到 P03 的地标线索；它只是观影联想，不能被当作实验结果。",
+    "poster": "05_电影/海报/M30_记忆回声.jpg",
+    "source": "synthetic",
+    "externalId": null
+  }
+]

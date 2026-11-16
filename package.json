@@ -1,0 +1,33 @@
+{
+  "name": "cyber-study",
+  "productName": "赛博书房",
+  "version": "0.1.0",
+  "private": true,
+  "description": "沉浸式赛博书房 Demo：场景、环境音与本地阅读的桌面应用骨架。",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "test": "node --test 'src/**/*.test.*' 'electron/**/*.test.cjs' 'scripts/**/*.test.mjs'",
+    "start": "vite build && electron .",
+    "package:mac": "node scripts/package-mac.mjs",
+    "package:preview:mac": "node scripts/package-mac.mjs --preview"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "NeteaseCloudMusicApi": "4.32.0",
+    "qrc-decoder": "1.0.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "three": "^0.187.0",
+    "three-mesh-bvh": "0.8.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^37.0.0",
+    "vite": "^7.0.0"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

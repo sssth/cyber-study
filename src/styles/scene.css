@@ -1,0 +1,219 @@
+.study-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: filter 320ms ease;
+}
+
+.study-scene svg {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.study-scene.lights-off {
+  filter: brightness(0.5) saturate(0.62);
+}
+
+.scene-hotspot {
+  cursor: pointer;
+  outline: none;
+}
+
+.foreground-frame {
+  pointer-events: none;
+}
+
+.hotspot-outline {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.scene-hotspot:hover .hotspot-outline,
+.scene-hotspot:focus-visible .hotspot-outline {
+  opacity: 0.72;
+}
+
+.scene-hotspot:focus-visible {
+  stroke: var(--cyan);
+  stroke-width: 2;
+}
+
+.desk-book {
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.05));
+  transition: filter 180ms ease;
+}
+
+.scene-hotspot.desk-book:hover,
+.scene-hotspot.desk-book:focus-visible {
+  filter: drop-shadow(0 0 18px rgba(0, 240, 255, 0.45));
+}
+
+.lamp-glow {
+  transform-origin: 1095px 500px;
+  animation: lampPulse 3.8s ease-in-out infinite;
+}
+
+.study-scene.lights-off .lamp-glow {
+  animation: none;
+  opacity: 0.06;
+}
+
+.study-scene.lights-off .main-monitor,
+.study-scene.lights-off .side-holo,
+.study-scene.lights-off .server-rack {
+  filter: brightness(0.72);
+}
+
+.shelf-glow,
+.window-glow {
+  transition: opacity 300ms ease;
+}
+
+.bookshelf:hover .shelf-glow,
+.city-window:hover .window-glow {
+  opacity: 0.75;
+}
+
+.window-city,
+.far-city {
+  animation: cityBreathe 8s ease-in-out infinite;
+}
+
+.air-light {
+  animation: airTraffic linear infinite;
+}
+
+.air-light-a {
+  animation-duration: 17s;
+}
+
+.air-light-b {
+  animation-duration: 23s;
+  animation-delay: 4s;
+}
+
+.air-light-c {
+  animation-duration: 13s;
+  animation-delay: 8s;
+}
+
+.floor-reflection {
+  animation: floorGlow 5.5s ease-in-out infinite;
+}
+
+.cat-3d-layer {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cat-3d-layer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cat-3d-hit-area {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  cursor: pointer;
+  /* 这个命中层必须完全关闭毛玻璃，否则会压暗并模糊下方的 WebGL 猫。 */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  appearance: none;
+}
+
+.cat-3d-hit-area:focus-visible,
+.cat-3d-hit-area:hover {
+  border-color: rgba(0, 240, 255, 0.32);
+  background: radial-gradient(circle at 50% 65%, rgba(0, 240, 255, 0.08), transparent 68%);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.08);
+}
+
+/* 写实家具作为一层与 SVG 坐标对齐，但不拦截场景热区。 */
+.furniture-3d-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* React Three Fiber 会给内部容器重新加回 pointer-events:auto，必须一并关闭。 */
+.furniture-3d-layer div,
+.furniture-3d-layer canvas {
+  pointer-events: none !important;
+}
+
+.furniture-3d-layer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes lampPulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 0.42; transform: scale(1.04); }
+}
+
+@keyframes cityBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.86; }
+}
+
+@keyframes airTraffic {
+  from { transform: translateX(0); opacity: 0; }
+  8% { opacity: 0.8; }
+  88% { opacity: 0.35; }
+  to { transform: translateX(760px); opacity: 0; }
+}
+
+@keyframes floorGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.74; }
+}
+
+.furniture-3d-layer,
+.furniture-3d-layer div,
+.furniture-3d-layer canvas { pointer-events: auto !important; }
+.scene-camera-help { position: absolute; bottom: 24px; left: 24px; color: #bcd8e9; font-size: 12px; }
+.scene-camera-help button { margin-left: 12px; color: #d7faff; background: #14263b; border: 1px solid #42647b; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.scene-load-message { color: #d7faff; background: #102138; padding: 16px 24px; border-radius: 12px; white-space: nowrap; }
+
+.furniture-3d-layer.feature-hovered,
+.furniture-3d-layer.feature-hovered canvas {
+  cursor: pointer;
+}
+
+.scene-feature-hint {
+  position: absolute;
+  z-index: 2;
+  left: clamp(8px, calc(var(--scene-pointer-x, 0px) + 14px), calc(100% - 164px));
+  top: clamp(8px, calc(var(--scene-pointer-y, 0px) + 16px), calc(100% - 42px));
+  max-width: 156px;
+  padding: 6px 10px;
+  border: 1px solid #42647b;
+  border-radius: 6px;
+  background: #0b1624f5;
+  color: #e6f8ff;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+  user-select: none;
+}

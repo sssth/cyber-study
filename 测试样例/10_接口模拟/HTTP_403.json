@@ -1,0 +1,7 @@
+{
+  "status": 403,
+  "error": {
+    "message": "Synthetic failure 403"
+  },
+  "expected": "保留已有资料，可重试；不写入成功状态"
+}

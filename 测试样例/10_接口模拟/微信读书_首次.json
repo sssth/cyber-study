@@ -1,0 +1,19 @@
+{
+  "fixtureSchema": "neutral-adapter-v1",
+  "provider": "微信读书",
+  "items": [
+    {
+      "id": "TEST-001",
+      "title": "城市回声",
+      "version": "studio",
+      "rating": 5
+    },
+    {
+      "id": "TEST-002",
+      "title": "归途",
+      "version": "1996",
+      "rating": 3
+    }
+  ],
+  "note": "仅供未来适配器映射，不是官方响应或可直接导入的文件"
+}

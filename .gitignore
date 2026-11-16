@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+npm-debug.log*
+pnpm-debug.log*
+
+.pnpm-store/
+
+.user-data/
+.electron-cache/
+
+# macOS 打包产物
+release/
+
+# 大体积本地素材（约 5.9GB，不进仓库）
+场景包/
+work/
+备份/
+全景图查看/
+assets/
+
+# 超大边界测试样例（81MB，超过 GitHub 50MB 告警线）
+测试样例/09_异常样例/超过80MB_照片大小限制.jpg

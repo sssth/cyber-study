@@ -1,0 +1,23 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Loft v0.2 · 35件更新完成</title>
+<style>body{background:#f4f2ed;color:#26302c;font:16px/1.85 system-ui;margin:0}main{max-width:1080px;margin:auto;padding:40px 24px}section{background:white;padding:24px;border-radius:12px;margin:24px 0}img{width:100%;display:block;border-radius:8px}figure{margin:24px 0}figcaption{color:#647069;font-size:14px}table{border-collapse:collapse;width:100%}th,td{text-align:left;border-bottom:1px solid #ddd;padding:10px}a{color:#28755d}.note{border-left:4px solid #428672;padding:16px;background:#e7efea}</style>
+<main><h1>Loft v0.2 · 35件更新完成</h1><p>2026年11月14日 · 直接更新现有副本 · 原始35件包保持不变</p>
+<p class="note">已接入22件新增资产与新版钢琴，复用为两只音箱、三把吧椅及多组灯具、酒瓶等。此前相同的12件继续沿用，客厅抱枕、披毯的最新摆位保留。</p>
+<section><h2>实际完成的调整</h2><ul>
+<li>钢琴区：更新琴体与琴键，替换琴凳、唱片柜、两只音箱、唱片机和唱片组；书房唱片机继续保留音乐交互。</li>
+<li>吧台区：替换岛台、三把吧椅、咖啡机、酒瓶，新增磨豆机。新岛台内部没有承托面，因此补入独立深色台面；吊挂杯具避让咖啡机与磨豆机。靠墙操作台与原杯具保留。</li>
+<li>阅读区：保留新座椅与脚凳的自然比例，调整相互朝向与间距；地毯校准为2.2×1.8m且保持约1.5cm厚，书墙校准为2m宽、3m高、0.35m深。268本原书重新排入五层隔间，玻璃球预留独立空间；台灯、杯子和书贴合新边几。</li>
+<li>灯具：接入5段天花灯、1盏吊灯、1盏阅读灯、13段柜内灯带与9个筒灯，匹配现有实际安装点，保留轨道灯及结构梁。同步调整主题发光与阅读灯光位置。</li>
+<li>拆分bar、reading、ceiling及night-details时重算分区包围盒；未主动移动的保留物件世界位移误差检查为0。</li></ul></section>
+<section><h2>画质档位与资源</h2><table><tr><th>档位</th><th>模型贴图</th></tr>
+<tr><td>低画质</td><td>独立副本，最长边最多1024像素</td></tr><tr><td>中画质</td><td>独立副本，最长边最多2048像素</td></tr><tr><td>高画质</td><td>原尺寸贴图，常见为4096像素</td></tr></table>
+<p>原尺寸资源没有被低档副本覆盖。画质切换现在会实际切换模型贴图；未提供分档资源的旧场景仍使用原文件。高面数模型做保守减面，约50万面的新增大网格处理为约25万面；原始模型仍完整留在35件来源包。各档副本的几何尺度、材质名和摆位保持一致。</p>
+<p>当前场景共100条摆放配置、62个基础GLB，连同分档及其他资源共128个被引用资源。包体约1.4 GB，包含高画质资源和独立轻量副本。</p></section>
+<section><h2>验证结果与实际性能</h2><ul><li>项目校验和预览工具资源校验通过，构建通过。</li>
+<li>四种主题×七个机位检查完成，低档渲染无加载错误。</li><li>主应用9个书房热点存在，知识库入口、日夜、灯光、雨景、声音开关和拖动操作复查通过。</li>
+<li>中、低画质切换验证通过：观测贴图上限分别为2048和1024，没有丢失图形上下文；主应用中切换后仍保留夜间主题和阅读机位。</li></ul>
+<p>本机Apple A18 Pro、1200×800测试窗口：低档首次加载约2.17秒；固定视角采样约21.8 FPS，主应用拖动采样约14.6 FPS。低档贴图估算约0.58 GB，中档约1.96 GB。估算只统计纹理像素及mipmap，不代表实际显存总占用；两种帧率来自不同视角、不同操作，不可直接当成同一基准。</p>
+<p>仍属于较重的场景，低档也未达到稳定30或60帧。高档完整资源估算约7.4 GB纹理量，本机完整高档初测触发过渲染器退出；按要求保留高档资源，最终视觉与交互验收以低档为主，没有宣称高档在本机稳定运行。</p></section>
+<h2>更新后的实际画面</h2><p>以下为低画质实机截图；高档可加载更高精度贴图。</p><figure><img src="../../work/Loft35-验收/day-c.jpg"><figcaption>钢琴区：新版钢琴、琴凳、音箱与唱片设备</figcaption></figure><figure><img src="../../work/Loft35-验收/day-d-final.jpg"><figcaption>吧台区：岛台、三把吧椅、咖啡设备与分组酒瓶</figcaption></figure><figure><img src="../../work/Loft35-验收/day-e.jpg"><figcaption>阅读区：座椅、脚凳、边几和重排后的书墙</figcaption></figure><figure><img src="../../work/Loft35-验收/neon-night-e.jpg"><figcaption>阅读区夜间效果</figcaption></figure><section><h2>打开与备份</h2>
+<p>重新启动当前项目后加载「3D版Loft v0.2」，在互动菜单的「画质与流畅度」中切换档位。既有独立发布App不会自动更新，本次更新的是项目及场景包，预览工具网页产物已重新构建。</p>
+<p><a href="../../场景包/3D版Loft v0.2/scene.json">当前场景配置</a> · <a href="../../work/Loft35-验收/四主题七机位.jpg">四主题七机位总览</a> · <a href="../../备份/Loft-v0.2-35件更新前-20261114/scene.json">修改前备份配置</a></p>
+<p>完整修改前备份位于「备份/Loft-v0.2-35件更新前-20261114」；测试记录与截图位于「work/Loft35-验收」。</p></section></main></html>
