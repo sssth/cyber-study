@@ -58,6 +58,26 @@ MAC_CODESIGN_IDENTITY="Developer ID Application: 你的公司名 (TEAMID)" pnpm 
 
 也可以把 `assets/icons/app.icns` 放进项目后再打包，脚本会自动替换应用图标。
 
+## 下载场景包
+
+场景包体积较大（约 2.2GB），不随仓库分发，请从 GitHub Release 下载默认场景「3D版Loft v0.2」：
+
+👉 **[场景包下载 · 3D版Loft v0.2](https://github.com/sssth/cyber-study/releases/tag/scene-pack-loft-v0.2)**
+
+安装步骤：
+
+1. 下载以下 3 个压缩包（见 Release 附件）：
+
+   | 文件 | 大小 | 内容 |
+   |------|------|------|
+   | `loft-v0.2-models-main.zip` | 约 1.5GB | 主模型 + LOD 精简模型 |
+   | `loft-v0.2-models-shared.zip` | 约 584MB | 共享公共模型 |
+   | `loft-v0.2-extras.zip` | 约 63MB | 贴图、音效、scene.json |
+
+2. 在项目根目录新建文件夹 `场景包/3D版Loft v0.2/`；
+3. 把 3 个 zip 解压到该文件夹内（合并后应看到 `models/`、`textures/`、`sounds/`、`scene.json`）；
+4. 无需修改配置，`scene.config.json` 默认即指向该场景包，直接启动即可。
+
 ## 打包场景包预览工具
 
 双击项目根目录的「打包场景包预览工具.command」，或运行 `pnpm package:preview:mac`。打包使用「场景包预览工具」目录里已有的 `web` 网页产物。修改工具源码后，请先在工具目录重新构建网页。
