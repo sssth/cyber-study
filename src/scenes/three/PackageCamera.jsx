@@ -4,6 +4,7 @@ import { Euler, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { clampCameraValue } from '../packages/cameraConfig.js';
 
 import { matchesShortcut, movementShortcuts, typingTarget } from '../../data/shortcuts.js';
+import { frameProfiler } from './frameProfiler.js';
 
 export default function PackageCamera({ config: cameraConfig, view, roam: roamConfig, controls, inputActive, shortcuts }) {
   const settingsKey = JSON.stringify({ config: cameraConfig, roam: roamConfig });
@@ -109,6 +110,7 @@ export default function PackageCamera({ config: cameraConfig, view, roam: roamCo
   }, [camera, config, gl, roam, inputActive, shortcuts, invalidate]);
 
   useFrame((_, dt) => {
+    frameProfiler.measureZone('scene:camera', () => {
     const s = state.current;
     if (s.elapsed < s.duration) {
       // Measure from this transition, not the previous (possibly idle) frame.
@@ -140,6 +142,7 @@ export default function PackageCamera({ config: cameraConfig, view, roam: roamCo
     for (let i = 0; i < 3; i++) {
       camera.position.setComponent(i, Math.min(roam.max[i], Math.max(roam.min[i], camera.position.getComponent(i))));
     }
+    });
   }, -1);
   return null;
 }
