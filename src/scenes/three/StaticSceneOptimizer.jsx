@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Box3, DoubleSide, FrontSide, Frustum, Matrix4, Vector3 } from 'three';
 import { boxCorners, boxFullyOccluded, opaqueOccluder, solidBox } from './solidBox.js';
+import { frameProfiler } from './frameProfiler.js';
 
 export default function StaticSceneOptimizer({ ready, theme, models, disabled = false }) {
   const { scene } = useThree();
@@ -18,9 +19,50 @@ export default function StaticSceneOptimizer({ ready, theme, models, disabled = 
       for (const material of state.materials.values()) material.dispose();
       state.materials.clear(); state.entries = null;
     };
-  }, [state, scene, theme, models, ready, disabled]);
+  }, [state, scene, models, ready, disabled]);
+
+  useLayoutEffect(() => {
+    state.lastFlags = '';
+    if (!state.entries) return;
+    let transmission = false;
+    for (const entry of state.entries) {
+      let visible = true;
+      for (let p = entry.object; p; p = p.parent) visible &&= p.visible;
+      entry.visible = visible;
+      for (const box of entry.boxes) {
+        const orig = box.original;
+        if (!transmission && orig.transmission > 0) transmission = true;
+        if (box.front && box.front !== orig) {
+          if (orig.color && box.front.color) box.front.color.copy(orig.color);
+          box.front.toneMapped = orig.toneMapped;
+          box.front.blending = orig.blending;
+          box.front.transparent = orig.transparent;
+          box.front.depthWrite = orig.depthWrite;
+          box.front.roughness = orig.roughness;
+          box.front.metalness = orig.metalness;
+          box.front.emissiveIntensity = orig.emissiveIntensity;
+          box.front.envMapIntensity = orig.envMapIntensity;
+          box.front.clearcoat = orig.clearcoat;
+          box.front.clearcoatRoughness = orig.clearcoatRoughness;
+          if (box.front.map !== orig.map) {
+            box.front.map = orig.map;
+            box.front.needsUpdate = true;
+          }
+        }
+        box.solidOccluder = opaqueOccluder(orig);
+      }
+    }
+    state.transmission = transmission;
+    state.occluders = state.entries
+      .filter(e => e.visible && !e.dynamic)
+      .flatMap(e => e.boxes.filter(b => b.solidOccluder !== false).map(b => ({ ...b, owner: e })))
+      .filter(b => b.area > 0.08)
+      .sort((a, b) => b.area - a.area)
+      .slice(0, 48);
+  }, [state, theme]);
   useFrame(({ camera, gl, invalidate }) => {
     if (!ready || disabled) return;
+    frameProfiler.measureZone('scene:cull', () => {
     if (!state.entries) {
       scene.updateMatrixWorld(true);
       const entries = [];
@@ -89,6 +131,7 @@ export default function StaticSceneOptimizer({ ready, theme, models, disabled = 
     }
     scene.userData.renderOptimizationStats = { occluded: hidden, outside, singleSided, occluders: state.occluders.length };
     if (shadow) invalidate();
+    });
   }, -0.5);
   return null;
 }

@@ -18,28 +18,19 @@ function geometryEntry(base, buffer, spec, i) {
   }
   if (variants.has(buffer)) return variants.get(buffer);
   const indices = new Uint32Array(buffer);
-  const geometry = new BufferGeometry(), remap = new Int32Array(spec.vertexCount).fill(-1);
-  const vertices = new Uint32Array(spec.vertexCount), compact = new Uint32Array(indices.length);
-  let count = 0;
   for (let n = 0; n < indices.length; n++) {
-    const old = indices[n];
-    if (old >= spec.vertexCount) throw Error('LOD 顶点索引越界');
-    if (remap[old] === -1) { remap[old] = count; vertices[count++] = old; }
-    compact[n] = remap[old];
+    if (indices[n] >= spec.vertexCount) throw Error('LOD 顶点索引越界');
   }
-  let bytes = 0;
-  for (const [name, attribute] of Object.entries(base.attributes)) {
+  for (const attribute of Object.values(base.attributes)) {
     if (attribute.isInterleavedBufferAttribute) throw Error('LOD 不支持交错顶点数据');
-    const values = new attribute.array.constructor(count * attribute.itemSize);
-    for (let n = 0; n < count; n++) {
-      const start = vertices[n] * attribute.itemSize;
-      values.set(attribute.array.subarray(start, start + attribute.itemSize), n * attribute.itemSize);
-    }
-    geometry.setAttribute(name, new BufferAttribute(values, attribute.itemSize, attribute.normalized));
-    bytes += values.byteLength;
   }
-  const compactIndices = count <= 65535 ? new Uint16Array(compact) : compact;
-  geometry.setIndex(new BufferAttribute(compactIndices, 1)); bytes += compactIndices.byteLength;
+  const geometry = new BufferGeometry();
+  geometry.attributes = base.attributes;
+  geometry.morphAttributes = base.morphAttributes;
+  geometry.morphTargetsRelative = base.morphTargetsRelative;
+  const indexValues = spec.vertexCount <= 65535 ? new Uint16Array(indices) : indices;
+  geometry.setIndex(new BufferAttribute(indexValues, 1));
+  const bytes = indexValues.byteLength;
   geometry.boundingBox = base.boundingBox; geometry.boundingSphere = base.boundingSphere;
   const entry = { geometry, buffer, variants, bytes, users: 0 };
   variants.set(buffer, entry); return entry;
@@ -57,9 +48,34 @@ export function retainLodGeometry(base, buffer, spec, level) {
     }
   } };
 }
-// Used by offline validation; the renderer acquires only its currently needed tier.
+// Used by offline validation; compacts referenced vertices to verify attribute integrity.
 export function lodGeometries(base, buffers, spec) {
-  return buffers.map((buffer,i) => geometryEntry(base,buffer,spec,i).geometry);
+  return buffers.map((buffer, i) => {
+    const entry = geometryEntry(base, buffer, spec, i);
+    if (entry.compacted) return entry.compacted;
+    const indices = new Uint32Array(buffer);
+    const geometry = new BufferGeometry(), remap = new Int32Array(spec.vertexCount).fill(-1);
+    const vertices = new Uint32Array(spec.vertexCount), compact = new Uint32Array(indices.length);
+    let count = 0;
+    for (let n = 0; n < indices.length; n++) {
+      const old = indices[n];
+      if (remap[old] === -1) { remap[old] = count; vertices[count++] = old; }
+      compact[n] = remap[old];
+    }
+    for (const [name, attribute] of Object.entries(base.attributes)) {
+      const values = new attribute.array.constructor(count * attribute.itemSize);
+      for (let n = 0; n < count; n++) {
+        const start = vertices[n] * attribute.itemSize;
+        values.set(attribute.array.subarray(start, start + attribute.itemSize), n * attribute.itemSize);
+      }
+      geometry.setAttribute(name, new BufferAttribute(values, attribute.itemSize, attribute.normalized));
+    }
+    const compactIndices = count <= 65535 ? new Uint16Array(compact) : compact;
+    geometry.setIndex(new BufferAttribute(compactIndices, 1));
+    geometry.boundingBox = base.boundingBox; geometry.boundingSphere = base.boundingSphere;
+    entry.compacted = geometry;
+    return geometry;
+  });
 }
 export function lodCacheStats() { return { unusedBytes: idleBytes, unusedCount: unused.size, idleBudget }; }
 

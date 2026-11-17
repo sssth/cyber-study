@@ -11,9 +11,15 @@
 
 ## 启动方式
 
-macOS 用户可以直接双击项目根目录下的 `启动赛博书房.command`。
+macOS 用户可以直接双击项目根目录下的 `启动赛博书房.command`，Windows 用户双击 `启动赛博书房.bat`。
 
 需要先安装 Node.js 20 或更高版本。
+
+Windows 上的差异：
+
+- 窗口使用系统标题栏（`hiddenInset` 只在 macOS 生效）。
+- PDF 导入组件用 `安装 PDF 转换组件.cmd` 安装，脚本会自动查找 `python` / `py`。
+- 打包脚本 `package:mac` 仍然只在 macOS 上可用。
 
 安装依赖：
 

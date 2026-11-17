@@ -4,10 +4,10 @@ import ModelLod from './ModelLod.jsx';
 import { prepareStaticModel } from './staticModel.js';
 import { modelsForQuality } from '../packages/modelQuality.js';
 import { normalizeGraphics } from '../../data/graphics.js';
-import GraphicsMonitor, { LiveGraphicsMonitor } from './GraphicsMonitor.jsx';
+import GraphicsMonitor, { FrameProfilerBridge, LiveGraphicsMonitor } from './GraphicsMonitor.jsx';
 import '../../styles/scene-package.css';
 
-import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from 'react';
+import { Suspense, memo, useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { Box3, Vector3, Raycaster } from 'three';
@@ -38,7 +38,7 @@ function FirstSceneFrame({ onReady }) {
   return null;
 }
 
-function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHover, onLeave, theme, hidden }) {
+const Model = memo(function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHover, onLeave, theme, hidden }) {
   const supportItem = models.find(model => model.id === item.support) || item;
   const { scene: supportScene } = useSceneGLTF(supportItem.modelUrl);
   const { scene } = useSceneGLTF(item.modelUrl);
@@ -109,7 +109,7 @@ function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHove
       </Html>
     </>}
   </group>;
-}
+});
 // Rotate the viewing direction while keeping the viewer inside the room.
 function CameraRange({ far }) {
   const camera = useThree(state => state.camera);
@@ -192,7 +192,7 @@ function FeatureHint({ description }) {
   return visible ? <span className="scene-feature-hint">{description}</span> : null;
 }
 
-function FurnitureScene({ liveGraphics, onLiveGraphics, viewState, quality = 'medium', graphicsTest, onGraphicsResult, scene, lightsOn = true, mode, onFeature, onCare, onModelSelect, selectedId, previewView, previewTheme, rainOn = true, onSceneSettled, onTheme, inputActive = true, shortcuts }) {
+function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = false, viewState, quality = 'medium', graphicsTest, onGraphicsResult, scene, lightsOn = true, mode, onFeature, onCare, onModelSelect, selectedId, previewView, previewTheme, rainOn = true, onSceneSettled, onTheme, inputActive = true, shortcuts }) {
   const preset = normalizeGraphics(quality);
   const controls = useRef();
   const bindings = useMemo(() => shortcuts ?? Object.fromEntries(
@@ -244,7 +244,10 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, viewState, quality = 'me
   const dim = !lightsOn || mode === 'low-light';
 
   const careFor = feature => inputActive && onCare && ['cat', 'pet', 'plant'].includes(feature) ? onCare : undefined;
-  const clearHover = () => setHoveredId(null);
+  const clearHover = useCallback(() => setHoveredId(null), []);
+  const handleLeave = useCallback(id => setHoveredId(current => current === id ? null : current), []);
+  const canvasDpr = useMemo(() => [1, preset.dpr], [preset.dpr]);
+  const canvasGl = useMemo(() => ({ antialias: preset.antialias }), [preset.antialias]);
 
   return <div className={hoveredFeature ? 'furniture-3d-layer feature-hovered' : 'furniture-3d-layer'}
     aria-label="三维书房，拖动旋转视角，滚轮缩放"
@@ -259,11 +262,12 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, viewState, quality = 'me
       layer.style.setProperty('--scene-pointer-y', `${event.clientY - top}px`);
     } : undefined}>
     <LoadingBoundary message="房间加载失败，请重新打开应用。" onError={onSceneSettled}>
-      <Canvas frameloop={(rainOn && preset.rain > 0 && scene.outdoorRain && (!theme || theme.rain)) || graphicsTest || liveGraphics ? 'always' : 'demand'} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={[1, preset.dpr]} gl={{ antialias: preset.antialias }}>
+      <Canvas frameloop={(rainOn && preset.rain > 0 && scene.outdoorRain && (!theme || theme.rain)) || graphicsTest || liveGraphics || forceAlwaysRender ? 'always' : 'demand'} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={canvasDpr} gl={canvasGl}>
+        <FrameProfilerBridge />
         {liveGraphics && ready && <LiveGraphicsMonitor onUpdate={onLiveGraphics} />}
         {graphicsTest && ready && <GraphicsMonitor onResult={onGraphicsResult} />}
         <CameraRange far={scene.camera.far ?? 150} />
-        {theme ? <ThemeLighting shadowSize={preset.shadowSize} theme={theme} lightsOn={lightsOn} /> : <>
+        {theme ? <ThemeLighting shadowSize={preset.shadowSize} theme={theme} themes={appearance?.themes} lightsOn={lightsOn} /> : <>
         <color attach="background" args={['#060c1b']} />
         <ambientLight intensity={dim ? 0.5 : 1.5} />
         <hemisphereLight args={['#a8dcff', '#28304b', dim ? 0.5 : 1.3]} />
@@ -281,7 +285,7 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, viewState, quality = 'me
             onCare={careFor(item.feature)} theme={theme} hidden={theme?.hidden?.includes(item.id)}
             onModelSelect={onModelSelect} selected={item.id === selectedId}
             onHover={featureHover && item.feature ? setHoveredId : undefined}
-            onLeave={featureHover && item.feature ? id => setHoveredId(current => current === id ? null : current) : undefined} />)}
+            onLeave={featureHover && item.feature ? handleLeave : undefined} />)}
             <StaticSceneOptimizer ready={ready} theme={theme} models={scene.models} disabled={Boolean(onModelSelect)} />
             {preset.glows && theme?.glows && <ThemeGlows config={theme.glows} />}
           </SceneTextures>
@@ -336,8 +340,9 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, viewState, quality = 'me
 export default function Furniture3DLayer(props) {
   const [night, setNight] = useState(false);
   const [selectedView, setView] = useState(null);
-  const quality = normalizeGraphics(props.quality);
+  const quality = useMemo(() => normalizeGraphics(props.quality), [props.quality]);
   const resourceQuality = quality.textures;
   const scene = useMemo(() => ({ ...props.scene, models: modelsForQuality(props.scene, resourceQuality) }), [props.scene, resourceQuality]);
-  return <FurnitureScene key={`${resourceQuality}-${quality.antialias}`} {...props} quality={quality} scene={scene} viewState={{ night, setNight, selectedView, setView }} />;
+  const viewState = useMemo(() => ({ night, setNight, selectedView, setView }), [night, selectedView]);
+  return <FurnitureScene key={`${resourceQuality}-${quality.antialias}`} {...props} quality={quality} scene={scene} viewState={viewState} />;
 }

@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -6,9 +7,20 @@ import { fileURLToPath } from 'node:url';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const isWindows = process.platform === 'win32';
 const binSuffix = isWindows ? '.cmd' : '';
-const viteBin = path.join(rootDir, 'node_modules', '.bin', `vite${binSuffix}`);
-const electronBin = path.join(rootDir, 'node_modules', '.bin', `electron${binSuffix}`);
+const viteCli = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
 const devUrl = 'http://127.0.0.1:5173';
+
+// Windows 的 .bin 里是 .cmd 包装脚本，直接 spawn 会被 Node 拒绝；优先用真实可执行文件。
+function resolveElectronExecutable() {
+  const dist = path.join(rootDir, 'node_modules', 'electron', 'dist');
+  const candidates = isWindows
+    ? [path.join(dist, 'electron.exe')]
+    : [path.join(dist, 'Electron.app', 'Contents', 'MacOS', 'Electron'), path.join(dist, 'electron')];
+  return candidates.find((candidate) => existsSync(candidate))
+    ?? path.join(rootDir, 'node_modules', '.bin', `electron${binSuffix}`);
+}
+
+const electronExecutable = resolveElectronExecutable();
 
 let electronProcess = null;
 let viteProcess = null;
@@ -51,11 +63,10 @@ async function waitForDevServer() {
   throw new Error(`无法连接本地开发服务：${devUrl}`);
 }
 
-viteProcess = spawn(viteBin, ['--host', '127.0.0.1', '--port', '5173', '--strictPort'], {
-  cwd: rootDir,
-  stdio: 'inherit',
-  env: process.env
-});
+const viteArgs = ['--host', '127.0.0.1', '--port', '5173', '--strictPort'];
+viteProcess = existsSync(viteCli)
+  ? spawn(process.execPath, [viteCli, ...viteArgs], { cwd: rootDir, stdio: 'inherit', env: process.env })
+  : spawn(path.join(rootDir, 'node_modules', '.bin', `vite${binSuffix}`), viteArgs, { cwd: rootDir, stdio: 'inherit', env: process.env });
 
 viteProcess.on('exit', (code) => {
   if (!shuttingDown) {
@@ -65,11 +76,13 @@ viteProcess.on('exit', (code) => {
 
 try {
   await waitForDevServer();
-  electronProcess = spawn(electronBin, ['.'], {
+  // 某些终端环境（编辑器内置终端等）会设置 ELECTRON_RUN_AS_NODE，导致 Electron 退化成 Node 执行。
+  const { ELECTRON_RUN_AS_NODE: _runAsNode, ...electronEnv } = process.env;
+  electronProcess = spawn(electronExecutable, ['.'], {
     cwd: rootDir,
     stdio: 'inherit',
     env: {
-      ...process.env,
+      ...electronEnv,
       VITE_DEV_SERVER_URL: devUrl,
       NODE_ENV: 'development'
     }

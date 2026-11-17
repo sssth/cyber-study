@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
-    "test": "node --test 'src/**/*.test.*' 'electron/**/*.test.cjs' 'scripts/**/*.test.mjs'",
+    "test": "node --test",
     "start": "vite build && electron .",
     "package:mac": "node scripts/package-mac.mjs",
     "package:preview:mac": "node scripts/package-mac.mjs --preview"

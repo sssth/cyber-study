@@ -13,26 +13,41 @@ const hash = (value) => createHash('sha256').update(value).digest('hex');
 const library = () => path.join(app.getPath('userData'), 'books');
 const bookDirectory = (id) => path.join(library(), hash(id));
 
-async function convertPdf(original) {
-  const dependencies = path.join(app.getPath('userData'), 'pdf-text-deps');
+const installer = process.platform === 'win32' ? '安装 PDF 转换组件.cmd' : '安装 PDF 转换组件.command';
+
+async function pythonCandidates(dependencies) {
   const configuredPython = await fs.readFile(path.join(dependencies, '.python-path'), 'utf8')
     .then((value) => value.trim(), () => '');
-  const python = process.env.CYBER_STUDY_PYTHON || configuredPython || 'python3';
-  try {
-    const { stdout } = await run(python, [path.join(__dirname, 'book_pdf.py'), original], {
-      env: { ...process.env, PYTHONPATH: dependencies, PYTHONDONTWRITEBYTECODE: '1', PYTHONNOUSERSITE: '1' },
-      maxBuffer: 64 * 1024 * 1024,
-      timeout: 5 * 60 * 1000
-    });
-    return stdout.trim();
-  } catch (error) {
-    if (error.code === 'ENOENT' || error.stderr?.includes('ModuleNotFoundError')) {
-      throw new Error('PDF 转换组件未安装，请运行「安装 PDF 转换组件.command」。');
-    }
-    if (error.killed) throw new Error('PDF 转换超过 5 分钟。');
-    throw new Error(error.code === 2 && error.stderr?.trim() ? error.stderr.trim() : '无法提取 PDF 正文，请检查文件。');
-  }
+  const explicit = [process.env.CYBER_STUDY_PYTHON, configuredPython].filter(Boolean);
+  if (explicit.length) return explicit;
+  return process.platform === 'win32' ? ['python', 'py'] : ['python3'];
 }
+
+async function convertPdf(original) {
+  const dependencies = path.join(app.getPath('userData'), 'pdf-text-deps');
+  let failure;
+  for (const python of await pythonCandidates(dependencies)) {
+    try {
+      const { stdout } = await run(python, [path.join(__dirname, 'book_pdf.py'), original], {
+        env: { ...process.env, PYTHONPATH: dependencies, PYTHONDONTWRITEBYTECODE: '1', PYTHONNOUSERSITE: '1' },
+        maxBuffer: 64 * 1024 * 1024,
+        timeout: 5 * 60 * 1000
+      });
+      return stdout.trim();
+    } catch (error) {
+      failure = error;
+      // 只有「找不到解释器」才继续尝试下一个候选，其他错误直接抛出。
+      if (error.code !== 'ENOENT') break;
+    }
+  }
+  const error = failure ?? new Error('未找到 Python。');
+  if (error.code === 'ENOENT' || error.stderr?.includes('ModuleNotFoundError')) {
+    throw new Error(`PDF 转换组件未安装，请运行「${installer}」。`);
+  }
+  if (error.killed) throw new Error('PDF 转换超过 5 分钟。');
+  throw new Error(error.code === 2 && error.stderr?.trim() ? error.stderr.trim() : '无法提取 PDF 正文，请检查文件。');
+}
+
 
 function decodeText(bytes) {
   if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);

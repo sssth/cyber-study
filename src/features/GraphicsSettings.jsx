@@ -23,7 +23,11 @@ export default function GraphicsSettings({ quality, onChange, test, result, onTe
       </div>
       <button type="button" disabled={test} onClick={onTest}>{test ? '检测中…' : '详细检测'}</button>
       {test && <p role="status">约 10 秒，请保持窗口在前台。</p>}
-      {result && <div className="graphics-test-result" role="status"><p>平均 {result.fps} FPS · 慢帧 {result.p95} ms</p><p>三角形 {result.triangles.toLocaleString()} · 绘制 {result.calls} 次 · 纹理 {result.textures} 张</p></div>}
+      {result && <div className="graphics-test-result" role="status">
+        <p>平均 {result.fps} FPS · P95 {result.p95} ms{result.p99 ? ` · P99 ${result.p99} ms` : ''}</p>
+        <p>CPU 帧 {result.cpuFrameMs ?? '—'} ms · 渲染提交 {result.cpuRenderMs ?? '—'} ms · GPU {result.gpuMs ?? '不支持'} {result.gpuMs !== null && result.gpuMs !== undefined ? 'ms' : ''}</p>
+        <p>三角形 {result.triangles.toLocaleString()} · 绘制 {result.calls} 次 · 几何体 {result.geometries ?? '—'} · 纹理 {result.textures} 张</p>
+      </div>}
     </section>
   </section>;
 }

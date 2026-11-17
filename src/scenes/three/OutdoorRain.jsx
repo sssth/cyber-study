@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, DynamicDrawUsage, NormalBlending } from 'three';
+import { frameProfiler } from './frameProfiler.js';
 
 export default function OutdoorRain({ bounds, density = 1 }) {
   const attribute = useRef(null);
@@ -32,16 +33,18 @@ export default function OutdoorRain({ bounds, density = 1 }) {
 
   // Advance on every rendered frame, independently of camera input.
   useFrame((_, delta) => {
-    const step = Math.min(delta, 0.05);
-    drops.forEach((drop, index) => {
-      const { height } = drop;
-      drop.offset = (drop.offset + height - (drop.speed * step) % height) % height;
-      const y = drop.bottom + drop.offset;
-      const start = index * 6;
-      positions[start + 1] = y;
-      positions[start + 4] = Math.min(y + drop.length, drop.top);
+    frameProfiler.measureZone('scene:rain', () => {
+      const step = Math.min(delta, 0.05);
+      drops.forEach((drop, index) => {
+        const { height } = drop;
+        drop.offset = (drop.offset + height - (drop.speed * step) % height) % height;
+        const y = drop.bottom + drop.offset;
+        const start = index * 6;
+        positions[start + 1] = y;
+        positions[start + 4] = Math.min(y + drop.length, drop.top);
+      });
+      attribute.current.needsUpdate = true;
     });
-    attribute.current.needsUpdate = true;
   });
 
   return (

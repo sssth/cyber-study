@@ -27,5 +27,23 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   doubanMovie: (subjectId) => ipcRenderer.invoke('movie:douban', subjectId),
   doubanMovieInBrowser: (subjectId) => ipcRenderer.invoke('movie:douban-browser', subjectId),
   uploadMoviePoster: (bytes) => ipcRenderer.invoke('movie:upload-poster', bytes),
-  cacheMoviePoster: (address) => ipcRenderer.invoke('movie:cache-poster', address)
+  cacheMoviePoster: (address) => ipcRenderer.invoke('movie:cache-poster', address),
+  profiler: {
+    getStatus: () => ipcRenderer.invoke('profiler:status'),
+    startTrace: (options) => ipcRenderer.invoke('profiler:start-trace', options),
+    stopTrace: () => ipcRenderer.invoke('profiler:stop-trace'),
+    saveReport: (snapshot) => ipcRenderer.invoke('profiler:save-report', snapshot),
+    getGpuInfo: () => ipcRenderer.invoke('profiler:gpu-info'),
+    openTraces: () => ipcRenderer.invoke('profiler:open-traces'),
+    onTraceState: (callback) => {
+      const listener = (_event, state) => callback(state);
+      ipcRenderer.on('profiler:trace-state', listener);
+      return () => ipcRenderer.removeListener('profiler:trace-state', listener);
+    },
+    onToggleHud: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on('profiler:toggle-hud', listener);
+      return () => ipcRenderer.removeListener('profiler:toggle-hud', listener);
+    }
+  }
 });

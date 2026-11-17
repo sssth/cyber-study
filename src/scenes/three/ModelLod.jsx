@@ -3,6 +3,7 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { Box3, FileLoader, Matrix4, Vector3 } from 'three';
 import { createAssetLifetime } from './assetLifetime.js';
 import { chooseLod, retainLodGeometry } from './modelLod.js';
+import { frameProfiler } from './frameProfiler.js';
 
 class IndexLoader extends FileLoader {
   constructor(manager) { super(manager); this.setResponseType('arraybuffer'); }
@@ -34,15 +35,12 @@ export default function ModelLod({ object, item, forceOriginal = false }) {
     };
     return () => { for (const t of targets) { t.mesh.geometry = t.base; t.active?.release(); t.active = null; t.mesh.raycast = t.raycast; delete t.mesh.userData.displayLod; } };
   }, [targets, last]);
-  useFrame(({ camera, size, gl, invalidate, scene }) => {
+  useFrame(({ camera, size, gl, scene }) => {
     if (!targets.length) return;
-    for (let parent = object; parent; parent = parent.parent) if (!parent.visible) {
-      for (const t of targets) { t.mesh.geometry = t.base; t.active?.release(); t.active = null; t.mesh.userData.displayLod = 0; }
-      level.current = 0; last.flags = ''; return;
-    }
+    frameProfiler.measureZone('scene:lod', () => {
+    for (let parent = object; parent; parent = parent.parent) if (!parent.visible) return;
     object.updateWorldMatrix(true, true);
-    const shadowRefresh = gl.shadowMap.enabled && gl.shadowMap.needsUpdate;
-    const flags = `${forceOriginal}-${shadowRefresh}-${scene.userData.lodDisabled}-${size.height}-${gl.getPixelRatio()}`;
+    const flags = `${forceOriginal}-${scene.userData.lodDisabled}-${size.height}-${gl.getPixelRatio()}`;
     if (flags === last.flags && last.camera.equals(camera.matrixWorld) && last.projection.equals(camera.projectionMatrix) && last.object.equals(object.matrixWorld)) return;
     last.flags = flags; last.camera.copy(camera.matrixWorld); last.projection.copy(camera.projectionMatrix); last.object.copy(object.matrixWorld);
     const { box, center, camera: eye, size: extent } = scratch;
@@ -51,8 +49,7 @@ export default function ModelLod({ object, item, forceOriginal = false }) {
     const diameter = extent.length();
     const distance = Math.max(0.001, eye.distanceTo(center) - diameter / 2);
     const pixels = diameter * size.height * gl.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360) * distance);
-    if (shadowRefresh) invalidate();
-    const next = forceOriginal || shadowRefresh || scene.userData.lodDisabled === true ? 0 : chooseLod(pixels, item.lodQuality, item.lod.levels, level.current);
+    const next = forceOriginal || scene.userData.lodDisabled === true ? 0 : chooseLod(pixels, item.lodQuality, item.lod.levels, level.current);
     if (next !== level.current) {
       for (const t of targets) {
         const active = next ? retainLodGeometry(t.base, buffers[next - 1], item.lod, next - 1) : null;
@@ -62,6 +59,7 @@ export default function ModelLod({ object, item, forceOriginal = false }) {
       level.current = next;
     }
     for (const t of targets) t.mesh.userData.displayLod = next;
+    });
   });
   return null;
 }

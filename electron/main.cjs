@@ -5,9 +5,12 @@ const { serveMoviePosters, cacheMoviePoster, uploadMoviePoster } = require('./mo
 const { registerGlobe } = require('./globe/register.cjs');
 const { registerBooks } = require('./books.cjs');
 const { registerMusic } = require('./music/register.cjs');
+const { configureGpuSwitches, registerProfiler } = require('./profiler.cjs');
+
+configureGpuSwitches();
 
 // 开发模式把运行数据留在项目目录，便于检查和清理；
-// 打包后的 macOS app 会使用系统默认的 ~/Library/Application Support。
+// 打包后的应用使用系统默认的用户数据目录。
 if (!app.isPackaged) {
   const runtimeDataDir = path.join(__dirname, '..', '.user-data');
   app.setPath('userData', runtimeDataDir);
@@ -20,6 +23,7 @@ let mainWindow = null;
 registerMusic(() => mainWindow);
 registerBooks(() => mainWindow);
 const serveMemoryPhotos = registerGlobe(() => mainWindow);
+const { attachWindowShortcuts } = registerProfiler(() => mainWindow);
 
 ipcMain.handle('movie:douban', async (event, subjectId) => {
   if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame
@@ -149,7 +153,8 @@ function createWindow() {
     minWidth: 1080,
     minHeight: 680,
     backgroundColor: '#03060d',
-    titleBarStyle: 'hiddenInset',
+    // hiddenInset 只在 macOS 生效，Windows 上会丢掉系统标题栏按钮，因此保留默认边框。
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -163,6 +168,8 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+
+  attachWindowShortcuts(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);

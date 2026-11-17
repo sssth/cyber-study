@@ -25,6 +25,7 @@ import { GlobePanel, TypewriterPanel, PetPanel, PlantPanel } from './features/Sp
 
 import ShortcutSettings from './features/ShortcutSettings.jsx';
 import { loadShortcuts, matchesShortcut, saveShortcuts, shortcutGroups } from './data/shortcuts.js';
+import ProfilerHud from './ui/ProfilerHud.jsx';
 
 const groups = shortcutGroups(defaultPackage);
 const focusFeatures = new Set(['knowledge', 'typewriter', 'diary']);
@@ -113,6 +114,7 @@ function App() {
   const [graphicsResult, setGraphicsResult] = useState(null);
   const [graphicsLive, setGraphicsLive] = useState(null);
   const [graphicsError, setGraphicsError] = useState('');
+  const [forceAlwaysRender, setForceAlwaysRender] = useState(false);
   const finishGraphicsTest = useCallback(result => {
     const tier = calibrationRef.current;
     if (!tier) { setGraphicsResult(result); setGraphicsTest(false); return; }
@@ -418,6 +420,7 @@ function App() {
       <section className="scene-stage" aria-label="书房场景">
         <StudyScene
           liveGraphics={menuOpen && graphicsOpen} onLiveGraphics={setGraphicsLive}
+          forceAlwaysRender={forceAlwaysRender}
           quality={quality} graphicsTest={graphicsTest || Boolean(calibration)} onGraphicsResult={finishGraphicsTest}
           shortcuts={shortcuts}
           lightsOn={lightsOn}
@@ -540,6 +543,12 @@ function App() {
           {activeHotspot.detail && <span>{activeHotspot.detail}</span>}
         </div>
       )}
+
+      <ProfilerHud
+        forceAlwaysRender={forceAlwaysRender}
+        onToggleAlwaysRender={setForceAlwaysRender}
+        quality={quality}
+      />
     </main>
   );
 }

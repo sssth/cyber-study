@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useLoader, useThree } from '@react-three/fiber';
 import {
   ACESFilmicToneMapping, AdditiveBlending, AmbientLight, Color, DirectionalLight, DoubleSide, FogExp2,
@@ -16,13 +16,37 @@ const textureLifetime = createAssetLifetime((_id, texture) => {
   // Texture objects can be shared by providers; dispose after the final user.
 });
 const textureGroups = createAssetLifetime(key => useLoader.clear(TextureLoader, JSON.parse(key)));
+const environmentCache = new WeakMap();
+const environmentLifetime = createAssetLifetime((key, entry) => {
+  entry.map?.delete(key);
+  entry.result.dispose();
+});
 
 export function SceneTextures({ scene, theme, materialsOnly = false, children }) {
+  const gl = useThree(state => state.gl);
   const paths = useMemo(() => {
+    const allThemes = scene.appearance?.themes;
+    if (allThemes && !materialsOnly) {
+      return [...sceneAssets({ models: [], appearance: { themes: allThemes } })].filter(isSceneTexture);
+    }
     if (!theme) return [];
     const current = materialsOnly ? { materials: theme.materials } : theme;
     return [...sceneAssets({ models: [], appearance: { themes: { current } } })].filter(isSceneTexture);
-  }, [theme, materialsOnly]);
+  }, [scene.appearance?.themes, theme, materialsOnly]);
+  const panoramaPaths = useMemo(() => {
+    const set = new Set();
+    const list = scene.appearance?.themes && !materialsOnly
+      ? Object.values(scene.appearance.themes)
+      : (theme ? [theme] : []);
+    for (const item of list) {
+      if (item.panorama?.file) set.add(item.panorama.file);
+      for (const file of Object.values(item.panorama?.regions ?? {})) set.add(file);
+      if (item.panorama?.front?.file) set.add(item.panorama.front.file);
+      if (item.panorama?.skyRepair) set.add(item.panorama.skyRepair);
+      if (item.panorama?.original) set.add(item.panorama.original);
+    }
+    return set;
+  }, [scene.appearance?.themes, theme, materialsOnly]);
   const urls = useMemo(() => paths.map(file => scene.assetUrl(file)), [paths, scene.assetUrl]);
   const textures = useLoader(TextureLoader, urls);
   const groupKey = JSON.stringify(urls);
@@ -31,6 +55,22 @@ export function SceneTextures({ scene, theme, materialsOnly = false, children })
     const releases = textures.map(texture => textureLifetime.retain(texture.uuid, texture));
     return () => { releaseGroup(); releases.forEach(release=>release()); };
   }, [groupKey, textures]);
+  useLayoutEffect(() => {
+    for (let i = 0; i < paths.length; i++) {
+      const texture = textures[i];
+      if (!texture) continue;
+      texture.colorSpace = SRGBColorSpace;
+      if (panoramaPaths.has(paths[i])) {
+        texture.generateMipmaps = false;
+        texture.minFilter = texture.magFilter = LinearFilter;
+      }
+      if (!texture.userData?.gpuPrewarmed) {
+        texture.needsUpdate = true;
+        texture.userData = { ...texture.userData, gpuPrewarmed: true };
+        gl.initTexture?.(texture);
+      }
+    }
+  }, [gl, paths, panoramaPaths, textures]);
   const byFile = useMemo(() => Object.fromEntries(paths.map((path, index) => [path, textures[index]])), [paths, textures]);
   return <TextureContext.Provider value={byFile}>{children}</TextureContext.Provider>;
 }
@@ -47,29 +87,41 @@ function EquirectangularPanorama({ config }) {
   const front = textures[config?.front?.file];
   const original = textures[config?.original];
   const uniforms = useMemo(() => ({
-    panorama: { value: texture },
-    frontImage: { value: front ?? texture },
-    originalImage: { value: original ?? front ?? texture },
-    hasOriginal: { value: Boolean(original) },
-    hasFront: { value: Boolean(front) },
-    isOutpaint: { value: Boolean(config?.outpaint) },
-    frontTanHalfFov: { value: config?.front?.tanHalfFov ?? 1 },
-    frontAspect: { value: config?.front?.aspect ?? 1 },
-    frontBlend: { value: config?.front?.blend ?? 0.035 },
+    panorama: { value: null },
+    frontImage: { value: null },
+    originalImage: { value: null },
+    hasOriginal: { value: false },
+    hasFront: { value: false },
+    isOutpaint: { value: false },
+    frontTanHalfFov: { value: 1 },
+    frontAspect: { value: 1 },
+    frontBlend: { value: 0.035 },
     inverseProjection: { value: new Matrix4() },
     cameraRotation: { value: new Matrix4() }
-  }), [texture, front, original, config]);
+  }), []);
   useLayoutEffect(() => {
     if (!texture) return;
+    uniforms.panorama.value = texture;
+    uniforms.frontImage.value = front ?? texture;
+    uniforms.originalImage.value = original ?? front ?? texture;
+    uniforms.hasOriginal.value = Boolean(original);
+    uniforms.hasFront.value = Boolean(front);
+    uniforms.isOutpaint.value = Boolean(config?.outpaint);
+    uniforms.frontTanHalfFov.value = config?.front?.tanHalfFov ?? 1;
+    uniforms.frontAspect.value = config?.front?.aspect ?? 1;
+    uniforms.frontBlend.value = config?.front?.blend ?? 0.035;
     for (const image of [texture, front, original].filter(Boolean)) {
+      const wrapS = image === texture && !front ? RepeatWrapping : image.wrapS;
+      if (image.userData?.equirectConfigured && image.wrapS === wrapS) continue;
       image.colorSpace = SRGBColorSpace;
       // Avoid undefined implicit mip derivatives at the projection boundary.
       if (image === texture && !front) image.wrapS = RepeatWrapping;
       image.generateMipmaps = false;
       image.minFilter = image.magFilter = LinearFilter;
       image.needsUpdate = true;
+      image.userData = { ...image.userData, equirectConfigured: true };
     }
-  }, [texture, front, original]);
+  }, [texture, front, original, config, uniforms]);
   if (!texture) return null;
   return <mesh name="room-panorama" frustumCulled={false} renderOrder={1000}
     onBeforeRender={(_renderer, _scene, camera) => {
@@ -163,11 +215,12 @@ export function ThemeGlows({ config }) {
 export function useThemeMaterials(object, theme) {
   const textures = useContext(TextureContext);
   const gl = useThree(state => state.gl);
+  const stateRef = useRef(null);
 
   useLayoutEffect(() => {
-    if (!theme) return;
     const originals = new Map();
-    const materials = new Map();
+    const instances = new Map();
+    const defaults = new Map();
     const copies = new Map();
     object.traverse(mesh => {
       if (!mesh.isMesh) return;
@@ -178,81 +231,173 @@ export function useThemeMaterials(object, theme) {
       mesh.castShadow = mesh.userData.castShadow ?? solid;
       mesh.receiveShadow = mesh.userData.receiveShadow ?? solid;
       const mapped = list.map(material => {
-        if (materials.has(material)) return materials.get(material);
-        const values = Object.hasOwn(theme.materials ?? {}, material.name) ? theme.materials[material.name] : null;
-        const copy = values ? material.clone() : material;
-        if (values?.color && copy.color) copy.color.set(values.color);
-        if (values?.toneMapped !== undefined) copy.toneMapped = values.toneMapped;
-        // Image scenery already contains atmospheric depth and must retain its colors.
+        if (instances.has(material)) return instances.get(material);
+        const copy = material.clone();
         if (material.name === 'CityPhoto') copy.fog = false;
-        if (values?.additive !== undefined) {
-          copy.blending = values.additive ? AdditiveBlending : NormalBlending;
-          if (values.additive) {
-            copy.transparent = true;
-            copy.depthWrite = false;
-          }
-        }
-        for (const field of materialFields) if (values?.[field] !== undefined) copy[field] = values[field];
-        if (values?.texture) {
-          const {file, repeat} = values.texture;
-          const texture = textures[file].clone();
-          texture.colorSpace = SRGBColorSpace;
-          texture.flipY = false;
-          texture.wrapS = texture.wrapT = RepeatWrapping;
-          texture.repeat.fromArray(repeat);
-          texture.needsUpdate = true;
-          copy.map = texture;
-          copies.set(copy, texture);
-        }
-        materials.set(material, copy);
+        instances.set(material, copy);
+        defaults.set(copy, {
+          color: copy.color?.clone() ?? null,
+          toneMapped: copy.toneMapped,
+          blending: copy.blending,
+          transparent: copy.transparent,
+          depthWrite: copy.depthWrite,
+          map: copy.map ?? null,
+          fields: Object.fromEntries(materialFields.map(field => [field, copy[field]]))
+        });
         return copy;
       });
       mesh.material = Array.isArray(original) ? mapped : mapped[0];
     });
-    gl.shadowMap.needsUpdate = true;
+    stateRef.current = { originals, instances, defaults, copies };
     return () => {
       for (const [mesh, original] of originals) mesh.material = original;
-      for (const [original, copy] of materials) if (copy !== original) copy.dispose();
-      for (const texture of copies.values()) texture.dispose();
+      for (const copy of instances.values()) copy.dispose();
+      for (const entry of copies.values()) entry.texture.dispose();
+      stateRef.current = null;
     };
+  }, [object]);
+
+  useLayoutEffect(() => {
+    const state = stateRef.current;
+    if (!state) return;
+    const { instances, defaults, copies } = state;
+    for (const [original, copy] of instances) {
+      const base = defaults.get(copy);
+      const values = theme && Object.hasOwn(theme.materials ?? {}, original.name) ? theme.materials[original.name] : null;
+      if (copy.color && base.color) {
+        if (values?.color) copy.color.set(values.color);
+        else copy.color.copy(base.color);
+      }
+      copy.toneMapped = values?.toneMapped !== undefined ? values.toneMapped : base.toneMapped;
+      const nextBlending = values?.additive !== undefined
+        ? (values.additive ? AdditiveBlending : NormalBlending)
+        : base.blending;
+      const nextTransparent = values?.additive ? true : base.transparent;
+      const nextDepthWrite = values?.additive ? false : base.depthWrite;
+      const shaderChanged = copy.blending !== nextBlending || copy.transparent !== nextTransparent;
+      copy.blending = nextBlending;
+      copy.transparent = nextTransparent;
+      copy.depthWrite = nextDepthWrite;
+      for (const field of materialFields) {
+        if (base.fields[field] !== undefined || values?.[field] !== undefined) {
+          copy[field] = values?.[field] !== undefined ? values[field] : base.fields[field];
+        }
+      }
+      let nextMap = base.map;
+      if (values?.texture && textures[values.texture.file]) {
+        const { file, repeat } = values.texture;
+        let cached = copies.get(copy);
+        if (!cached || cached.file !== file) {
+          cached?.texture.dispose();
+          const texture = textures[file].clone();
+          texture.colorSpace = SRGBColorSpace;
+          texture.flipY = false;
+          texture.wrapS = texture.wrapT = RepeatWrapping;
+          texture.needsUpdate = true;
+          cached = { file, texture };
+          copies.set(copy, cached);
+        }
+        cached.texture.repeat.fromArray(repeat);
+        nextMap = cached.texture;
+      }
+      const mapKindChanged = Boolean(copy.map) !== Boolean(nextMap);
+      copy.map = nextMap;
+      if (shaderChanged || mapKindChanged) copy.needsUpdate = true;
+    }
+    gl.shadowMap.needsUpdate = true;
   }, [object, theme, textures, gl]);
 }
 
-function createLights(theme, lightsOn, shadowSize) {
+function buildLightPool(themes, fallbackTheme, shadowSize) {
   const group = new Group();
+  const list = themes ? Object.values(themes) : (fallbackTheme ? [fallbackTheme] : []);
+  const maxCounts = new Map();
+  const sampleSpecs = new Map();
+  for (const theme of list) {
+    const counts = new Map();
+    for (const spec of theme.lights ?? []) {
+      const key = `${spec.type}:${Boolean(spec.shadow && shadowSize > 0)}`;
+      const index = counts.get(key) ?? 0;
+      counts.set(key, index + 1);
+      if (index + 1 > (maxCounts.get(key) ?? 0)) maxCounts.set(key, index + 1);
+      const slotKey = `${key}:${index}`;
+      if (!sampleSpecs.has(slotKey)) sampleSpecs.set(slotKey, spec);
+    }
+  }
+  const pools = new Map();
+  for (const [key, count] of maxCounts) {
+    const [type, hasShadowStr] = key.split(':');
+    const hasShadow = hasShadowStr === 'true';
+    const slots = [];
+    for (let i = 0; i < count; i++) {
+      const sample = sampleSpecs.get(`${key}:${i}`);
+      let light;
+      switch (type) {
+        case 'ambient': light = new AmbientLight('#ffffff', 0); break;
+        case 'hemisphere': light = new HemisphereLight('#ffffff', '#000000', 0); break;
+        case 'directional': light = new DirectionalLight('#ffffff', 0); break;
+        case 'point': light = new PointLight('#ffffff', 0); break;
+        case 'spot': light = new SpotLight('#ffffff', 0); break;
+      }
+      if (light.target) group.add(light.target);
+      if (hasShadow && sample?.shadow) {
+        light.castShadow = true;
+        light.shadow.mapSize.setScalar(Math.min(sample.shadow.size, shadowSize));
+      }
+      group.add(light);
+      slots.push(light);
+    }
+    pools.set(key, slots);
+  }
+  return { group, pools };
+}
+
+function applyLightsToPool(pool, theme, lightsOn, shadowSize) {
   const dim = lightsOn ? 1 : theme.dimWithRoomLights ?? 1;
-  for (const spec of theme.lights) {
-    const {color, ground, distance, decay, angle, penumbra, position, target, shadow} = spec;
-    const intensity = spec.intensity * dim;
-    let light;
-    switch (spec.type) {
-      case 'ambient': light = new AmbientLight(color, intensity); break;
-      case 'hemisphere': light = new HemisphereLight(color, ground, intensity); break;
-      case 'directional': light = new DirectionalLight(color, intensity); break;
-      case 'point': light = new PointLight(color, intensity, distance, decay); break;
-      case 'spot': light = new SpotLight(color, intensity, distance, angle, penumbra, decay); break;
+  const usedCounts = new Map();
+  for (const slots of pool.pools.values()) {
+    for (const light of slots) light.intensity = 0;
+  }
+  for (const spec of theme.lights ?? []) {
+    const key = `${spec.type}:${Boolean(spec.shadow && shadowSize > 0)}`;
+    const slots = pool.pools.get(key);
+    if (!slots) continue;
+    const index = usedCounts.get(key) ?? 0;
+    usedCounts.set(key, index + 1);
+    const light = slots[index];
+    if (!light) continue;
+    light.color.set(spec.color);
+    if (spec.ground && light.groundColor) light.groundColor.set(spec.ground);
+    light.intensity = spec.intensity * dim;
+    if (spec.distance !== undefined) light.distance = spec.distance;
+    if (spec.decay !== undefined) light.decay = spec.decay;
+    if (spec.angle !== undefined) light.angle = spec.angle;
+    if (spec.penumbra !== undefined) light.penumbra = spec.penumbra;
+    light.position.fromArray(spec.position);
+    if (light.target && spec.target) {
+      light.target.position.fromArray(spec.target);
+      light.target.updateMatrixWorld();
     }
-    light.position.fromArray(position);
-    if (light.target) {
-      light.target.position.fromArray(target);
-      group.add(light.target);
-    }
-    if (shadow && shadowSize > 0) {
-      light.castShadow = true;
-      light.shadow.mapSize.setScalar(Math.min(shadow.size, shadowSize));
-      light.shadow.camera.near = shadow.near;
-      light.shadow.camera.far = shadow.far;
-      if (shadow.bounds) {
-        const [left, right, top, bottom] = shadow.bounds;
+    if (spec.shadow && shadowSize > 0) {
+      const s = spec.shadow;
+      const targetSize = Math.min(s.size, shadowSize);
+      if (light.shadow.mapSize.x !== targetSize || light.shadow.mapSize.y !== targetSize) {
+        light.shadow.mapSize.setScalar(targetSize);
+        light.shadow.map?.dispose();
+        light.shadow.map = null;
+      }
+      light.shadow.camera.near = s.near;
+      light.shadow.camera.far = s.far;
+      if (s.bounds) {
+        const [left, right, top, bottom] = s.bounds;
         Object.assign(light.shadow.camera, { left, right, top, bottom });
       }
       light.shadow.camera.updateProjectionMatrix();
-      light.shadow.bias = shadow.bias;
-      light.shadow.normalBias = shadow.normalBias;
+      light.shadow.bias = s.bias;
+      light.shadow.normalBias = s.normalBias;
     }
-    group.add(light);
   }
-  return group;
+  pool.group.updateMatrixWorld(true);
 }
 
 function buildEnvironment(gl, spec) {
@@ -278,19 +423,50 @@ function buildEnvironment(gl, spec) {
   }
 }
 
-export function ThemeLighting({ theme, lightsOn, shadowSize = 2048 }) {
+function acquireEnvironment(gl, key, spec) {
+  let map = environmentCache.get(gl);
+  if (!map) {
+    map = new Map();
+    environmentCache.set(gl, map);
+  }
+  let entry = map.get(key);
+  if (!entry) {
+    entry = { map, result: buildEnvironment(gl, spec) };
+    map.set(key, entry);
+  }
+  return entry;
+}
+
+export function ThemeLighting({ theme, themes, lightsOn, shadowSize = 2048 }) {
   const { gl, scene } = useThree();
-  const lamps = useMemo(() => createLights(theme, lightsOn, shadowSize), [theme, lightsOn, shadowSize]);
+  const pool = useMemo(() => buildLightPool(themes, theme, shadowSize), [themes, shadowSize]);
   const environmentKey = JSON.stringify(theme.environment ?? null);
+
+  useLayoutEffect(() => {
+    applyLightsToPool(pool, theme, lightsOn, shadowSize);
+  }, [pool, theme, lightsOn, shadowSize]);
+
+  useEffect(() => {
+    if (!themes) return;
+    const retainers = [];
+    for (const item of Object.values(themes)) {
+      if (!item.environment) continue;
+      const key = JSON.stringify(item.environment);
+      const entry = acquireEnvironment(gl, key, item.environment);
+      retainers.push(environmentLifetime.retain(key, entry));
+    }
+    return () => retainers.forEach(release => release());
+  }, [gl, themes]);
 
   useLayoutEffect(() => {
     const spec = JSON.parse(environmentKey);
     if (!spec) return;
-    const result = buildEnvironment(gl, spec);
-    scene.environment = result.texture;
+    const entry = acquireEnvironment(gl, environmentKey, spec);
+    const release = environmentLifetime.retain(environmentKey, entry);
+    scene.environment = entry.result.texture;
     return () => {
-      scene.environment = null;
-      result.dispose();
+      if (scene.environment === entry.result.texture) scene.environment = null;
+      release();
     };
   }, [gl, scene, environmentKey]);
 
@@ -305,13 +481,13 @@ export function ThemeLighting({ theme, lightsOn, shadowSize = 2048 }) {
       gl.toneMappingExposure = previous.exposure;
       gl.shadowMap.autoUpdate = previous.autoUpdate;
     };
-  }, [gl, theme, lamps]);
+  }, [gl, theme, lightsOn, pool]);
 
-  useLayoutEffect(() => () => lamps.traverse(light => light.shadow?.dispose()), [lamps]);
+  useLayoutEffect(() => () => pool.group.traverse(light => light.shadow?.dispose()), [pool]);
   const fog = useMemo(() => new FogExp2(theme.fog, theme.fogDensity), [theme]);
   return <>
     {!theme.panorama && <color attach="background" args={[theme.background]} />}
     <primitive attach="fog" object={fog} />
-    <primitive object={lamps} />
+    <primitive object={pool.group} />
   </>;
 }
