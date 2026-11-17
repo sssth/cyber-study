@@ -31,6 +31,7 @@ export function validatePackage(data) {
     ids.add(m.id);
     if (m.feature !== undefined && m.feature !== null && typeof m.feature !== 'string') throw Error('feature 必须为功能 ID 字符串或 null。');
     if (typeof m.file !== 'string' || !/\.glb$/i.test(m.file) || m.file.split('/').some(p => p === '..') || m.file.startsWith('/') || m.file.includes(':')) throw Error('模型必须使用包内 GLB 相对路径。');
+    if (m.previewFile !== undefined && (typeof m.previewFile !== 'string' || !/\.glb$/i.test(m.previewFile) || /[:\\?#]/.test(m.previewFile) || m.previewFile.split('/').some(p => !p || p === '.' || p === '..'))) throw Error('展示模型必须使用包内 GLB 相对路径。');
     if (m.qualityFiles !== undefined) {
       const files = m.qualityFiles;
       if (!files || typeof files !== 'object' || Array.isArray(files) || Object.entries(files).some(([quality, file]) =>

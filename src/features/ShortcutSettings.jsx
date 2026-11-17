@@ -12,7 +12,12 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
     event.preventDefault();
     event.stopPropagation();
 
-    const conflict = actions.find(([otherId]) => otherId !== id && bindings[otherId].includes(key));
+    const globalActions = groups.find(([, scope]) => scope === 'global')[2];
+    const isGlobal = action => globalActions.some(([actionId]) => actionId === action);
+    const conflict = groups.flatMap(([, , rows]) => rows).find(([otherId]) =>
+      otherId !== id && bindings[otherId].includes(key) &&
+      (isGlobal(id) || isGlobal(otherId) || actions.some(([actionId]) => actionId === otherId))
+    );
     if (conflict) {
       setMessage(`${key} 已用于「${conflict[1]}」，请先修改该快捷键或按其他键。`);
       return;
@@ -29,7 +34,7 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
         <h2 id="shortcut-title">快捷键设置</h2>
         <button type="button" autoFocus onClick={onBack}>返回菜单</button>
       </header>
-      <p>点击键位后按下新键。清空后可用「设键」重新绑定。</p>
+
       {message && <p role="status">{message}</p>}
       {groups.map(([label, scope, actions]) => (
         <section key={scope} className="interaction-group" aria-labelledby={`shortcuts-${scope}`}>

@@ -1,3 +1,7 @@
+import { ContentCommand } from './ContentCommands.jsx';
+import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
+import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
+import ContentActions from './ContentActions.jsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FeaturePanel, EmptyState } from './ui.jsx';
@@ -5,12 +9,11 @@ import ExcerptAnnotations from '../reader/ExcerptAnnotations.jsx';
 import { sampleBooks } from '../reader/sampleBooks.js';
 import { parseMarkdownContent } from '../reader/markdownReader.js';
 import { highlightRanges, indexChapters } from '../reader/readerPosition.js';
-import { loadKnowledge, groupExcerpts } from '../data/knowledgeStore.js';
+import { loadKnowledge, groupExcerpts, excerptKey } from '../data/knowledgeStore.js';
 
-function KnowledgeWorkspace({ onClose, version = 0, importedBooks = [], onOpenNote, suspended = false }) {
-  const [query, setQuery] = useState('');
-  const [bookId, setBookId] = useState('');
-  const [detailKey, setDetailKey] = useState(null);
+function KnowledgeWorkspace({ navigationItem, onStartCopy, onClose, version = 0, importedBooks = [], onOpenNote, suspended = false }) {
+
+  const [detailKey, setDetailKey] = useState(() => ['excerpt', 'annotation'].includes(navigationItem?.type) ? excerptKey(navigationItem) : null);
   const [revision, setRevision] = useState(0);
   const notes = useMemo(() => loadKnowledge().notes, [version, revision]);
   const groups = useMemo(() => groupExcerpts(notes), [notes]);
@@ -35,27 +38,22 @@ function KnowledgeWorkspace({ onClose, version = 0, importedBooks = [], onOpenNo
     return { key, items, note, source, blockId, chapterId, chapter };
   });
   const books = new Map(notes.map((note) => [note.bookId, note.bookTitle]));
-  const term = query.trim().toLocaleLowerCase();
+  const search=useSearchScope({id:'knowledge',label:'摘录与批注',priority:10,enabled:!suspended,filters:[{key:'bookId',label:'来源书籍',options:[...books]}]});
+  const bookId=search.filters.bookId||'';
   const filtered = entries.filter(({ note, items, chapter }) =>
-    (!bookId || note.bookId === bookId) &&
-    [note.bookTitle, chapter, note.quote, ...items.flatMap((item) => [item.annotation, item.summary, ...(item.tags ?? [])])]
-      .some((value) => value?.toLocaleLowerCase().includes(term)));
+    (!bookId || note.bookId === bookId) && (!search.filters.id||items.some(i=>i.id===search.filters.id)) &&
+    textMatches([note.bookTitle,chapter,note.quote,...items.flatMap(item=>[item.annotation,...(item.tags??[])])],search.query));
+  useSearchCount('knowledge',filtered.length);
   const detail = entries.find((entry) => entry.key === detailKey);
 
   if (suspended) return null;
   if (detail) return createPortal(<ExcerptDetail entry={detail} onClose={() => setDetailKey(null)}
-    onOpenNote={onOpenNote} onChange={() => setRevision((value) => value + 1)} />, document.body);
+    onStartCopy={onStartCopy} onOpenNote={onOpenNote} onChange={() => setRevision((value) => value + 1)} />, document.body);
 
   return <FeaturePanel wide title="知识库" onClose={onClose}>
     <div className="knowledge-browser">
       <aside className="knowledge-filters" aria-label="筛选摘录">
-        <input aria-label="检索知识库" value={query} onChange={(event) => setQuery(event.target.value)}
-          placeholder="检索摘录、批注、书名…" />
-        <nav aria-label="按书筛选">
-          <button type="button" aria-pressed={!bookId} onClick={() => setBookId('')}>全部书籍</button>
-          {[...books].sort((a, b) => a[1].localeCompare(b[1], 'zh-CN')).map(([id, title]) =>
-            <button key={id} type="button" aria-pressed={bookId === id} onClick={() => setBookId(id)}>{title}</button>)}
-        </nav>
+        <SearchStatus id="knowledge" label="摘录与批注"/>
         <button type="button" disabled={!filtered.length}
           onClick={() => exportMarkdown(filtered, books.get(bookId) ?? '知识库摘录')}>导出 Markdown</button>
       </aside>
@@ -69,7 +67,8 @@ function KnowledgeWorkspace({ onClose, version = 0, importedBooks = [], onOpenNo
               <span className="card-kicker">{[note.bookTitle, chapter].filter(Boolean).join(' · ')}</span>
               <span className="knowledge-preview">“{preview}”</span>
             </span>
-            <span className="knowledge-note-count">{items.filter((item) => item.annotation).length} 条批注</span>
+            <ContentCommand label={`管理摘录与批注 · ${note.quote.slice(0, 48)}`} run={() => setDetailKey(key)} />
+            <ContentActions type="excerpt" id={note.id} title={note.quote?.slice(0,40)}/><span className="knowledge-note-count">{items.filter((item) => item.annotation).length} 条批注</span>
           </button>;
         })}
       </section>
@@ -77,7 +76,7 @@ function KnowledgeWorkspace({ onClose, version = 0, importedBooks = [], onOpenNo
   </FeaturePanel>;
 }
 
-function ExcerptDetail({ entry, onClose, onOpenNote, onChange }) {
+function ExcerptDetail({ entry, onStartCopy, onClose, onOpenNote, onChange }) {
   const { key, items, note, source, blockId, chapterId, chapter } = entry;
   const original = useRef(null);
   const chapterBlocks = chapterId === undefined ? [] : source.blocks.filter((block) => source.chapterByBlock.get(block.id) === chapterId);
@@ -89,7 +88,7 @@ function ExcerptDetail({ entry, onClose, onOpenNote, onChange }) {
       pane.scrollTop += focus.getBoundingClientRect().top - pane.getBoundingClientRect().top - 28;
     }
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape' && !event.defaultPrevented) onClose();
+      if (event.key === 'Escape' && !event.defaultPrevented && !document.querySelector('dialog[open]')) onClose();
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
@@ -123,7 +122,7 @@ function ExcerptDetail({ entry, onClose, onOpenNote, onChange }) {
       </>}
     </article>
     <aside className="knowledge-annotations" aria-label="摘录批注">
-      <h3>批注</h3>
+      <button type="button" onClick={()=>onStartCopy?.({bookId:note.bookId,bookTitle:note.bookTitle,chapterTitle:chapter||'摘录',text:note.quote})}>从此摘录开始抄写</button><ContentActions type="excerpt" id={note.id} title={note.quote?.slice(0,24)}/><h3>批注</h3>
       <ExcerptAnnotations key={key} notes={items} onChange={onChange} />
     </aside>
   </section>;

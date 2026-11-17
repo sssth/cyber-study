@@ -42,6 +42,7 @@ async function describeFiles(directory) {
   return files;
 }
 
+function conversionFields(files,bookId){const reference=role=>{const file=files?.find(f=>f.role===role);return file?`${bookId}:${file.id}`:null;};return {originalFormat:files?.find(f=>f.role==='original')?.format||null,readingFormat:'markdown',parseStatus:'ready',originalAssetId:reference('original'),readingAssetId:reference('reading')};}
 async function publishBook(directory, metadata, content) {
   await atomicWrite(path.join(directory, 'book.md'), content);
   const record = {
@@ -50,7 +51,7 @@ async function publishBook(directory, metadata, content) {
     files: await describeFiles(directory)
   };
   await atomicWrite(path.join(directory, 'book.json'), JSON.stringify(record, null, 2));
-  return { ...record.book, content, markdownFile: true };
+  return { ...record.book, ...conversionFields(record.files,record.book.id), content, markdownFile: true };
 }
 
 async function readBook(directory) {
@@ -59,7 +60,7 @@ async function readBook(directory) {
   const metadata = JSON.parse(raw);
   if (metadata.schemaVersion && metadata.schemaVersion !== 2) throw new Error('书库数据版本不受支持。');
   const content = await fs.readFile(path.join(directory, 'book.md'), 'utf8');
-  if (metadata.schemaVersion === 2) return { ...metadata.book, content, markdownFile: true };
+  if (metadata.schemaVersion === 2) return { ...metadata.book, ...conversionFields(metadata.files,metadata.book.id), content, markdownFile: true };
   await backup(directory, 'book.json', raw);
   await backup(directory, 'book.md', content);
   const record = {
@@ -72,7 +73,15 @@ async function readBook(directory) {
     from: 1, to: 2, status: 'complete', bookId: metadata.id,
     completedAt: new Date().toISOString(), backup: 'migration-backup'
   }, null, 2));
-  return { ...record.book, content, markdownFile: true };
+  return { ...record.book, ...conversionFields(record.files,record.book.id), content, markdownFile: true };
 }
 
-module.exports = { atomicWrite, backup, readBook, publishBook };
+async function renameBook(directory, title) {
+  const book = await readBook(directory);
+  const filename = path.join(directory, 'book.json');
+  const record = JSON.parse(await fs.readFile(filename, 'utf8'));
+  await atomicWrite(filename, JSON.stringify({ ...record, book: { ...record.book, title } }, null, 2));
+  return { ...book, title };
+}
+
+module.exports = { atomicWrite, backup, readBook, publishBook, renameBook };

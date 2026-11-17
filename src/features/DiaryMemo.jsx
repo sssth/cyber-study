@@ -1,19 +1,23 @@
+import { ContentCommand } from './ContentCommands.jsx';
+import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
+import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
+import ContentActions from './ContentActions.jsx';
 import { matchesShortcut } from '../data/shortcuts.js';
 import { useEffect, useRef, useState } from 'react';
 import { memoPosition } from './memoLayout.js';
-import { FeaturePanel, EmptyState } from './ui.jsx';
+import { ActionWorkspace, FeaturePanel, EmptyState } from './ui.jsx';
 import { createId, loadSpaceData, readImageFile, saveSpaceData } from '../data/spaceStorage.js';
 
-function DiaryPanel({ onClose }) {
+function DiaryPanel({ onClose, navigationItem }) {
   const [entries, setEntries] = useState(() => loadSpaceData('diary', []));
   const [draft, setDraft] = useState({ mood: '平静', text: '', photo: '' });
   const [error, setError] = useState('');
   const [summary, setSummary] = useState('');
 
-  const [mode, setMode] = useState('write');
-  const [date, setDate] = useState('');
-  const [query, setQuery] = useState('');
-  const [opened, setOpened] = useState(null);
+  const [mode, setMode] = useState('read');
+  const search=useSearchScope({id:'diary',label:'日记',priority:10,filters:[...dateFilters,{key:'mood',label:'心情',options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>setMode('read')});
+  useEffect(()=>{if(hasSearch(search))setMode('read');},[search]);
+  const [opened, setOpened] = useState(() => navigationItem?.type === 'diary' ? navigationItem.id : null);
   const [editing, setEditing] = useState(null);
   const [prefs, setPrefs] = useState(() => loadSpaceData('diary-prefs', { pen: '钢笔', sound: false, animation: true }));
   const soundRef = useRef(null);
@@ -56,12 +60,9 @@ function DiaryPanel({ onClose }) {
     return true;
   };
 
-  const filtered = entries.filter((entry) => {
-    const entryDate = new Date(entry.date).toLocaleDateString('sv-SE');
-    const haystack = `${entry.text} ${entry.mood}`.toLocaleLowerCase();
-    return (!date || entryDate === date) && (!query.trim() || haystack.includes(query.trim().toLocaleLowerCase()));
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  const filtered = entries.filter(entry=>matchesItem('diary',entry,search)).sort((a,b)=>b.date.localeCompare(a.date));
 
+  useSearchCount('diary',filtered.length);
   const addEntry = () => {
     if (!draft.text.trim() && !draft.photo) return;
     const next = editing ? entries.map((entry) => entry.id === editing ? { ...entry, ...draft } : entry)
@@ -70,8 +71,7 @@ function DiaryPanel({ onClose }) {
     setDraft({ mood: '平静', text: '', photo: '' });
     setEditing(null);
     setMode('read');
-    setDate('');
-    setQuery('');
+
     setOpened(editing ?? next[0].id);
   };
 
@@ -87,15 +87,23 @@ function DiaryPanel({ onClose }) {
 
   return (
     <FeaturePanel title="日记本" kicker="Private Diary" description="自由日记与照片本地保存；每日汇总需主动触发，私密内容默认不供AI读取。" onClose={onClose}>
-      <div className="card-actions">
-        <button type="button" aria-pressed={mode === 'write'} onClick={() => setMode('write')}>书写模式</button>
+      {mode === 'write' && <ContentCommand kind="cancel-create" label="取消日记书写" run={() => {
+        setMode('read'); setEditing(null); setDraft({ mood: '平静', text: '', photo: '' }); setError('');
+      }} />}
+      <div className="card-actions secondary-action">
+        <ContentCommand kind="create" label="新建日记" run={() => {
+          if (editing && !window.confirm('放弃这篇日记尚未保存的修改？')) return;
+          if (editing) setDraft({ mood: '平静', text: '', photo: '' });
+          setEditing(null);
+          setMode('write');
+        }} />
         <button type="button" aria-pressed={mode === 'read'} onClick={() => setMode('read')}>阅读模式</button>
       </div>
       {error && <p role="alert" className="form-error">{error}</p>}
       {mode === 'write' ? <div className={`stack-form diary-paper ${prefs.pen === '羽毛笔' ? 'diary-quill' : ''}`}>
-        <label>书写工具 <select value={prefs.pen} onChange={(event) => setPreference('pen', event.target.value)}><option>钢笔</option><option>羽毛笔</option></select></label>
+        <ActionWorkspace command={false} label="书写设置"><label>书写工具 <select value={prefs.pen} onChange={(event) => setPreference('pen', event.target.value)}><option>钢笔</option><option>羽毛笔</option></select></label>
         <label><input type="checkbox" checked={prefs.sound} onChange={(event) => setPreference('sound', event.target.checked)} /> 书写音效</label>
-        <label><input type="checkbox" checked={prefs.animation} onChange={(event) => setPreference('animation', event.target.checked)} /> 字迹动画</label>
+        <label><input type="checkbox" checked={prefs.animation} onChange={(event) => setPreference('animation', event.target.checked)} /> 字迹动画</label></ActionWorkspace>
         <select value={draft.mood} onChange={(event) => setDraft((draftItem) => ({ ...draftItem, mood: event.target.value }))}>
           {[...new Set(['平静', '专注', '愉悦', '疲惫', '低落', '明亮', draft.mood])].map((mood) => <option key={mood}>{mood}</option>)}
         </select>
@@ -106,36 +114,35 @@ function DiaryPanel({ onClose }) {
             event.currentTarget.animate([{ color: '#765f4c' }, { color: '#3d2a21' }], 180);
           }
           setDraft((draftItem) => ({ ...draftItem, text: event.target.value }));
-        }} rows="6" placeholder="今天发生了什么？" />
-        <label className="file-label">添加照片<input type="file" accept="image/*" onChange={async (event) => {
-          try { setError(''); const photo = await readImageFile(event.target.files?.[0]);
-          setDraft((draftItem) => ({ ...draftItem, photo })); }
+        }} rows="6" aria-label="日记正文" />
+        <label className="file-label">添加照片<input type="file" multiple accept="image/*" onChange={async (event) => {
+          try { setError(''); const added = await Promise.all(Array.from(event.target.files||[]).map(file=>readImageFile(file)));
+          setDraft(draftItem => {const photos=[...(draftItem.photos||[draftItem.photo].filter(Boolean)),...added];return {...draftItem,photos,photo:photos[0]||''};}); }
           catch (error) { setError(error.message); }
           event.target.value = '';
         }} /></label>
-        {draft.photo && <img className="preview-image" src={draft.photo} alt="待保存照片预览" />}
+        {(draft.photos||[draft.photo].filter(Boolean)).map((photo,index)=><img key={index} className="preview-image" src={photo} alt="待保存照片预览"/>)}
         <button type="button" onClick={addEntry}>{editing ? '保存修改' : '保存今日'}</button>
+        {editing && <><button type="button" onClick={() => { setEditing(null); setMode('read'); }}>取消</button>
+        <button type="button" onClick={() => {
+          if (window.confirm('确认删除这篇日记？') && persist(entries.filter(item => item.id !== editing)) !== false) { setEditing(null); setMode('read'); }
+        }}>删除日记</button></>}
         <button type="button" onClick={generateSummary}>生成本机活动汇总</button>
         {summary && <p className="summary-box">{summary}</p>}
       </div> : <div className="admin-list diary-paper">
-        <div className="panel-toolbar">
-          <label>日期 <input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
-          <input aria-label="日记关键词" placeholder="搜索日记关键词" value={query} onChange={(event) => setQuery(event.target.value)} />
-        </div>
+        <SearchStatus id="diary" label="日记"/>
         {!filtered.length && <EmptyState>没有匹配的日记。</EmptyState>}
         {filtered.map((entry) => (
-          <article className="diary-entry" key={entry.id}>
-            <button type="button" aria-expanded={opened === entry.id} onClick={() => setOpened(opened === entry.id ? null : entry.id)}>
+          <article className="diary-entry" key={entry.id}><ContentActions type="diary" id={entry.id} title={entry.text?.slice(0,24)}/>
+            <button data-item-open type="button" aria-expanded={opened === entry.id} onClick={() => setOpened(opened === entry.id ? null : entry.id)}>
               {new Date(entry.date).toLocaleString('zh-CN')} · {entry.mood} · {entry.text?.slice(0, 32) || '照片'}
             </button>
-            {opened === entry.id && <div>
+            <div hidden={opened !== entry.id}>
               <p>{entry.text}</p>
-              {entry.photo && <img className="preview-image" src={entry.photo} alt="日记照片" />}
-              <div className="card-actions">
-                <button type="button" onClick={() => { setDraft({ text: entry.text, photo: entry.photo, mood: entry.mood }); setEditing(entry.id); setMode('write'); }}>编辑</button>
-                <button type="button" onClick={() => persist(entries.filter((item) => item.id !== entry.id))}>删除</button>
-              </div>
-            </div>}
+              {(entry.photos||[entry.photo].filter(Boolean)).map((photo,index)=><img key={index} className="preview-image" src={photo} alt="日记照片"/>)}
+            </div>
+                <ContentCommand label={`编辑日记 · ${entry.text?.slice(0, 36) || new Date(entry.date).toLocaleDateString('zh-CN')}`} run={() => { setDraft({ text: entry.text, photo: entry.photo, photos: entry.photos, mood: entry.mood }); setEditing(entry.id); setMode('write'); }} />
+                <ContentCommand label={`删除日记 · ${entry.text?.slice(0, 36) || new Date(entry.date).toLocaleDateString('zh-CN')}`} confirm run={() => persist(entries.filter((item) => item.id !== entry.id))} />
           </article>
         ))}
       </div>}
@@ -144,7 +151,12 @@ function DiaryPanel({ onClose }) {
 }
 
 function MemoBoard({ onClose, shortcuts }) {
+  const [editingMemo, setEditingMemo] = useState(null);
+  const search=useSearchScope({id:'memo',label:'便签与待办',priority:10,filters:[{key:'type',label:'类型',options:[['memo','便签'],['todo','待办']]},{key:'status',label:'待办状态',options:[['open','未完成'],['done','已完成']]}]});
+
   const [items, setItems] = useState(() => loadSpaceData('memo', []));
+  useEffect(()=>{const refresh=()=>setItems(loadSpaceData('memo',[]));window.addEventListener('cyber-content-changed',refresh);return ()=>window.removeEventListener('cyber-content-changed',refresh);},[]);
+  useSearchCount('memo',items.filter(item=>matchesItem(item.type==='todo'?'todo':'memo',item,search)).length);
   const [todoText, setTodoText] = useState('');
   const [stickyText, setStickyText] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -217,7 +229,7 @@ function MemoBoard({ onClose, shortcuts }) {
 
   return (
     <FeaturePanel wide title="Memo 板" kicker="Wall & Tasks" description="To-do、便签与图片固定在同一块板上，可拖拽排列，全部本地保存。" onClose={onClose}>
-      <div className="stack-form horizontal">
+      <ActionWorkspace label="新建便签 / 待办" title="新建便签、待办或图片"><div className="stack-form horizontal">
         <input value={todoText} onChange={(event) => setTodoText(event.target.value)} placeholder="新增 To-do" onKeyDown={(event) => {
           if (!matchesShortcut(event, shortcuts.addTodo)) return;
           event.preventDefault();
@@ -230,18 +242,38 @@ function MemoBoard({ onClose, shortcuts }) {
         <label className="file-label">选择图片<input type="file" accept="image/*" onChange={(event) => setImageFile(event.target.files?.[0])} /></label>
         <button type="button" onClick={addImage} disabled={!imageFile}>固定</button>
       </div>
+      </ActionWorkspace>
       {error && <p className="form-error">{error}</p>}
+      <SearchStatus id="memo" label="便签与待办"/>
+      {items.length>0&&!items.some(item=>matchesItem(item.type==='todo'?'todo':'memo',item,search))&&<EmptyState>没有匹配的内容。</EmptyState>}
+      <ActionWorkspace command={false} showTrigger={false} label="编辑便签或待办" title="编辑内容" open={Boolean(editingMemo)} onOpenChange={value => { if (!value) setEditingMemo(null); }}>
+        {editingMemo && <form className="stack-form" onSubmit={event => {
+          event.preventDefault();
+          if (persist(items.map(item => item.id === editingMemo.id ? editingMemo : item)) !== false) setEditingMemo(null);
+        }}>
+          <label>内容<textarea value={editingMemo.text || ''} onChange={event => setEditingMemo({ ...editingMemo, text: event.target.value })} /></label>
+          <label>颜色<select value={editingMemo.tone || 'violet'} onChange={event => setEditingMemo({ ...editingMemo, tone: event.target.value })}><option value="violet">紫色</option><option value="cyan">青色</option><option value="amber">琥珀色</option></select></label>
+          {editingMemo.type === 'todo' && <label><input type="checkbox" checked={Boolean(editingMemo.done)} onChange={event => setEditingMemo({ ...editingMemo, done: event.target.checked, completedAt: event.target.checked ? new Date().toISOString() : null })} />已完成</label>}
+          {editingMemo.type === 'image' && <><img className="preview-image" src={editingMemo.photo} alt="图片便签" /><label>更换图片<input type="file" accept="image/*" onChange={async event => {
+            const file = event.target.files?.[0]; if (!file) return;
+            try { const photo = await readImageFile(file); setEditingMemo(current => current ? { ...current, photo } : current); } catch (failure) { setError(failure.message); }
+          }} /></label></>}
+          <button>保存修改</button><button type="button" onClick={() => setEditingMemo(null)}>取消</button>
+          <button type="button" onClick={() => { if (window.confirm('确认删除这项内容？') && persist(items.filter(item => item.id !== editingMemo.id)) !== false) setEditingMemo(null); }}>删除</button>
+        </form>}
+      </ActionWorkspace>
       <div className="memo-board" ref={boardRef} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
-        {items.length === 0 ? <EmptyState>板上暂无内容。</EmptyState> : items.map((item) => (
+        {items.length === 0 ? <EmptyState>板上暂无内容。</EmptyState> : items.filter(item=>matchesItem(item.type==='todo'?'todo':'memo',item,search)).map((item) => (
           <div key={item.id} className={`memo-item ${item.type} ${item.done ? 'done' : ''}`} data-tone={item.tone}
             style={{ left: `clamp(0px, ${item.x}px, calc(100% - ${item.width ?? 180}px))`, top: `clamp(0px, ${item.y}px, calc(100% - ${item.height ?? (item.type === 'image' ? 140 : 96)}px))`, width: item.width, height: item.height }}>
             <span className="memo-magnet" title="拖动位置" onPointerDown={(event) => onPointerDown(event, item)} />
             {item.type === 'image' ? <img src={item.photo} alt="便签板图片" draggable="false" /> : item.type === 'todo' ? (
-              <button type="button" className="memo-task" aria-label={item.done ? `移除已完成待办 ${item.text}` : `完成待办 ${item.text}`} onClick={() => persist(item.done
-                ? items.filter((memo) => memo.id !== item.id)
-                : items.map((memo) => memo.id === item.id ? { ...memo, done: true } : memo))}><span>{item.text}</span></button>
+              <button data-item-open type="button" className="memo-task" aria-label={item.done ? `标为未完成 ${item.text}` : `完成待办 ${item.text}`} onClick={() => persist(item.done
+                ? items.map(memo=>memo.id===item.id?{...memo,done:false,completedAt:null}:memo)
+                : items.map((memo) => memo.id === item.id ? { ...memo, done: true, completedAt: new Date().toISOString() } : memo))}><span>{item.text}</span></button>
             ) : <p>{item.text}</p>}
-            {item.type !== 'todo' && <button type="button" className="memo-remove" aria-label="移除面板" onClick={() => persist(items.filter((memo) => memo.id !== item.id))}>×</button>}
+            <ContentActions type={item.type==='todo'?'todo':'memo'} id={item.id} title={item.text}/>{item.completedAt&&<time>{new Date(item.completedAt).toLocaleDateString('zh-CN')} 完成</time>}<ContentCommand label={`删除 · ${item.text || item.photo?.name || '图片便签'}`} confirm run={() => persist(items.filter((memo) => memo.id !== item.id))} />
+            <ContentCommand label={`编辑 · ${item.text || '图片便签'}`} run={() => setEditingMemo({ ...item })} />
             <span className="memo-resize" title="拖动调整大小" onPointerDown={(event) => onPointerDown(event, item, true)} />
           </div>
         ))}

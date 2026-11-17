@@ -98,7 +98,8 @@ class MemoryRepository {
     if (input.remove && input.id) data.journeys = journeys.filter(j => j.id !== input.id);
     else {
       if (typeof input.title !== 'string' || !input.title.trim() || input.title.length > 200 || typeof input.note !== 'string' || input.note.length > 10000 || !Array.isArray(input.pointIds)) throw new Error('请填写有效的旅程名称和内容。');
-      const journey = { id: input.id ?? randomUUID(), title: input.title.trim(), note: input.note, pointIds: [...new Set(input.pointIds)] };
+      if(input.startDate&&input.endDate&&input.endDate<input.startDate)throw new Error('结束日期不能早于开始日期。');
+      const journey = { startDate:input.startDate||null,endDate:input.endDate||null, id: input.id ?? randomUUID(), title: input.title.trim(), note: input.note, pointIds: [...new Set(input.pointIds)] };
       data.journeys = input.id ? journeys.map(j => j.id === input.id ? journey : j) : [...journeys, journey];
     }
     await this.commit(data);

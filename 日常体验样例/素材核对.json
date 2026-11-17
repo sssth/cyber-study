@@ -1,0 +1,35 @@
+{
+  "tracks": [
+    {
+      "name": "01 - 清晨翻开第一页.mp3",
+      "seconds": 217.4,
+      "bytes": 5166216
+    },
+    {
+      "name": "02 - 窗边的茶.mp3",
+      "seconds": 230.0,
+      "bytes": 5417757
+    },
+    {
+      "name": "03 - 午后慢行.mp3",
+      "seconds": 196.1,
+      "bytes": 4739463
+    },
+    {
+      "name": "04 - 雨停之前.mp3",
+      "seconds": 236.8,
+      "bytes": 5554776
+    },
+    {
+      "name": "05 - 灯下的最后一章.mp3",
+      "seconds": 223.5,
+      "bytes": 5288593
+    }
+  ],
+  "totalMinutes": 18.4,
+  "photos": 3,
+  "pdfPages": 69,
+  "epubAssets": 55,
+  "bytes": 33289473,
+  "note": "已完整解码音频、核对图片元数据、PDF页数及EPUB结构；尚未在应用中执行导入。"
+}

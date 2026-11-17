@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('cyberStudy', {
   name: '赛博书房',
+  importLocalAudio: bytes => ipcRenderer.invoke('music:import-local',bytes),
   globe: (action, input) => ipcRenderer.invoke('globe:request', action, input),
   onGlobeProgress: (callback) => {
     const listener = (_event, progress) => callback(progress);
@@ -15,6 +16,7 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   listBooks: () => ipcRenderer.invoke('books:list'),
   getBookImportState: () => ipcRenderer.invoke('books:import-state'),
   importBooks: (folder) => ipcRenderer.invoke('books:import', folder),
+  renameBook: (id, title) => ipcRenderer.invoke('books:rename', id, title),
   saveBookMarkdown: (book, previousContent) => ipcRenderer.invoke('books:save', book, previousContent),
   onBookImportProgress: (callback) => {
     const listener = (_event, state) => callback(state);

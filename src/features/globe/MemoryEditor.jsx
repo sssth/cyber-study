@@ -1,10 +1,15 @@
+import { ContentCommand, ContentEditButton } from '../ContentCommands.jsx';
+import { ActionWorkspace } from '../ui.jsx';
+import {useSearchScope,SearchStatus,dateFilters} from '../../search/useSearchScope.jsx';
+import {matchesItem,textMatches,hasSearch} from '../../search/searchCore.js';
+import ContentActions from '../ContentActions.jsx';
 import { useState } from 'react';
 import { loadCities, nodeById } from './geography.js';
 
-const blank = { location: '', caption: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'visited' };
+const blank = { location: '', caption: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
 const label = p => p.location || p.filename || p.caption?.slice(0, 40) || '未命名记忆点';
 
-export default function MemoryEditor({ mode, photos, journeys, busy, request, onView, initialPoint, onSaved, onDelete }) {
+export default function MemoryEditor({ mode, photos, journeys, busy, request, onView, initialPoint, onSaved, onDelete, searchState }) {
   const [point, setPoint] = useState(() => ({ ...blank, ...initialPoint }));
   const [journey, setJourney] = useState({ title: '', note: '', pointIds: [] });
   const [cities, setCities] = useState([]);
@@ -20,6 +25,7 @@ export default function MemoryEditor({ mode, photos, journeys, busy, request, on
     finally { setCitiesLoading(false); }
   };
   const [remove, setRemove] = useState(false);
+  const [addingTo,setAddingTo]=useState(null);
   const active = photos.filter(p => !p.deletedAt);
   const byId = new Map(photos.map(p => [p.id, p]));
   const set = (key, value) => setPoint(p => ({ ...p, [key]: value, ...(['latitude', 'longitude', 'city', 'region', 'country'].includes(key) ? { cityId: '' } : {}) }));
@@ -27,7 +33,7 @@ export default function MemoryEditor({ mode, photos, journeys, busy, request, on
     const coordinate = value => String(value ?? '').trim() === '' ? null : Number(value);
     const result = await request('point', { ...point, attach, latitude: coordinate(point.latitude), longitude: coordinate(point.longitude) });
     if (result && !result.canceled) {
-      if (onSaved) { onSaved(); }
+      if (onSaved) { onSaved(result.photos?.find(p=>!photos.some(old=>old.id===p.id)) || result.photos?.find(p=>p.id===point.id)); }
       else { setPoint(blank); setQuery(''); }
     }
   };
@@ -36,20 +42,22 @@ export default function MemoryEditor({ mode, photos, journeys, busy, request, on
     [ids[index], ids[index + offset]] = [ids[index + offset], ids[index]];
     setJourney({ ...journey, pointIds: ids });
   };
+  const [journeyEditorOpen, setJourneyEditorOpen] = useState(false);
+  if(addingTo)return <div><ContentCommand kind="cancel-create" label="取消新增旅程记忆点" disabled={busy} run={() => setAddingTo(null)} /><button onClick={()=>setAddingTo(null)}>返回旅程</button><MemoryEditor mode="point" photos={photos} journeys={journeys} busy={busy} request={request} onSaved={async point=>{if(point){const ok=await request('journey',{...addingTo,pointIds:[...addingTo.pointIds,point.id]});if(ok)setAddingTo(null);}}}/></div>;
   if (mode === 'journey') return <div className="globe-library-layout">
     <section className="stack-form">
       <h3>我的旅程</h3>
-      <button disabled={busy} onClick={() => { setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); }}>新建旅程</button>
-      {journeys.map(j => <article key={j.id} className="admin-card">
-        <div><h3>{j.title}</h3><p>{j.pointIds.length} 个记忆点</p></div>
-        <div className="globe-toolbar"><button disabled={busy} onClick={() => { setRemove(false); setJourney(j); }}>编辑旅程</button><button disabled={busy} onClick={() => onView(j.id)}>在地球上查看</button></div>
+
+      {journeys.filter(j=>matchesItem('journey',j,searchState)).map(j => <article key={j.id} className="admin-card">
+        <ContentActions type="journey" id={j.id} title={j.title}/><div><h3>{j.title}</h3><p>{j.pointIds.length} 个记忆点</p></div>
+        <div className="globe-toolbar"><ContentCommand kind="create" label={`为「${j.title}」新增记忆点`} disabled={busy} run={() => setAddingTo(j)} /><ContentCommand label={`编辑旅程 · ${j.title}`} disabled={busy} run={() => { setJourneyEditorOpen(true); setRemove(false); setJourney(j); }} /><button data-item-open disabled={busy} onClick={() => onView(j.id)}>在地球上查看</button></div>
       </article>)}
     </section>
-    <form className="stack-form globe-organizer" onSubmit={async e => { e.preventDefault(); if (await request('journey', journey)) setJourney({ title: '', note: '', pointIds: [] }); }}>
+    <ActionWorkspace disabled={busy} onCreate={() => { setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); }} label="新建旅程" title="旅程编辑" open={journeyEditorOpen} onOpenChange={setJourneyEditorOpen}><form className="stack-form globe-organizer" onSubmit={async e => { e.preventDefault(); if (await request('journey', journey)) setJourney({ title: '', note: '', pointIds: [] }); }}>
       <h3>{journey.id ? '编辑旅程' : '新建旅程'}</h3>
       <label>旅程名称<input required maxLength={200} value={journey.title} onChange={e => setJourney({ ...journey, title: e.target.value })} /></label>
       <label>旅程说明<textarea value={journey.note} onChange={e => setJourney({ ...journey, note: e.target.value })} /></label>
-      <label>添加记忆点<select value="" onChange={e => { if (e.target.value) setJourney({ ...journey, pointIds: [...journey.pointIds, e.target.value] }); }}>
+      <label>开始日期<input type="date" value={journey.startDate||''} onChange={e=>setJourney({...journey,startDate:e.target.value})}/></label><label>结束日期<input type="date" value={journey.endDate||''} onChange={e=>setJourney({...journey,endDate:e.target.value})}/></label><label>添加记忆点<select value="" onChange={e => { if (e.target.value) setJourney({ ...journey, pointIds: [...journey.pointIds, e.target.value] }); }}>
         <option value="">选择已有记忆点</option>
         {active.filter(p => !journey.pointIds.includes(p.id)).map(p => <option key={p.id} value={p.id}>{label(p)}{p.date ? ` · ${p.date}` : ''}</option>)}
       </select></label>
@@ -60,9 +68,9 @@ export default function MemoryEditor({ mode, photos, journeys, busy, request, on
         <button type="button" onClick={() => setJourney({ ...journey, pointIds: journey.pointIds.filter(value => value !== id) })}>移出</button>
       </li>)}</ol>
       <button disabled={busy}>保存旅程</button>
-      {journey.id && !remove && <button type="button" disabled={busy} onClick={() => setRemove(true)}>删除旅程</button>}
-      {journey.id && remove && <div role="group" aria-label="确认删除旅程"><p>删除这段旅程后，记忆点仍会保留。</p><button type="button" onClick={() => setRemove(false)}>取消</button><button type="button" disabled={busy} onClick={async () => { if (await request('journey', { id: journey.id, remove: true })) { setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); } }}>确认删除旅程</button></div>}
-    </form>
+      {journey.id && !remove && <ContentEditButton label="删除旅程" disabled={busy} run={() => setRemove(true)} />}
+      {journey.id && remove && <div role="group" aria-label="确认删除旅程"><p>删除这段旅程后，记忆点仍会保留。</p><button type="button" onClick={() => setRemove(false)}>取消</button><button type="button" disabled={busy} onClick={async () => { if (await request('journey', { id: journey.id, remove: true })) { setJourneyEditorOpen(true); setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); } }}>确认删除旅程</button></div>}
+    </form></ActionWorkspace>
   </div>;
   const search = searching ? query.trim().toLowerCase() : '';
   const matches = search ? cities.filter(c => [c.name, c.name_ascii, c.aliases].some(name => name?.toLowerCase().includes(search))).slice(0, 10) : [];
@@ -80,7 +88,7 @@ export default function MemoryEditor({ mode, photos, journeys, busy, request, on
     <label>日期<input type="date" value={point.date || ''} onChange={e => set('date', e.target.value)} /></label>
     <label>记忆文字<textarea value={point.caption} onChange={e => set('caption', e.target.value)} /></label>
     {point.thumbnail && <img className="preview-image" src={point.thumbnail} alt="记忆点照片" />}
-    <p className="card-meta">选择城市后自动保存地点信息，使用城市中心位置；也可以暂不选择城市。</p>
-    <div className="globe-toolbar"><button disabled={busy}>保存记忆点</button>{point.id && onDelete && <button type="button" disabled={busy} onClick={() => onDelete(point.id)}>删除记忆点</button>}<button type="button" disabled={busy} onClick={() => savePoint(true)}>选择照片并保存</button></div>
+
+    <div className="globe-toolbar"><button disabled={busy}>保存记忆点</button>{point.id && onDelete && <ContentEditButton label="删除记忆点" disabled={busy} run={() => onDelete(point.id)} />}<button type="button" disabled={busy} onClick={() => savePoint(true)}>选择照片并保存</button></div>
   </form>;
 }

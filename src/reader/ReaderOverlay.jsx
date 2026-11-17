@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ContentCommand } from '../features/ContentCommands.jsx';
+import LibraryShelf from './LibraryShelf.jsx';
+import { ActionWorkspace } from '../features/ui.jsx';
+import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
+import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
+import ContentActions from '../features/ContentActions.jsx';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { formatProgress, parseMarkdownContent, underlineMarkdown } from './markdownReader.js';
 import { goToReaderBlock, highlightRanges, indexChapters, readerPosition } from './readerPosition.js';
 import { sampleBooks } from './sampleBooks.js';
@@ -8,13 +14,14 @@ import { addKnowledgeNote, groupExcerpts, loadKnowledge } from '../data/knowledg
 
 import { matchesShortcut, typingTarget } from '../data/shortcuts.js';
 
-let importIntroSeen = false;
 
 const minFontSize = 15;
 const maxFontSize = 26;
 
 function ReaderOverlay({
+  navigationRef,
   onClose,
+  onStartCopy,
   returnToKnowledge = false,
   shortcuts,
   importedBooks = [],
@@ -42,7 +49,6 @@ function ReaderOverlay({
   const chapterProgress = useRef(0);
   const [importState, setImportState] = useState({ phase: 'idle', revision: -1 });
   const [importError, setImportError] = useState('');
-  const [showImportIntro, setShowImportIntro] = useState(() => !importIntroSeen);
   const [dismissedImportRevision, setDismissedImportRevision] = useState(-1);
   const [deleteStatus, setDeleteStatus] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -50,7 +56,7 @@ function ReaderOverlay({
   const [savingNote, setSavingNote] = useState(false);
   const selectionRange = useRef(null);
   const desktop = globalThis.cyberStudy;
-  const [query, setQuery] = useState('');
+
   const [target, setTarget] = useState(null);
   const [selectionBlock, setSelectionBlock] = useState(null);
   const [selectionQuote, setSelectionQuote] = useState('');
@@ -64,8 +70,8 @@ function ReaderOverlay({
   const allBooks = useMemo(() => {
     const books = new Map(sampleBooks.map((book) => [book.id, book]));
     importedBooks.forEach((book) => books.set(book.id, book));
-    return [...books.values()];
-  }, [importedBooks]);
+    return [...books.values()].map(book => ({ ...book, title: readerState.books?.[book.id]?.customTitle || book.title }));
+  }, [importedBooks, readerState.books]);
   const importing = ['selecting', 'scanning', 'processing'].includes(importState.phase);
   useEffect(() => {
     if (!desktop?.getBookImportState) return;
@@ -93,28 +99,62 @@ function ReaderOverlay({
     });
     return () => { active = false; };
   }, [desktop, importState, onBooksChanged]);
+  const scopeId=mode==='reading'?`book:${activeBookId}`:'library';
+  const search=useSearchScope({id:scopeId,label:mode==='reading'?`当前书籍 · ${allBooks.find(b=>b.id===activeBookId)?.title||''}`:'书库 · 跨书全文',priority:30,filters:mode==='reading'?[]:[{key:'author',label:'作者',options:[...new Set(allBooks.map(b=>b.author).filter(Boolean))].map(v=>[v,v])},{key:'format',label:'导入格式',options:[...new Set(allBooks.map(b=>b.originalFormat||b.format).filter(Boolean))].map(v=>[v,v])}]});
+  const query=search.query;
+  const bookIndex=useMemo(()=>allBooks.map(book=>({book,blocks:parseMarkdownContent(book.content)})),[allBooks]);
   const hits = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     if (!term) return [];
-    return allBooks.flatMap((book) => {
-      const matches = parseMarkdownContent(book.content).flatMap((block) => {
+    return bookIndex.filter(({book})=>(mode!=='reading'||book.id===activeBookId)&&matchesItem('book',book,{query:'',filters:search.filters})).flatMap(({book,blocks}) => {
+      const matches = blocks.flatMap((block) => {
         const index = block.text.toLocaleLowerCase().indexOf(term);
-        if (index < 0) return [];
+        if (!textMatches([block.text],query)) return [];
         const start = Math.max(0, index - 36);
         return [{ ...block, snippet: block.text.slice(start, index + term.length + 50) }];
       });
       return matches.length ? [{ book, matches }] : [];
     });
-  }, [allBooks, query]);
+  }, [bookIndex, search, mode, activeBookId]);
+  const visibleBooks=allBooks.filter(book=>!hasSearch(search)||matchesItem('book',book,search)||hits.some(h=>h.book.id===book.id));
+  useSearchCount(scopeId,mode==='reading'?hits.reduce((sum,h)=>sum+h.matches.length,0):visibleBooks.length);
   const activeBook = useMemo(
     () => allBooks.find((book) => book.id === activeBookId) ?? null,
     [activeBookId, allBooks]
   );
+  const readingSnapshot = useRef(readerState);
+  readingSnapshot.current=readerState;
+  useEffect(() => {
+    if (mode !== 'reading' || !activeBook) return;
+    const bookId = activeBook.id;
+    let last = Date.now();
+    let active = document.visibilityState === 'visible' && document.hasFocus();
+    let sessionSeconds = 0;
+    const flush = () => {
+      const now = Date.now();
+      const seconds = active ? Math.min(15, Math.max(0, (now - last) / 1000)) : 0;
+      last = now;
+      if (seconds > 0) { sessionSeconds += seconds;
+        const state=readingSnapshot.current,old=state.books[bookId]||{};const next={...state,books:{...state.books,[bookId]:{...old,totalReadingSeconds:(old.totalReadingSeconds||0)+seconds,lastSessionSeconds:sessionSeconds,lastReadAt:new Date(now).toISOString()}}};readingSnapshot.current=next;saveReaderState(next);setReaderState(next);
+      }
+    };
+    const visibility = () => { flush(); active = document.visibilityState === 'visible' && document.hasFocus(); };
+    const timer = setInterval(flush, 10000);
+    window.addEventListener('focus', visibility); window.addEventListener('blur', visibility);document.addEventListener('visibilitychange', visibility);
+    return () => { flush(); clearInterval(timer);window.removeEventListener('focus', visibility);window.removeEventListener('blur', visibility);document.removeEventListener('visibilitychange', visibility); };
+  }, [mode, activeBook?.id]);
   const blocks = useMemo(
     () => (activeBook ? parseMarkdownContent(activeBook.content) : []),
     [activeBook]
   );
   const { chapters, chapterByBlock } = useMemo(() => indexChapters(blocks), [blocks]);
+  useImperativeHandle(navigationRef, () => () => ({
+    view: mode === 'reading' ? 'last' : 'library',
+    bookId: activeBookId,
+    progress: mode === 'reading' ? chapterProgress.current : null,
+    blockId: mode === 'reading' && contentRef.current ? readerPosition(contentRef.current, paged) : null
+  }));
+
   const savedPosition = readerState.books?.[activeBookId];
   const destination = target ?? { progress: initialProgress, blockId: initialBlockId };
   const destinationBlock = destination.blockId ?? (destination.progress == null ? savedPosition?.blockId : null);
@@ -144,7 +184,6 @@ function ReaderOverlay({
 
   useEffect(() => {
     if (mode === 'library' && (initialView === 'library' || !initialBookId || restoredInitialBook.current && !activeBookId)) {
-      importIntroSeen = true;
     }
   }, [mode, initialView, initialBookId, activeBookId]);
 
@@ -184,8 +223,6 @@ function ReaderOverlay({
     if (paged) changeReadingMode(false);
     setNotesOpen(false);
     dismissNote();
-    setShowImportIntro(!importIntroSeen);
-    importIntroSeen = true;
     setDismissedImportRevision(importState.revision);
     setImportError('');
     setMode('library');
@@ -207,6 +244,7 @@ function ReaderOverlay({
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (document.querySelector('dialog[open]')) return;
       if (matchesShortcut(event, shortcuts.readerBack) && !savingNote &&
           (event.key === 'Escape' || !typingTarget(event.target))) {
         event.preventDefault();
@@ -378,7 +416,7 @@ function ReaderOverlay({
       if (!text.trim()) return [];
       return [{ blockId: item.id, start: start + text.length - text.trimStart().length, end: end - text.length + text.trimEnd().length, text: text.trim() }];
     });
-    if (!ranges.length) return;
+    if (!ranges.length) return false;
     selectionRange.current = ranges;
     setSelectedExcerpt(null);
     setNoteAnchor(anchorFor(range.getBoundingClientRect()));
@@ -386,6 +424,7 @@ function ReaderOverlay({
     setNoteDraft('');
     setSelectionQuote(ranges.map((item) => item.text).join('\n'));
     setNoteMessage(null);
+    return true;
   };
 
   const anchorFor = (rect) => {
@@ -466,6 +505,15 @@ function ReaderOverlay({
     }
   };
 
+  const renameBook = async (book, title) => {
+    if (!desktop?.renameBook || !/^(file:|local:)/.test(book.id)) {
+      setReaderState(state => ({ ...state, books: { ...state.books, [book.id]: { ...state.books?.[book.id], customTitle: title } } }));
+      return;
+    }
+    const updated = await desktop.renameBook(book.id, title);
+    onBooksChanged([updated]);
+  };
+
   const removeBook = async (book) => {
     if (deleting || importing) return;
     setDeleting(true);
@@ -474,6 +522,7 @@ function ReaderOverlay({
       if (await desktop.deleteBook(book.id)) {
         onBookDeleted(book.id);
         setDeleteStatus({ message: `已将《${book.title}》移到废纸篓。` });
+        return true;
       }
     } catch {
       setDeleteStatus({ error: true, message: `无法删除《${book.title}》，请重试。` });
@@ -492,9 +541,17 @@ function ReaderOverlay({
     <section ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label="本地阅读器">
       <div className={`reader-shell ${mode === 'library' ? 'library-mode' : 'reading-mode'}`}>
         <header className="reader-topbar">
-          <div>
-            <p className="reader-kicker">Markdown 阅读器</p>
+          <div data-edit-item={mode === 'reading' ? '' : undefined}>
             <h2>{mode === 'library' ? '书房书架' : activeBook?.title ?? '阅读中'}</h2>
+            {mode === 'reading' && activeBook && <>
+              <ContentActions surface=".reader-shell" preview={false} type="book" id={activeBook.id} title={activeBook.title}/>
+              {activeBook &&
+                <ContentCommand label={`修改书名 · ${activeBook.title}`} value={activeBook.title}
+                  disabled={deleting || importing || savingNote} run={title => renameBook(activeBook, title)} />}
+              {desktop?.deleteBook && !activeBook.id.startsWith('sample:') &&
+                <ContentCommand label={`删除《${activeBook.title}》`} disabled={deleting || importing || savingNote}
+                  run={async () => { if (await removeBook(activeBook)) showLibrary(); }} />}
+            </>}
           </div>
           <div className="reader-top-actions">
             {mode === 'reading' && <>
@@ -544,8 +601,8 @@ function ReaderOverlay({
 
         {mode === 'library' ? (
           <div className="reader-library">
-            <div className="library-intro">
-              {showImportIntro && <p>导入 Markdown、TXT 或 PDF。书库保留原件，并为每本书保存一份 Markdown。</p>}
+            <ActionWorkspace disabled={deleting} label="添加书籍" title="导入书籍"><div className="library-intro">
+
               <div className="book-import-actions">
                 <button type="button" className="import-button" disabled={!desktop?.importBooks || importing || deleting} onClick={() => handleImport(false)}>导入文件</button>
                 <button type="button" className="import-button" disabled={!desktop?.importBooks || importing || deleting} onClick={() => handleImport(true)}>导入文件夹</button>
@@ -555,41 +612,31 @@ function ReaderOverlay({
               {(importing || importError || (!importState.restored && importState.revision > dismissedImportRevision)) &&
                 <ImportStatus state={importState} error={importError} />}
             </div>
-            <input className="book-search" aria-label="跨书全文检索" placeholder="跨书全文检索" value={query} onChange={(event) => setQuery(event.target.value)} />
+            </ActionWorkspace>
+            <SearchStatus id={scopeId} label="书库"/>
             {query.trim() && <section className="book-search-results">
               {!hits.length && <p>没有找到匹配正文。</p>}
               {hits.map(({ book, matches }) => <div key={book.id}>
-                <h3>{book.title}</h3>
-                {matches.map((block) => <button key={block.id} type="button" onClick={() => openBook(book, 0, block.id)}>{block.section && `${block.section} · `}{block.snippet}</button>)}
+                <h3>{book.title}</h3><ContentActions type="book" id={book.id} title={book.title}/>
+                {book && <ContentCommand value={book.title}
+                  label={`修改书名 · ${book.title}`} disabled={deleting || importing} run={title => renameBook(book, title)} />}
+                {desktop?.deleteBook && !book.id.startsWith('sample:') && <ContentCommand
+                  label={`删除《${book.title}》`} disabled={deleting || importing} run={() => removeBook(book)} />}
+                {matches.map((block) => <button data-item-open key={block.id} type="button" onClick={() => openBook(book, 0, block.id)}>{block.section && `${block.section} · `}{block.snippet}</button>)}
               </div>)}
             </section>}
             {deleteStatus && <p role={deleteStatus.error ? "alert" : "status"}>{deleteStatus.message}</p>}
-            <div className="book-grid">
-              {allBooks.map((book) => {
-                const saved = readerState.books?.[book.id];
-                const noteCount = loadReaderNotes().filter((note) => note.bookId === book.id).length;
-                return (
-                  <article className="book-card" key={book.id}>
-                    <div>
-                      <p className="book-card-kicker">{book.id.startsWith('sample:') ? '内置示例' : '本地导入'}</p>
-                      <h3>{book.title}</h3>
-                      <p className="book-card-meta">{book.author} · {book.source}</p>
-                      <p className="book-card-meta">{saved ? `已读 ${formatProgress(saved.progress)}` : '未开始'} · 摘录 {noteCount}</p>
-                    </div>
-                    <div className="book-card-footer">
-                      <span>{saved?.progress > 0 ? '继续上次' : '开始阅读'}</span>
-                      <div className="book-card-actions">
-                        {desktop?.deleteBook && !book.id.startsWith('sample:') &&
-                          <button type="button" disabled={deleting || importing} aria-label={`删除《${book.title}》`} onClick={() => removeBook(book)}>删除</button>}
-                        <button type="button" onClick={() => openBook(book)}>{saved?.progress > 0 ? '继续' : '阅读'}</button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+            <LibraryShelf books={allBooks} visibleBooks={visibleBooks} readerState={readerState} openBook={openBook} renameBook={renameBook} removeBook={removeBook} canDelete={Boolean(desktop?.deleteBook)} busy={deleting || importing}/>
+
           </div>
-        ) : (
+        ) : (<>
+          {selectionQuote && <ContentCommand kind="cancel-create" label="取消新建摘录" disabled={savingNote} run={dismissNote} />}
+          {!selectedExcerpt && <ContentCommand kind="create" label="新建摘录（先选中正文）"
+            disabled={savingNote || Boolean(selectionQuote)} run={() => {
+              if (!captureSelection()) setNoteMessage('请先在正文中选中要摘录的文字。');
+            }} />}
+          <SearchStatus id={scopeId} label="当前书籍"/>
+          {query.trim()&&<section className="reader-search-matches" aria-label="书内搜索结果">{!hits.length&&<p>没有匹配的段落。</p>}{hits.flatMap(({book,matches})=>matches.map(block=><button key={block.id} onClick={()=>openBook(book,0,block.id)}>{block.snippet}</button>))}</section>}
           <div className={`reader-workspace${notesOpen ? ' reader-notes-open' : ''}${paged ? ' reader-paged' : ''}`}>
             <aside className="reader-sidebar reader-excerpts">
               {!paged && <button type="button" aria-expanded={notesOpen} aria-label={`本章节摘录，${chapterNotes.length} 条`} aria-controls="reader-chapter-notes"
@@ -612,8 +659,6 @@ function ReaderOverlay({
               className="reader-content"
               ref={contentRef}
               onScroll={updateScrollProgress}
-              onMouseUp={captureSelection}
-              onKeyUp={(event) => { if (event.shiftKey) captureSelection(); }}
               style={{ fontSize: `${readerState.settings.fontSize}px`, lineHeight: readerState.settings.lineHeight }}
               tabIndex="0"
             >
@@ -631,6 +676,7 @@ function ReaderOverlay({
               <button type="button" disabled={atLastSpread && chapterIndex >= chapters.length - 1 || savingNote} onClick={() => turnPages(1)}>下一页 →</button>
             </nav>}
           </div>
+          </>
         )}
       </div>
       {(selectionQuote || selectedExcerpt) && noteAnchor && <div className="reader-inline-note"
@@ -644,7 +690,7 @@ function ReaderOverlay({
             onChange={(event) => setSelectedExcerpt(event.target.value)}>
             {excerptChoices.map((key) => <option key={key} value={key}>{excerpts.get(key)?.[0]?.quote}</option>)}
           </select>}
-          <blockquote>{excerpts.get(selectedExcerpt)?.[0]?.quote}</blockquote>
+          <blockquote>{excerpts.get(selectedExcerpt)?.[0]?.quote}</blockquote><ContentActions surface=".reader-inline-note" type="excerpt" id={excerpts.get(selectedExcerpt)?.[0]?.id} title={excerpts.get(selectedExcerpt)?.[0]?.quote?.slice(0,40)}/>
           <ExcerptAnnotations key={selectedExcerpt} notes={excerpts.get(selectedExcerpt)} onChange={refreshNotes} />
         </> : <form aria-label="保存摘录" onSubmit={(event) => { event.preventDefault(); saveNote(); }}>
           <blockquote>{selectionQuote}</blockquote>
@@ -654,6 +700,7 @@ function ReaderOverlay({
           <div className="reader-inline-actions">
             <button type="button" disabled={savingNote} onClick={dismissNote}>取消</button>
             <button type="submit" disabled={savingNote}>保存摘录</button>
+            <button type="button" disabled={savingNote} onClick={() => onStartCopy?.({bookId:activeBook.id,bookTitle:activeBook.title,chapterTitle:chapters.find(c=>c.id===displayedChapter)?.text || '全文',text:selectionQuote})}>开始抄写</button>
           </div>
         </form>}
       </div>}

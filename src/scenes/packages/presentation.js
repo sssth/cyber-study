@@ -14,7 +14,7 @@ const isSceneAudio = file => /\.(mp3|ogg|wav|m4a|flac)$/i.test(file);
 export const materialFields = ['roughness', 'metalness', 'emissiveIntensity', 'envMapIntensity', 'clearcoat', 'clearcoatRoughness'];
 
 export function sceneAssets(scene) {
-  const paths = new Set(scene.models.flatMap(model => [model.file, ...Object.values(model.qualityFiles ?? {})]));
+  const paths = new Set(scene.models.flatMap(model => [model.file, ...(model.previewFile ? [model.previewFile] : []), ...Object.values(model.qualityFiles ?? {})]));
   for (const model of scene.models) for (const level of model.lod?.levels ?? []) paths.add(level.file);
   for (const file of scene.assetDependencies ?? []) paths.add(file);
   for (const file of Object.values(scene.careSounds ?? {})) paths.add(file);

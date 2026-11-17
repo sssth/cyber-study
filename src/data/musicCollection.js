@@ -14,6 +14,7 @@ export function mergeMusicPlaylist(tracks, provider, list, imported) {
     merged.set(id, {
       ...previous, ...saved, id,
       cachedUrl: item.cachedUrl || previous?.cachedUrl,
+      audioAssetId: item.cachedUrl || previous?.audioAssetId || previous?.cachedUrl || null,
       playlists: [
         ...(previous?.playlists ?? []).filter(entry => entry.id !== playlistId),
         { id: playlistId, title: list.title, position: membership?.position ?? nextPosition++ },

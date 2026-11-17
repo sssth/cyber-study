@@ -11,6 +11,10 @@ export const movementShortcuts = [
 
 export function shortcutGroups(scene) {
   return [
+    ['通用', 'global', [
+      ['search', '搜索与筛选当前集合', ['Cmd+K', 'Ctrl+K']],
+      ['createContent', '新建当前页面的内容', ['Shift+Cmd+A', 'Ctrl+Shift+A']]
+    ]],
     ['书房场景', 'scene', [
       ...(scene.appearance?.nightTheme ? [['dayNight', '切换白天和黑夜', ['L']]] : []),
       ...(scene.views ?? []).map(({ id, label }, index) =>

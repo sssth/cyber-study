@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { promisify, TextDecoder } = require('node:util');
 
-const { atomicWrite, backup, readBook, publishBook } = require('./bookStorage.cjs');
+const { atomicWrite, backup, readBook, publishBook, renameBook } = require('./bookStorage.cjs');
 
 const run = promisify(execFile);
 const extensions = new Set(['.md', '.markdown', '.txt', '.pdf']);
@@ -277,6 +277,18 @@ function registerBooks(getWindow) {
     }
     return publishBook(directory, { id, title, author, source }, content);
   }
+  handle('rename', (_window, id, title) => {
+    if (deleting || ['selecting', 'scanning', 'processing'].includes(importState.phase)) {
+      throw new Error('请等待当前书库操作完成。');
+    }
+    if (typeof id !== 'string' || !/^(file:|local:)/.test(id) ||
+        typeof title !== 'string' || !title.trim() || title.length > 500) {
+      throw new Error('书名必须为 1–500 个字符。');
+    }
+    const result = pendingSave.then(() => renameBook(bookDirectory(id), title.trim()));
+    pendingSave = result.catch(() => {});
+    return result;
+  });
   handle('save', (_window, book, previousContent) => {
     if (deleting) throw new Error('请先完成书籍删除。');
     const result = pendingSave.then(() => saveBook(book, previousContent));

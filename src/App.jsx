@@ -1,3 +1,8 @@
+import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
+import UnifiedSearch from './search/UnifiedSearch.jsx';
+import GlobalSearch from './search/GlobalSearch.jsx';
+import {getSearch,setSearch} from './search/searchStore.js';
+import ContentRelationshipPanel from './features/ContentRelationshipPanel.jsx';
 import GraphicsSettings from './features/GraphicsSettings.jsx';
 import { loadGraphics, needsGraphicsCalibration, calibrationDecision, presetSettings } from './data/graphics.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,6 +35,13 @@ function formatCareChange(label, before, after) {
   return `${label} ${from} → ${to}（+${to - from}）`;
 }
 
+const contentFeatures = {
+  excerpt: 'knowledge', annotation: 'knowledge', typing_work: 'typewriter',
+  memory_point: 'globe', journey: 'globe', playlist: 'music', music: 'music',
+  movie: 'movie', diary: 'diary', memo: 'memo', todo: 'memo'
+};
+const contentScope = item => item?.type === 'journey' ? 'journey' : contentFeatures[item?.type];
+
 function App() {
   const [sceneSettled, setSceneSettled] = useState(false);
   const markSceneSettled = useCallback(() => setSceneSettled(true), []);
@@ -37,6 +49,10 @@ function App() {
   const [rainOn, setRainOn] = useState(hasOutdoorRain && !defaultPackage.appearance?.nightTheme);
   const [readerOpen, setReaderOpen] = useState(false);
   const [returnToKnowledge, setReturnToKnowledge] = useState(false);
+  const readerNavigation = useRef(null);
+  const relationReturn = useRef(null);
+  const [navigation, setNavigation] = useState({ item: null, revision: 0 });
+  const updateNavigation = item => setNavigation(current => ({ item, revision: current.revision + 1 }));
   const [readerEntry, setReaderEntry] = useState('last');
   const [activeHotspot, setActiveHotspot] = useState(null);
   const [audioReady, setAudioReady] = useState(false);
@@ -82,6 +98,8 @@ function App() {
   const [readerJumpBlock, setReaderJumpBlock] = useState(null);
   const [readerJumpProgress, setReaderJumpProgress] = useState(null);
   const [activeFeature, setActiveFeature] = useState(null);
+  const [copyRequest, setCopyRequest] = useState(null);
+  const startCopy = request => {setCopyRequest(request);setReaderOpen(false);setReturnToKnowledge(false);setActiveFeature('typewriter');};
   const [detailModel, setDetailModel] = useState(null);
   const [sceneTheme, setSceneTheme] = useState(null);
   const careSound = useRef(null);
@@ -129,6 +147,8 @@ function App() {
     catch { setGraphicsError('已应用，但保存失败，下次启动将恢复默认画质。'); }
   };
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pendingCommand, setPendingCommand] = useState(null);
+  const clearPendingCommand = useCallback(() => setPendingCommand(null), []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState(() => loadShortcuts(groups));
   const updateShortcuts = (bindings) => {
@@ -217,7 +237,7 @@ function App() {
       }
     };
     const dismissOnEscape = (event) => {
-      if (event.repeat || !matchesShortcut(event, shortcuts.closeMenu)) return;
+      if (document.querySelector('dialog[open]') || event.repeat || !matchesShortcut(event, shortcuts.closeMenu)) return;
       event.preventDefault();
       setMenuOpen(false);
       setSettingsOpen(false);
@@ -275,6 +295,8 @@ function App() {
   useEffect(() => () => careSound.current?.pause(), []);
 
   const openFeature = (featureId, model) => {
+    relationReturn.current = null;
+    updateNavigation(null);
     setDetailModel(model ?? null);
     showCaption(hotspots[featureId]);
     setActiveFeature(featureId);
@@ -308,12 +330,83 @@ function App() {
   };
 
   const closeReader = () => {
+    relationReturn.current = null;
     setReaderOpen(false);
     setReturnToKnowledge(false);
     setReaderJumpProgress(null);
     setLastBookId(loadReaderState().lastBookId);
     if (audioOn) audioManager.playSwitchSound('close');
   };
+
+  const openContent = item => {
+    const feature = contentFeatures[item.type];
+    if (item.type !== 'book' && !feature) return;
+    setReturnToKnowledge(false);
+    setCopyRequest(null);
+    updateNavigation(item);
+    if (item.type === 'book') {
+      setActiveFeature(null);
+      setLastBookId(item.id);
+      openReader();
+      return;
+    }
+    setReaderOpen(false);
+    const scope = contentScope(item);
+    setSearch(scope, { query: '', filters: item.type === 'playlist' ? {} : { id: item.id } });
+    setActiveFeature(feature);
+  };
+
+  const visitRelation = (item, source) => {
+    const reader = readerOpen ? readerNavigation.current?.() : null;
+    const sourceItem = !readerOpen && contentFeatures[source.type] === activeFeature ? source : null;
+    const scope = contentScope(sourceItem);
+    relationReturn.current = {
+      reader,
+      feature: activeFeature,
+      item: sourceItem,
+      returnToKnowledge,
+      copyRequest,
+      scope,
+      search: scope ? getSearch(scope) : null
+    };
+    openContent(item);
+  };
+
+  useEffect(() => {
+    const goBack = event => {
+      if (event.key !== 'Escape' || event.repeat || event.defaultPrevented ||
+          document.querySelector('dialog[open], .unified-search') || !relationReturn.current) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const origin = relationReturn.current;
+      relationReturn.current = null;
+      updateNavigation(origin.item);
+      if (origin.scope) setSearch(origin.scope, origin.search);
+      setActiveFeature(origin.feature);
+      setReturnToKnowledge(origin.returnToKnowledge);
+      setCopyRequest(origin.copyRequest);
+      setReaderOpen(Boolean(origin.reader));
+      if (origin.reader) {
+        setLastBookId(origin.reader.bookId);
+        setReaderEntry(origin.reader.view);
+        setReaderJumpProgress(origin.reader.progress);
+        setReaderJumpBlock(origin.reader.blockId);
+      }
+    };
+    window.addEventListener('keydown', goBack, true);
+    return () => window.removeEventListener('keydown', goBack, true);
+  }, []);
+
+  const closeFeature = () => {
+    relationReturn.current = null;
+    setActiveFeature(null);
+  };
+
+  const commandView = `${readerOpen}:${activeFeature}`;
+  const commandDestinations = [
+    ['shelf', '书库'], ['music', '音乐播放器'], ['movie', '影架'], ['diary', '日记'],
+    ['memo', 'Memo 板'], ['typewriter', '抄写'], ['globe', '地球仪']
+  ];
 
   return (
     <main className="app-shell">
@@ -339,8 +432,10 @@ function App() {
           onCare={careForModel}
         />
         {readerOpen && (
-          <PanelLoading title="正在打开阅读器">
+          <PanelLoading key={navigation.revision} title="正在打开阅读器">
             <ReaderOverlay
+              navigationRef={readerNavigation}
+              onStartCopy={startCopy}
               shortcuts={shortcuts}
               onClose={closeReader}
               returnToKnowledge={returnToKnowledge}
@@ -414,20 +509,28 @@ function App() {
         </div>
       )}
 
-      <MusicPlayer shortcuts={shortcuts} shortcutsEnabled={!settingsOpen || !menuOpen} open={activeFeature === 'music'} onClose={() => setActiveFeature(null)} />
+      <ContentCommands viewKey={commandView} shortcuts={shortcuts} disabled={settingsOpen || calibration}
+        pending={pendingCommand} onPendingHandled={clearPendingCommand} />
+      <UnifiedSearch viewKey={`${readerOpen}:${activeFeature}:${readerEntry}:${sceneTheme}:${navigation.revision}`} shortcuts={shortcuts} disabled={settingsOpen || calibration}/>
+      <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!menuOpen&&!calibration} onOpen={item => {
+        relationReturn.current = null;
+        openContent(item);
+      }}/>
+      <ContentRelationshipPanel books={importedBooks} onNavigate={visitRelation} />
+      <MusicPlayer navigation={navigation} shortcuts={shortcuts} shortcutsEnabled={!settingsOpen || !menuOpen} open={activeFeature === 'music'} onClose={closeFeature} />
 
       {activeFeature && activeFeature !== 'music' && (
-        <PanelLoading key={activeFeature} title={`正在打开${hotspots[activeFeature]?.label ?? '模块'}`}>
+        <PanelLoading key={`${activeFeature}:${navigation.revision}`} title={`正在打开${hotspots[activeFeature]?.label ?? '模块'}`}>
           {activeFeature === 'knowledge' && (
-            <KnowledgeWorkspace suspended={returnToKnowledge} onClose={() => setActiveFeature(null)} version={knowledgeVersion} importedBooks={importedBooks} onOpenNote={openKnowledgeNote} />
+            <KnowledgeWorkspace navigationItem={navigation.item} onStartCopy={startCopy} suspended={returnToKnowledge} onClose={closeFeature} version={knowledgeVersion} importedBooks={importedBooks} onOpenNote={openKnowledgeNote} />
           )}
-          {activeFeature === 'movie' && <MovieCollection onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'diary' && <DiaryPanel onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'memo' && <MemoBoard shortcuts={shortcuts} onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'globe' && <GlobePanel onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'typewriter' && <TypewriterPanel onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'pet' && <PetPanel model={detailModel} theme={sceneTheme} onClose={() => setActiveFeature(null)} />}
-          {activeFeature === 'plant' && <PlantPanel model={detailModel} theme={sceneTheme} onClose={() => setActiveFeature(null)} />}
+          {activeFeature === 'movie' && <MovieCollection onClose={closeFeature} />}
+          {activeFeature === 'diary' && <DiaryPanel navigationItem={navigation.item} onClose={closeFeature} />}
+          {activeFeature === 'memo' && <MemoBoard shortcuts={shortcuts} onClose={closeFeature} />}
+          {activeFeature === 'globe' && <GlobePanel navigationItem={navigation.item} onClose={closeFeature} />}
+          {activeFeature === 'typewriter' && <TypewriterPanel importedBooks={importedBooks} initialSource={copyRequest} onClose={() => {closeFeature();setCopyRequest(null);}} />}
+          {activeFeature === 'pet' && <PetPanel model={detailModel} theme={sceneTheme} onClose={closeFeature} />}
+          {activeFeature === 'plant' && <PlantPanel model={detailModel} theme={sceneTheme} onClose={closeFeature} />}
         </PanelLoading>
       )}
 

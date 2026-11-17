@@ -1,6 +1,10 @@
+import { ContentCommand, ContentEditButton } from './ContentCommands.jsx';
+import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
+import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
+import ContentActions from './ContentActions.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { MusicSources, musicPlatformNames, musicRequest } from './MusicSources.jsx';
-import { FeaturePanel, EmptyState } from './ui.jsx';
+import { ActionWorkspace, FeaturePanel, EmptyState } from './ui.jsx';
 import { matchesShortcut, typingTarget } from '../data/shortcuts.js';
 import { createId, loadSpaceData, saveSpaceData } from '../data/spaceStorage.js';
 import { mergeMusicPlaylist } from '../data/musicCollection.js';
@@ -24,7 +28,7 @@ function formatTime(seconds) {
   return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, '0')}`;
 }
 
-const localAudioExtensions = ['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'oga', 'opus', 'webm'];
+const localAudioExtensions = ['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg'];
 
 const playbackModes = { sequential: '顺序播放', repeat: '单曲循环', shuffle: '随机播放' };
 
@@ -55,8 +59,12 @@ async function startOnlineAudio(audio) {
   }
 }
 
-function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
+function MusicPlayer({ navigation, open, onClose, shortcuts, shortcutsEnabled }) {
   const [tracks, setTracks] = useState(() => loadSpaceData('music', []).map((track) => ({ ...track, kind: httpUrl(track.url) ? neteaseKind(httpUrl(track.url)) : '', playlists: track.playlists?.length ? track.playlists : [{ id: 'legacy-imports', title: '旧版导入' }] })));
+  const [savedPlaylists,setSavedPlaylists]=useState(()=>loadSpaceData('playlists',[]));
+  const [listTitle,setListTitle]=useState('');
+  const [listSelection,setListSelection]=useState([]);
+  useEffect(()=>{saveSpaceData('playlists',savedPlaylists);},[savedPlaylists]);
   const [resume] = useState(() => loadSpaceData('musicResume', {}));
   const [currentId, setCurrentId] = useState(resume.trackId ?? null);
   const [importNotice, setImportNotice] = useState('');
@@ -73,12 +81,19 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
   const [preview, setPreview] = useState(false);
   const [playingPlaylistId, setPlayingPlaylistId] = useState(resume.playlistId ?? '');
   const [playlistFilter, setPlaylistFilter] = useState(resume.playlistId ?? '');
+    useEffect(() => {
+    if (!open) return;
+    const target = navigation?.item;
+    if (target?.type === 'playlist') setPlaylistFilter(target.id);
+    if (target?.type === 'music') setPlaylistFilter(target.playlists?.[0]?.id || 'legacy-imports');
+  }, [open, navigation]);
   const [playlistModes, setPlaylistModes] = useState(() => loadSpaceData('musicPlaylistModes', {}));
   const [stagedImport, setStagedImport] = useState(null);
   const activeImport = useRef(false);
   const playlists = new Map(tracks.flatMap(track => (track.playlists ?? []).map(list => [
     list.id, [musicPlatformNames[track.provider], list.title].filter(Boolean).join(' · '),
   ])));
+  savedPlaylists.forEach(p=>playlists.set(p.id,p.title));
   if (stagedImport) playlists.set(stagedImport.id, stagedImport.title);
   const current = stagedImport?.tracks.get(currentId)?.cachedUrl
     ? stagedImport.tracks.get(currentId)
@@ -101,7 +116,9 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
     }
     return [...merged.values()];
   };
-  const displayedTracks = tracksInPlaylist(activeFilter);
+  const search=useSearchScope({id:'music',label:activeFilter?`歌单 · ${playlists.get(activeFilter)}`:'歌曲',priority:10,enabled:open,filters:[{key:'provider',label:'平台',options:[...new Set(tracks.map(t=>t.provider).filter(Boolean))].map(v=>[v,musicPlatformNames[v]||v])}]});
+  const displayedTracks = (activeFilter?tracksInPlaylist(activeFilter):tracks).filter(t=>matchesItem('music',t,search));
+  useSearchCount('music',displayedTracks.length);
   const queue = tracksInPlaylist(songPlaylist || activeFilter)
     .filter(track => !track.kind && (!track.cacheState || track.cacheState === 'ready'));
   const queueIndex = queue.findIndex((track) => track.id === currentId);
@@ -168,6 +185,7 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
     if (!track || track.kind) return;
 
     if (track.cachedUrl || !track.provider) {
+      if(!track.cachedUrl&&!track.url){setPlaybackError('这是一张音乐资料卡，请先补充本地音频。');return;}
       audio.src = track.cachedUrl || track.url;
       play();
       return;
@@ -186,11 +204,12 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
 
         let stream;
         try {
-          stream = await musicRequest(track.provider, 'stream', {
+          stream = await musicRequest(track.provider, 'cache-track', {
             id: track.sourceId, mediaMid: track.mediaMid, fee: track.fee,
           });
           if (selection.current !== requestId) return;
-          audio.src = stream.url;
+          audio.src = stream.cachedUrl;
+          setTracks(items=>items.map(t=>t.id===track.id?{...t,cachedUrl:stream.cachedUrl,audioAssetId:stream.cachedUrl}:t));
           await startOnlineAudio(audio);
           if (selection.current === requestId) setPreview(stream.preview);
           return;
@@ -222,6 +241,7 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
   }, [currentId, current]);
 
   const savePlaylist = (provider, list, imported) => {
+    setSavedPlaylists(items=>{const id=`${provider}:${list.id}`;return [...items.filter(p=>p.id!==id),{id,title:list.title,description:'',provider,sourceId:String(list.id)}];});
     setTracks(items => mergeMusicPlaylist(items, provider, list, imported));
   };
 
@@ -254,7 +274,7 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
     };
   };
 
-  const addFolder = (event) => {
+  const addFolder = async (event) => {
     const files = Array.from(event.target.files).filter(file =>
       localAudioExtensions.includes(file.name.split('.').pop().toLowerCase()),
     );
@@ -267,22 +287,18 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
     const id = createId('folder');
     const folderName = files[0].webkitRelativePath.split('/')[0] || '本地音频';
     files.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true }));
-    const added = files.map((file, position) => ({
-      id: createId('track'),
-      title: file.name,
-      url: URL.createObjectURL(file),
-      local: true,
-      playlists: [{ id, title: folderName, position }],
-    }));
-    setTracks(items => [...items, ...added]);
+    const added=[];const failed=[];
+    for(const [position,file] of files.entries()){try{if(!window.cyberStudy?.importLocalAudio)throw Error('请在桌面应用中导入');const result=await window.cyberStudy.importLocalAudio(new Uint8Array(await file.arrayBuffer()));if(result.error)throw Error(result.error);added.push({id:`local:${result.id}`,title:file.name,cachedUrl:result.cachedUrl,audioAssetId:result.audioAssetId,playlists:[{id,title:folderName,position}]});}catch(error){failed.push(`${file.name}：${error.message}`);}}
+    setTracks(items => {const merged=new Map(items.map(t=>[t.id,t]));for(const t of added){const old=merged.get(t.id);merged.set(t.id,{...old,...t,playlists:[...(old?.playlists||[]).filter(p=>p.id!==id),...t.playlists]});}return [...merged.values()];});
     setPlaylistFilter(id);
-    setImportNotice(`已导入 ${added.length} 首音频。`);
+    setImportNotice(`已保存 ${added.length} 首音频。${failed.join('；')}`);
   };
 
   const removePlaylist = () => {
     if (!activeFilter) return;
+    setSavedPlaylists(items=>items.filter(p=>p.id!==activeFilter));
     for (const track of displayedTracks) {
-      if (track.playlists.length > 1) continue;
+      if (!track.playlists?.some(list => list.id === activeFilter) || track.playlists.length > 1) continue;
       if (track.id === currentId) selectTrack(null);
       if (track.local) URL.revokeObjectURL(track.url);
     }
@@ -345,6 +361,7 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
         }}
         onLoadedMetadata={event => {
           const audio = event.currentTarget;
+          if(Number.isFinite(audio.duration))setTracks(items=>items.map(t=>t.id===currentId?{...t,durationSeconds:audio.duration}:t));
           if (pendingSeek.current > 0 && Number.isFinite(audio.duration)) {
             audio.currentTime = pendingSeek.current < audio.duration ? pendingSeek.current : 0;
           }
@@ -399,26 +416,38 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
                   {playbackError && <p role="alert">{playbackError}</p>}
                 </div>
               </div>
-              <MusicSources onImport={beginImport} importing={Boolean(stagedImport)} />
+              <ActionWorkspace label="添加音乐" title="导入音乐 / 新建资料卡"><MusicSources onImport={beginImport} importing={Boolean(stagedImport)} />
               <div className="music-folder-import">
                 <label className="file-label">
                   导入音频文件夹
                   <input type="file" webkitdirectory="" onChange={addFolder} />
                 </label>
-                <p>包含子文件夹。本次打开有效。</p>
-                <p>支持 {localAudioExtensions.map(extension => extension.toUpperCase()).join('、')}</p>
+                <label className="file-label">导入音频文件<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><MusicCardCreator onCreate={track=>setTracks(items=>[...items,track])}/>
+
                 {importNotice && <p role="status">{importNotice}</p>}
               </div>
+              </ActionWorkspace>
             </section>
-            <section className="admin-list music-track-list">
+            <section className="admin-list music-track-list"><ActionWorkspace label="新建歌单"><div className="stack-form"><label>新歌单名称<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><label>收录已有歌曲（可不选）<select multiple value={listSelection} onChange={e=>setListSelection([...e.target.selectedOptions].map(o=>o.value))}>{tracks.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>创建歌单</button></div></ActionWorkspace>
               {playlists.size > 0 && (
-                <div className="music-playlist-actions">
+                <div className="music-playlist-actions" data-edit-item><ContentActions surface=".music-playlist-actions" type="playlist" id={activeFilter} title={playlists.get(activeFilter)}/>
+                  {activeFilter && <span className="card-meta" title="双击管理当前歌单">{playlists.get(activeFilter)}</span>}
                   <select aria-label="唱片架歌单" value={activeFilter} onChange={event => setPlaylistFilter(event.target.value)}>
                     {Array.from(playlists, ([id, title]) => <option key={id} value={id}>{title}</option>)}
                   </select>
-                  {activeFilter && <button type="button" disabled={activeFilter === stagedImport?.id} onClick={removePlaylist}>移除歌单</button>}
+                  {activeFilter && <>
+                    {savedPlaylists.some(list => list.id === activeFilter) &&
+                      <ContentCommand label={`修改歌单名称 · ${playlists.get(activeFilter)}`} value={playlists.get(activeFilter)}
+                        run={title => {
+                          setSavedPlaylists(items => items.map(item => item.id === activeFilter ? { ...item, title } : item));
+                          setTracks(items => items.map(track => ({ ...track, playlists: track.playlists?.map(list =>
+                            list.id === activeFilter ? { ...list, title } : list) })));
+                        }} />}
+                    <ContentCommand label={`移除歌单 · ${playlists.get(activeFilter)}`} disabled={activeFilter === stagedImport?.id} confirm run={removePlaylist} />
+                  </>}
                 </div>
               )}
+              <SearchStatus id="music" label="歌曲"/>
               {displayedTracks.length > 0 && (
                 <label className="music-playback-mode">
                   播放模式
@@ -432,11 +461,20 @@ function MusicPlayer({ open, onClose, shortcuts, shortcutsEnabled }) {
               )}
               {displayedTracks.length === 0 ? <EmptyState>暂无唱片。</EmptyState> : displayedTracks.map((track) => (
                 <article className={`admin-card ${track.id === currentId ? 'selected' : ''}`} key={track.id}>
-                  <div className="music-track-copy"><p className="card-kicker">{[track.kind || musicPlatformNames[track.provider] || '收藏曲目', track.artist || track.note].filter(Boolean).join(' · ')}</p><h3>{track.title}</h3><p className="card-meta">{track.local ? '本地音频' : track.provider ? '' : httpUrl(track.url)?.hostname}</p></div>
+                  <div className="music-track-copy"><p className="card-kicker">{[track.kind || musicPlatformNames[track.provider] || '收藏曲目', track.artist || track.note].filter(Boolean).join(' · ')}</p><h3>{track.title}</h3><ContentActions type="music" id={track.id} title={track.title}/><label className="file-label">补充本地音频<input type="file" accept="audio/*" onChange={async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{if(!window.cyberStudy?.importLocalAudio)throw Error('请使用桌面应用');const r=await window.cyberStudy.importLocalAudio(new Uint8Array(await f.arrayBuffer()));if(r.error)throw Error(r.error);setTracks(items=>items.map(t=>t.id===track.id?{...t,cachedUrl:r.cachedUrl,audioAssetId:r.audioAssetId}:t));setImportNotice('音频已保存。');}catch(error){setImportNotice(error.message);}}}/></label><p className="card-meta">{track.local ? '本地音频' : track.provider ? '' : httpUrl(track.url)?.hostname}</p></div>
+                  {tracks.some(item => item.id === track.id) && <>
+                    <ContentCommand label={`修改曲目名称 · ${track.title}`} value={track.title}
+                      run={title => setTracks(items => items.map(item => item.id === track.id ? { ...item, title } : item))} />
+                    <ContentCommand label={`从唱片架删除 · ${track.title}`} confirm run={() => {
+                      if (track.id === currentId) selectTrack(null);
+                      if (track.local) URL.revokeObjectURL(track.url);
+                      setTracks(items => items.filter(item => item.id !== track.id));
+                    }} />
+                  </>}
                   <div className="card-actions">
                     {track.cacheState === 'pending' || track.cacheState === 'failed'
                       ? <span className="card-meta">{track.cacheState === 'failed' ? '缓存失败' : '等待缓存'}</span>
-                      : <button type="button" onClick={() => selectTrack(track, activeFilter)}>{track.kind ? '查看唱片' : '播放'}</button>}
+                      : <button data-item-open type="button" onClick={() => selectTrack(track, activeFilter)}>{track.kind ? '查看唱片' : '播放'}</button>}
                   </div>
                 </article>
               ))}
@@ -464,7 +502,9 @@ function MovieCollection({ onClose }) {
   const [movies, setMovies] = useState(() => loadSpaceData('movies', []));
   const [draft, setDraft] = useState(movieDraft);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({});
+  const [editorOpen, setEditorOpen] = useState(false);
+  const search=useSearchScope({id:'movie',label:'影片',priority:10,filters:movieFilterGroups.map(g=>({key:g.key,label:g.label,options:[...new Set(movies.flatMap(g.values))].sort().map(v=>[v,v])}))});
+  const filters=search.filters;
   const [error, setError] = useState('');
   const [fetchingDouban, setFetchingDouban] = useState(false);
   const [choosingPoster, setChoosingPoster] = useState(false);
@@ -578,7 +618,7 @@ function MovieCollection({ onClose }) {
       setError('请输入对应影片的豆瓣电影条目链接。');
       return;
     }
-    if (!url && !douban) { setError('请填写来源链接或豆瓣电影条目链接。'); return; }
+    if (!draft.title.trim()) { setError('请填写影片名称。'); return; }
     const score = draft.score.trim();
     if (score && (!/^\d{1,2}(?:\.\d)?$/.test(score) || Number(score) > 10)) {
       setError('请输入 0–10 之间的豆瓣评分。');
@@ -590,11 +630,11 @@ function MovieCollection({ onClose }) {
     };
     const next = editing ? movies.map((movie) => movie.id === editing ? { ...movie, ...record } : movie)
       : [{ ...record, id: createId('movie'), createdAt: new Date().toISOString() }, ...movies];
-    if (persist(next)) { setDraft(movieDraft); setEditing(null); setDoubanMessage(''); }
+    if (persist(next)) { setDraft(movieDraft); setEditorOpen(false); setEditing(null); setDoubanMessage(''); }
   };
 
   const editMovie = (movie) => {
-    setEditing(movie.id);
+    setEditorOpen(true); setEditing(movie.id);
     setDraft({ ...movieDraft, ...movie, region: splitMovieRegions(movie.region).join(' / '), genres: (movie.genres ?? []).join('，'), tags: (movie.tags ?? []).join('，') });
     setError('');
     setDoubanMessage('');
@@ -608,17 +648,18 @@ function MovieCollection({ onClose }) {
     setDoubanMessage('');
   };
   const deleteMovie = () => {
-    if (window.confirm('删除这条影片记录？') && persist(movies.filter((movie) => movie.id !== editing))) cancelEdit();
+    if (window.confirm('删除这条影片记录？') && persist(movies.filter((movie) => movie.id !== editing))) { cancelEdit(); setEditorOpen(false); }
   };
   const groups = movieFilterGroups.map((group) => {
     const options = [...new Set(movies.flatMap(group.values))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
-    return { ...group, options, selected: options.includes(filters[group.key]) ? filters[group.key] : '' };
+    return { ...group, options, selected: filters[group.key] || '' };
   });
-  const visibleMovies = movies.filter((movie) => groups.every(({ selected, values }) =>
+  const visibleMovies = movies.filter((movie) => matchesItem('movie',movie,search) && groups.every(({ selected, values }) =>
     !selected || values(movie).includes(selected)));
 
+  useSearchCount('movie',visibleMovies.length);
   return <FeaturePanel wide title="影碟机与屏幕" kicker="Movie Shelf" onClose={onClose}>
-    <form ref={movieForm} className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
+    <ActionWorkspace disabled={formBusy} onCreate={() => { if (editing) cancelEdit(); }} label="新建影片" title={editing ? '编辑影片' : '新建影片'} open={editorOpen} onOpenChange={setEditorOpen}><form ref={movieForm} className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
       <input {...field('url')} placeholder="B 站或其他来源链接（可稍后补充）" />
       <input ref={titleInput} {...field('title')} placeholder="影片名称（可稍后补充）" />
       <div className="movie-poster-field">
@@ -626,7 +667,7 @@ function MovieCollection({ onClose }) {
           referrerPolicy="no-referrer" alt="海报预览" />}
         <input ref={posterInput} type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" onChange={selectPoster} />
         <button type="button" disabled={formBusy} onClick={() => posterInput.current?.click()}>{draft.poster ? '更换海报' : '上传海报'}</button>
-        {draft.poster && <button type="button" disabled={formBusy} onClick={() => setDraft((current) => ({ ...current, poster: '' }))}>移除海报</button>}
+        {draft.poster && <ContentEditButton label="清除当前影片海报" disabled={formBusy} run={() => setDraft(current => ({ ...current, poster: '' }))} />}
       </div>
       <div className="panel-toolbar">
         <input {...field('douban')} placeholder="豆瓣电影条目链接" aria-label="豆瓣电影条目链接" disabled={formBusy} />
@@ -644,23 +685,12 @@ function MovieCollection({ onClose }) {
       <button type="submit" disabled={formBusy}>{editing ? '保存影片修改' : '加入影架'}</button>
       {editing && <div className="movie-edit-actions">
         <button type="button" disabled={formBusy} onClick={cancelEdit}>取消编辑</button>
-        <button type="button" disabled={formBusy} onClick={deleteMovie}>删除影片</button>
+        <ContentEditButton label="删除影片" disabled={formBusy} run={deleteMovie} />
       </div>}
       {error && <p role="alert">{error}</p>}
       {doubanMessage && <p role="status">{doubanMessage}</p>}
-    </form>
-    <div className="movie-filters" aria-label="影片筛选">
-      {groups.map(({ key, label, options, selected }) => <label key={key}>
-        {label}
-        <select value={selected} onChange={(event) => {
-          const value = event.target.value;
-          setFilters((current) => ({ ...current, [key]: value }));
-        }}>
-          <option value="">全部</option>
-          {options.map((option) => <option key={option}>{option}</option>)}
-        </select>
-      </label>)}
-    </div>
+    </form></ActionWorkspace>
+    <SearchStatus id="movie" label="影片"/>
     {movies.length > 0 && visibleMovies.length === 0 && <p role="status">没有符合筛选条件的影片。</p>}
     <div className="movie-posters">
       {visibleMovies.map((movie) => {
@@ -673,9 +703,10 @@ function MovieCollection({ onClose }) {
         return <article className="movie-tile" key={movie.id}>
           <div className="movie-poster">
             {destination
-              ? <a className="movie-poster-link" href={destination} target="_blank" rel="noreferrer" aria-label={`打开${title}`}>{posterContent}</a>
+              ? <a data-item-open className="movie-poster-link" href={destination} target="_blank" rel="noreferrer" aria-label={`打开${title}`}>{posterContent}</a>
               : posterContent}
-            <button className="movie-edit" type="button" disabled={formBusy} aria-label={`编辑${movie.title || '影片'}`} onClick={() => editMovie(movie)}>编辑</button>
+            <ContentCommand label={`编辑影片 · ${movie.title || '未命名'}`} disabled={formBusy} run={() => editMovie(movie)} />
+            <ContentCommand label={`删除影片 · ${movie.title || '未命名'}`} disabled={formBusy} confirm run={() => persist(movies.filter(item => item.id !== movie.id))} />
             <select className="movie-status" aria-label={`${movie.title || '影片'}观看状态`} value={movie.status || '想看'}
               disabled={editing === movie.id} onChange={(event) => {
                 const status = event.target.value;
@@ -684,8 +715,8 @@ function MovieCollection({ onClose }) {
               <option>想看</option><option>在看</option><option>看过</option>
             </select>
           </div>
-          <div className="movie-caption">
-            <h3>{destination ? <a href={destination} target="_blank" rel="noreferrer">{title}</a> : title}</h3>
+          <ContentActions type="movie" id={movie.id} title={title}/><div className="movie-caption">
+            <h3>{destination ? <a data-item-open href={destination} target="_blank" rel="noreferrer">{title}</a> : title}</h3>
             {movie.score && (movie.douban
               ? <a className="movie-score" href={movie.douban} target="_blank" rel="noreferrer" aria-label={`豆瓣评分 ${movie.score}`}>{movie.score}</a>
               : <span className="movie-score">{movie.score}</span>)}
@@ -699,3 +730,5 @@ function MovieCollection({ onClose }) {
 }
 
 export { MusicPlayer, MovieCollection };
+
+function MusicCardCreator({onCreate}){const[title,setTitle]=useState(''),[artist,setArtist]=useState('');return <div className="stack-form"><label>音乐资料卡名称<input value={title} onChange={e=>setTitle(e.target.value)}/></label><label>艺术家<input value={artist} onChange={e=>setArtist(e.target.value)}/></label><button type="button" disabled={!title.trim()} onClick={()=>{onCreate({id:createId('music'),title:title.trim(),artist,audioAssetId:null,playlists:[{id:'manual-cards',title:'音乐资料卡',position:0}]});setTitle('');setArtist('');}}>保存音乐资料卡</button></div>;}

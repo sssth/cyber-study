@@ -47,6 +47,8 @@ ipcMain.handle('movie:cache-poster', (event, address) => {
   return cacheMoviePoster(address).catch(() => '');
 });
 
+ipcMain.handle('music:import-local', async (event, bytes) => {if(event.sender!==mainWindow?.webContents||event.senderFrame!==event.sender.mainFrame)return {error:'无法访问音频导入。'};try{return await require('./music/cache.cjs').importLocalAudio(bytes);}catch(error){return {error:error.message};}});
+
 ipcMain.handle('movie:upload-poster', (event, bytes) => {
   if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) return {};
   return uploadMoviePoster(bytes).catch(() => ({ error: '无法读取或保存海报图片。' }));

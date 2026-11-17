@@ -1,7 +1,7 @@
 const { app, protocol } = require('electron');
 const { createHash, randomUUID } = require('node:crypto');
 const { createReadStream, createWriteStream } = require('node:fs');
-const { mkdir, rename, rm, stat } = require('node:fs/promises');
+const { mkdir, rename, rm, stat, writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
 const { Readable, Transform } = require('node:stream');
 const { pipeline } = require('node:stream/promises');
@@ -151,4 +151,7 @@ function serveCachedAudio() {
   });
 }
 
-module.exports = { cacheTrack, registerAudioScheme, serveCachedAudio };
+async function importLocalAudio(input) {
+ const bytes=Buffer.from(input);if(!bytes.length||bytes.length>maximumSize)throw Error('请选择 64 MB 以内的音频。');const format=audioFormat(bytes);if(!format)throw Error('无法识别音频格式。');const id=createHash('sha256').update(bytes).digest('hex');await mkdir(root(),{recursive:true});const name=`${id}.${format}`,temp=join(root(),`${id}.${randomUUID()}.tmp`);try{await writeFile(temp,bytes);await rename(temp,join(root(),name));}finally{await rm(temp,{force:true});}return {id,cachedUrl:cacheUrl(name),audioAssetId:name};
+}
+module.exports = { importLocalAudio, cacheTrack, registerAudioScheme, serveCachedAudio };

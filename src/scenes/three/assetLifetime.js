@@ -1,12 +1,13 @@
 // Assets are shared by room instances and care previews. A deferred release also
 // tolerates React StrictMode's cleanup/remount cycle without destroying live data.
-export function createAssetLifetime(dispose, defer = queueMicrotask) {
+export function createAssetLifetime(dispose, defer = queueMicrotask, { schedule = setTimeout, cancel = clearTimeout } = {}) {
   const entries = new Map();
   return {
-    retain(key, value) {
+    retain(key, value, keepAliveMs = 0) {
       let entry = entries.get(key);
       if (!entry) { entry = { value, users: 0 }; entries.set(key, entry); }
       if (entry.value !== value) throw Error('Shared asset identity changed while in use');
+      if (entry.timer !== undefined) { cancel(entry.timer); entry.timer = undefined; }
       entry.users++;
       let released = false;
       return () => {
@@ -15,8 +16,15 @@ export function createAssetLifetime(dispose, defer = queueMicrotask) {
         entry.users--;
         defer(() => {
           if (entry.users || entries.get(key) !== entry) return;
-          entries.delete(key);
-          dispose(key, entry.value);
+          const finish = () => {
+            if (entry.users || entries.get(key) !== entry) return;
+            entries.delete(key);
+            dispose(key, entry.value);
+          };
+          if (keepAliveMs > 0) {
+            if (entry.timer === undefined) entry.timer = schedule(finish, keepAliveMs);
+          }
+          else finish();
         });
       };
     },
