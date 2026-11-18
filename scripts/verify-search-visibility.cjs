@@ -1,0 +1,27 @@
+const {app,BrowserWindow}=require('electron');const fs=require('fs'),os=require('os'),path=require('path');
+app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'study-search-')));
+app.whenReady().then(async()=>{
+ const w=new BrowserWindow({width:1200,height:850,show:true,webPreferences:{backgroundThrottling:false}});
+ const pause=()=>new Promise(r=>setTimeout(r,200));
+ const key=async(k,mods=[])=>{w.focus();w.webContents.sendInputEvent({type:'keyDown',keyCode:k,modifiers:mods});w.webContents.sendInputEvent({type:'keyUp',keyCode:k,modifiers:mods});await pause();};
+ const expect=async(count,text)=>{const result=await w.webContents.executeJavaScript(`({count:document.querySelectorAll('[data-results] li').length,text:document.querySelector('.unified-search input')?.value??null,visible:document.querySelector('.unified-search')?.checkVisibility()??false})`);console.log(result);if(result.count!==count||result.text!==text||(text!==null&&!result.visible))throw Error('Search state mismatch');};
+ await w.loadURL('http://127.0.0.1:5173/tests/ui/search-visibility.html');await new Promise(r=>setTimeout(r,1000));
+ await key('Z',['meta','shift']);
+ const format=await w.webContents.executeJavaScript(`({placeholder:document.querySelector('.unified-search input').placeholder,filter:!!document.querySelector('.search-filter-toggle'),count:!!document.querySelector('.search-result-count')})`);
+ if(format.placeholder||!format.filter||format.count)throw Error('Search format mismatch');
+ await w.webContents.executeJavaScript(`document.querySelector('.search-filter-toggle').click()`);await pause();
+ if(!await w.webContents.executeJavaScript(`!!document.querySelector('.unified-search-filters')&&!document.querySelector('.search-filter-reset')`))throw Error('Filter format mismatch');
+ await w.webContents.executeJavaScript(`document.querySelector('.search-filter-toggle').click();document.querySelector('.unified-search input').focus()`);
+ await w.webContents.insertText('甲');await pause();await expect(2,'甲');
+ await key('Escape');await expect(2,'甲');
+ await key('K',['meta']);await expect(2,'甲');
+ await key('Z',['meta','shift']);await expect(3,null);
+ await key('Z',['meta','shift']);await expect(2,'甲');
+ await key('Z',['meta','shift']);await expect(3,null);
+ await w.webContents.executeJavaScript(`document.querySelector('.feature-body button').click()`);await pause();
+ await key('Z',['meta','shift']);await expect(3,'');await w.webContents.insertText('乙');await pause();await expect(1,'乙');
+ await w.webContents.executeJavaScript(`document.querySelector('.feature-body button').click()`);await pause();await expect(3,null);
+ await key('Z',['meta','shift']);await expect(2,'甲');
+ await w.webContents.executeJavaScript(`window.dispatchEvent(new Event('cyber-close-search'))`);await pause();await expect(3,null);
+ console.log('SEARCH_VISIBILITY_PASS');app.quit();
+}).catch(e=>{console.error(e);app.exit(1)});

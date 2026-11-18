@@ -1,6 +1,6 @@
+import { selectScene, writeIndependentScene } from './scripts/independent-scene.mjs';
 import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs';
-import { copyFile, mkdir } from 'node:fs/promises';
-import { dirname, resolve, sep } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -42,37 +42,36 @@ try {
 
 export default defineConfig(({ mode }) => {
   const isMacPackage = mode === 'mac-package';
+  const tier = process.env.SCENE_PACKAGE_TIER === 'full' ? 'full' : 'low';
+  const bundledScene = isMacPackage ? selectScene(scene, tier) : scene;
   return {
     plugins: [
       react(),
       {
         name: 'scene-manifest',
+        // The virtual module is built from files read while loading this config.
+        configResolved(config) {
+          config.configFileDependencies.push(resolve(root, 'scene.config.json'), resolve(sceneFolder, 'scene.json'));
+        },
         resolveId(id) {
           if (id === 'virtual:scene-manifest') return '\0virtual:scene-manifest';
         },
         load(id) {
-          if (id === '\0virtual:scene-manifest') return `export default ${JSON.stringify(scene)};`;
+          if (id === '\0virtual:scene-manifest') return `export default ${JSON.stringify(bundledScene)};`;
         },
         async writeBundle({ dir }) {
           if (!isMacPackage) return;
 
-          const files = sceneAssets(scene);
-          for (const { modelUrl } of petModels) {
-            if (existsSync(resolve(sceneFolder, modelUrl))) files.add(modelUrl.slice(2));
-          }
-
-          for (const file of files) {
-            const target = resolve(dir, file);
-            await mkdir(dirname(target), { recursive: true });
-            await copyFile(resolve(sceneFolder, file), target);
-          }
-          console.log(`已收录场景「${scene.name}」的 ${files.size} 个资源文件。`);
+          const extras = petModels.map(({ modelUrl }) => modelUrl.slice(2)).filter(file => existsSync(resolve(sceneFolder, file)));
+          await writeIndependentScene(bundledScene, sceneFolder, dir, extras);
+          console.log(`已生成独立资源场景：${tier === 'full' ? '完整画质版' : '低画质版'}`);
         }
       }
     ],
     base: './',
     publicDir: isMacPackage ? false : sceneFolder,
     server: {
+      fs: { deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/ai-settings.json*'] },
       host: '127.0.0.1',
       port: 5173,
       strictPort: true

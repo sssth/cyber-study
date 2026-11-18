@@ -1,4 +1,5 @@
-import { Suspense, useMemo } from 'react';
+import ModelLoading from '../../ui/ModelLoading.jsx';
+import { Suspense, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useSceneGLTF } from './useSceneGLTF.js';
@@ -9,7 +10,7 @@ import { resolveSceneFeature } from '../featureBindings.js';
 import { SceneTextures, useThemeMaterials } from './ScenePresentation.jsx';
 import { LoadingBoundary } from '../../ui/LoadingScreen.jsx';
 
-function PreviewObject({ model, theme }) {
+function PreviewObject({ model, theme, onReady }) {
   const { scene } = useSceneGLTF(model.modelUrl);
   const object = useMemo(() => {
     const copy = clone(scene);
@@ -21,10 +22,13 @@ function PreviewObject({ model, theme }) {
     return copy;
   }, [model, scene]);
   useThemeMaterials(object, theme);
+  useEffect(onReady, [onReady]);
   return <primitive object={object} />;
 }
 
 export default function CareModelPreview({ feature, model, theme, label }) {
+  const [ready, setReady] = useState(false);
+  const loaded = useCallback(() => setReady(true), []);
   const item = model ?? defaultPackage.models.find(candidate => {
     const id = resolveSceneFeature(candidate);
     return id === feature || (feature === 'pet' && id === 'cat');
@@ -32,14 +36,15 @@ export default function CareModelPreview({ feature, model, theme, label }) {
   if (!item) return <p>此场景包没有配置{label}模型。</p>;
 
   return <div className="care-model-preview" aria-label={`${label}的 3D 模型，可拖动旋转`}>
+    {!ready && <ModelLoading />}
     <LoadingBoundary message="3D 模型加载失败。">
-      <Canvas camera={{ position: [2.5, 1.7, 3.6], fov: 38 }} dpr={[1, 1.5]} frameloop="demand">
+      <Canvas gl={{ alpha: true, antialias: true }} camera={{ position: [2.5, 1.7, 3.6], fov: 38 }} dpr={[1, 1.5]} frameloop="demand">
         <ambientLight intensity={1.3} />
         <hemisphereLight args={['#ffffff', '#877264', 1.6]} />
         <directionalLight position={[3, 5, 4]} intensity={2} />
         <Suspense fallback={null}>
           <SceneTextures scene={defaultPackage} theme={theme} materialsOnly>
-            <PreviewObject model={item} theme={theme} />
+            <PreviewObject model={item} theme={theme} onReady={loaded} />
           </SceneTextures>
         </Suspense>
         <OrbitControls enablePan={false} minDistance={3.5} maxDistance={8} />

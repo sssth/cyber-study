@@ -1,0 +1,21 @@
+const {app,BrowserWindow}=require('electron');const fs=require('fs'),os=require('os'),path=require('path');app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'study-globe-back-')));
+app.whenReady().then(async()=>{
+ const w=new BrowserWindow({width:1440,height:1000,show:true,webPreferences:{backgroundThrottling:false}});
+ const run=s=>w.webContents.executeJavaScript(s),pause=()=>new Promise(r=>setTimeout(r,200));
+ const wait=async s=>{for(let i=0;i<80;i++){if(await run(s))return;await pause();}throw Error(s);};
+ const key=async(k,mods=[])=>{w.focus();w.webContents.sendInputEvent({type:'keyDown',keyCode:k,modifiers:mods});w.webContents.sendInputEvent({type:'keyUp',keyCode:k,modifiers:mods});await pause();};
+ await w.loadURL('http://127.0.0.1:5173/tests/ui/map-projection.html');await wait('!!window.previewPage');await run("previewPage('diary')");await pause();
+ await run(`document.querySelector('.display-menu-toggle').click();[...document.querySelectorAll('button')].find(b=>b.textContent==='阅读模式').click()`);await pause();
+ await key('X',['meta','shift']);await wait(`!!document.querySelector('.map-projection .atlas-stage')`);
+ await run(`document.querySelector('.map-projection .atlas-stage').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`);await pause();
+ const select=async name=>{await wait(`[...document.querySelectorAll('.map-projection .globe-region-options button')].some(b=>b.textContent==='${name}')`);await run(`[...document.querySelectorAll('.map-projection .globe-region-options button')].find(b=>b.textContent==='${name}').click()`);await pause();};
+ await select('中华人民共和国');await select('新疆维吾尔自治区');
+ await wait(`document.querySelector('.map-projection .atlas-breadcrumbs').textContent.includes('新疆维吾尔自治区')`);
+ await run(`filterPreview('projection-geography','乌鲁木齐')`);await select('乌鲁木齐市');
+ await wait(`document.querySelector('.map-projection .atlas-breadcrumbs').textContent.includes('乌鲁木齐')`);
+ await key('Escape');await wait(`document.querySelector('.map-projection .atlas-breadcrumbs')?.textContent.includes('新疆维吾尔自治区')&&!document.querySelector('.map-projection .atlas-breadcrumbs')?.textContent.includes('乌鲁木齐')`);
+ await key('Escape');await wait(`document.querySelector('.map-projection .atlas-breadcrumbs')?.textContent.includes('中华人民共和国')&&!document.querySelector('.map-projection .atlas-breadcrumbs')?.textContent.includes('新疆维吾尔自治区')`);
+ await key('Escape');await wait(`document.querySelector('.map-projection .atlas-breadcrumbs')?.textContent==='世界'`);
+ await key('Escape');await wait(`!document.querySelector('.map-projection')&&!!document.querySelector('.diary-book')`);
+ console.log('GLOBE_BACK_PASS: city → province → country → world → original diary');app.quit();
+}).catch(e=>{console.error(e);app.exit(1)});

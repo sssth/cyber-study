@@ -1,7 +1,0 @@
-{
-  "status": 500,
-  "error": {
-    "message": "Synthetic failure 500"
-  },
-  "expected": "保留已有资料，可重试；不写入成功状态"
-}

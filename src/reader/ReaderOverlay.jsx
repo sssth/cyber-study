@@ -1,12 +1,21 @@
+import useEscapeBack, { blocksPageBack } from '../ui/useEscapeBack.js';
+import KnowledgeWorkspace from '../features/KnowledgeWorkspace.jsx';
+import { DisplayMenuToggle, DisplayCloseButton } from '../ui/DisplayControls.jsx';
+import useMapSource, {mapEntities} from '../ui/useMapSource.js';
+import { readingMatches, retainedReadingRanges, contiguousReadingRanges, nearestReadingMatch } from './readingSearch.js';
+import { useNavigationState, useNavigationScroll } from '../ui/useNavigationState.js';
+import ExcerptCard from './ExcerptCard.jsx';
+import useDismissDisplayMenu from '../ui/useDismissDisplayMenu.js';
 import { ContentCommand } from '../features/ContentCommands.jsx';
-import LibraryShelf from './LibraryShelf.jsx';
+import LibraryShelf, { shelfViews } from './LibraryShelf.jsx';
+import DisplayViewMenu from '../ui/DisplayViewMenu.jsx';
 import { ActionWorkspace } from '../features/ui.jsx';
 import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
 import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
 import ContentActions from '../features/ContentActions.jsx';
-import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { formatProgress, parseMarkdownContent, underlineMarkdown } from './markdownReader.js';
-import { goToReaderBlock, highlightRanges, indexChapters, readerPosition } from './readerPosition.js';
+import { goToReaderBlock, readingAnchor, goToReadingAnchor, highlightRanges, indexChapters, readerPosition } from './readerPosition.js';
 import { sampleBooks } from './sampleBooks.js';
 import { loadReaderState, saveReaderState } from '../data/storage.js';
 import ExcerptAnnotations from './ExcerptAnnotations.jsx';
@@ -20,6 +29,9 @@ const maxFontSize = 26;
 
 function ReaderOverlay({
   navigationRef,
+  navigationItem,
+  onOpenNote,
+  excerptVersion=0,
   onClose,
   onStartCopy,
   returnToKnowledge = false,
@@ -28,6 +40,7 @@ function ReaderOverlay({
   onBooksChanged,
   onBookDeleted,
   initialBookId = null,
+  initialLibraryBookIds = null,
   initialView = 'last',
   initialProgress = null,
   initialBlockId = null,
@@ -36,12 +49,15 @@ function ReaderOverlay({
 }) {
   const [readerState, setReaderState] = useState(() => loadReaderState());
   const [mode, setMode] = useState('library');
+  const [libraryView,setLibraryView] = useNavigationState('reader','libraryView',['excerpt','annotation'].includes(navigationItem?.type)?'excerpts':'all');
+  const [pagedChapter,setPagedChapter]=useState(null);
   const [paged, setPaged] = useState(initialView === 'paged');
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteAnchor, setNoteAnchor] = useState(null);
   const [selectedExcerpt, setSelectedExcerpt] = useState(null);
   const [excerptChoices, setExcerptChoices] = useState([]);
   const overlayRef = useRef(null);
+  useNavigationScroll("reader.scroll", overlayRef, ".reader-library");
   const [atFirstSpread, setAtFirstSpread] = useState(true);
   const [atLastSpread, setAtLastSpread] = useState(true);
   const [activeBookId, setActiveBookId] = useState(null);
@@ -55,6 +71,8 @@ function ReaderOverlay({
   const importRequest = useRef(false);
   const [savingNote, setSavingNote] = useState(false);
   const selectionRange = useRef(null);
+  const selectionFrame = useRef(null);
+  useEffect(() => () => cancelAnimationFrame(selectionFrame.current), []);
   const desktop = globalThis.cyberStudy;
 
   const [target, setTarget] = useState(null);
@@ -64,13 +82,15 @@ function ReaderOverlay({
   const [noteMessage, setNoteMessage] = useState(null);
   const [knowledgeVersion, setKnowledgeVersion] = useState(0);
   const contentRef = useRef(null);
+  const searchAnchor=useRef(null);
+  const pendingSearchAnchor=useRef(null);
   const saveTimerRef = useRef(null);
   const restoredInitialBook = useRef(false);
 
   const allBooks = useMemo(() => {
     const books = new Map(sampleBooks.map((book) => [book.id, book]));
     importedBooks.forEach((book) => books.set(book.id, book));
-    return [...books.values()].map(book => ({ ...book, title: readerState.books?.[book.id]?.customTitle || book.title }));
+    return [...books.values()].map(book => ({ ...book, author: readerState.books?.[book.id]?.customAuthor ?? (book.author === '本地导入' ? '' : book.author), title: readerState.books?.[book.id]?.customTitle || book.title }));
   }, [importedBooks, readerState.books]);
   const importing = ['selecting', 'scanning', 'processing'].includes(importState.phase);
   useEffect(() => {
@@ -100,13 +120,13 @@ function ReaderOverlay({
     return () => { active = false; };
   }, [desktop, importState, onBooksChanged]);
   const scopeId=mode==='reading'?`book:${activeBookId}`:'library';
-  const search=useSearchScope({id:scopeId,label:mode==='reading'?`当前书籍 · ${allBooks.find(b=>b.id===activeBookId)?.title||''}`:'书库 · 跨书全文',priority:30,filters:mode==='reading'?[]:[{key:'author',label:'作者',options:[...new Set(allBooks.map(b=>b.author).filter(Boolean))].map(v=>[v,v])},{key:'format',label:'导入格式',options:[...new Set(allBooks.map(b=>b.originalFormat||b.format).filter(Boolean))].map(v=>[v,v])}]});
+  const search=useSearchScope({id:scopeId,label:mode==='reading'?`当前书籍 · ${allBooks.find(b=>b.id===activeBookId)?.title||''}`:'书库 · 跨书全文',priority:30,enabled:mode==='reading'||libraryView!=='excerpts',exactCount:mode==='reading',autoFocus:!(mode==='reading'&&paged),searchHost:()=>mode==='reading'&&paged?overlayRef.current?.querySelector('.reader-search-slot'):null,filters:mode==='reading'?[{key:'context',label:'保留范围',defaultLabel:'一段',options:[['paragraph','一段'],['sentence','一句话'],['chapter','一章']]}]:[{key:'author',label:'作者',options:[...new Set(allBooks.map(b=>b.author).filter(Boolean))].map(v=>[v,v])},{key:'format',label:'导入格式',options:[...new Set(allBooks.map(b=>b.originalFormat||b.format).filter(Boolean))].map(v=>[v,v])}]});
   const query=search.query;
   const bookIndex=useMemo(()=>allBooks.map(book=>({book,blocks:parseMarkdownContent(book.content)})),[allBooks]);
   const hits = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     if (!term) return [];
-    return bookIndex.filter(({book})=>(mode!=='reading'||book.id===activeBookId)&&matchesItem('book',book,{query:'',filters:search.filters})).flatMap(({book,blocks}) => {
+    return bookIndex.filter(({book})=>(mode==='reading'||!initialLibraryBookIds||initialLibraryBookIds.includes(book.id))&&(mode!=='reading'||book.id===activeBookId)&&matchesItem('book',book,{query:'',filters:search.filters})).flatMap(({book,blocks}) => {
       const matches = blocks.flatMap((block) => {
         const index = block.text.toLocaleLowerCase().indexOf(term);
         if (!textMatches([block.text],query)) return [];
@@ -115,9 +135,11 @@ function ReaderOverlay({
       });
       return matches.length ? [{ book, matches }] : [];
     });
-  }, [bookIndex, search, mode, activeBookId]);
-  const visibleBooks=allBooks.filter(book=>!hasSearch(search)||matchesItem('book',book,search)||hits.some(h=>h.book.id===book.id));
-  useSearchCount(scopeId,mode==='reading'?hits.reduce((sum,h)=>sum+h.matches.length,0):visibleBooks.length);
+  }, [bookIndex, search, mode, activeBookId, initialLibraryBookIds]);
+  const visibleBooks=allBooks.filter(book=>(!initialLibraryBookIds||initialLibraryBookIds.includes(book.id))&&(!hasSearch(search)||matchesItem('book',book,search)||hits.some(h=>h.book.id===book.id)));
+  const readingHighlights=useMemo(()=>new Map((mode==='reading'?bookIndex.find(item=>item.book.id===activeBookId)?.blocks||[]:[]).map(block=>[block.id,readingMatches(block.text,query)])),[mode,bookIndex,activeBookId,query]);
+  const readingHitCount=[...readingHighlights.values()].reduce((sum,ranges)=>sum+ranges.length,0);
+  useSearchCount(scopeId,mode==='reading'?readingHitCount:visibleBooks.length);
   const activeBook = useMemo(
     () => allBooks.find((book) => book.id === activeBookId) ?? null,
     [activeBookId, allBooks]
@@ -148,8 +170,10 @@ function ReaderOverlay({
     [activeBook]
   );
   const { chapters, chapterByBlock } = useMemo(() => indexChapters(blocks), [blocks]);
+  const openedFromShelf = useRef(false);
   useImperativeHandle(navigationRef, () => () => ({
-    view: mode === 'reading' ? 'last' : 'library',
+    view: mode === 'reading' ? (paged ? 'paged' : 'last') : 'library',
+    localBack: Boolean(selectionQuote || selectedExcerpt || paged || (mode === 'reading' && openedFromShelf.current)),
     bookId: activeBookId,
     progress: mode === 'reading' ? chapterProgress.current : null,
     blockId: mode === 'reading' && contentRef.current ? readerPosition(contentRef.current, paged) : null
@@ -158,9 +182,65 @@ function ReaderOverlay({
   const savedPosition = readerState.books?.[activeBookId];
   const destination = target ?? { progress: initialProgress, blockId: initialBlockId };
   const destinationBlock = destination.blockId ?? (destination.progress == null ? savedPosition?.blockId : null);
-  const displayedChapter = chapterByBlock.get(destinationBlock) ?? destination.chapterId ?? chapters[0]?.id ?? '';
+  const destinationChapter = chapterByBlock.get(destinationBlock) ?? destination.chapterId ?? chapters[0]?.id ?? '';
+  const displayedChapter = paged&&pagedChapter?.bookId===activeBookId?pagedChapter.id:destinationChapter;
+  useMapSource({priority:30,detail:true,label:'书籍阅读',position:chapters.find(chapter=>chapter.id===displayedChapter)?.text,enabled:mode==='reading',entities:mapEntities('book',[activeBook])});
   const chapterIndex = chapters.findIndex((chapter) => chapter.id === displayedChapter);
-  const visibleBlocks = blocks.filter((block) => chapterByBlock.get(block.id) === displayedChapter);
+  const retainedRanges=useMemo(()=>query.trim()?retainedReadingRanges(blocks,readingHighlights,chapterByBlock,search.filters.context||'paragraph'):null,[blocks,readingHighlights,chapterByBlock,query,search.filters.context]);
+  const selectableChapters=useMemo(()=>{
+    if(!query.trim())return chapters;
+    const matched=new Set(blocks.filter(block=>readingHighlights.get(block.id)?.length).map(block=>chapterByBlock.get(block.id)));
+    return chapters.filter(chapter=>matched.has(chapter.id));
+  },[chapters,blocks,chapterByBlock,readingHighlights,query]);
+  const visibleBlocks = paged?blocks:blocks.filter((block) => chapterByBlock.get(block.id) === displayedChapter);
+  useLayoutEffect(()=>{
+    const element=contentRef.current;if(!element)return;
+    const measure=()=>{
+      const filler=element.querySelector('[data-reader-padding]');
+      const previousOffset=element.scrollLeft;
+      if(filler){
+        filler.hidden=true;
+        const columns=Number.parseInt(getComputedStyle(element).columnCount,10)||2;
+        const pages=Math.round(element.scrollWidth/(element.clientWidth/columns));
+        filler.hidden=columns!==2||pages%2===0;
+        element.scrollLeft=previousOffset;
+      }
+      const offset=paged?element.scrollLeft:element.scrollTop;
+      const distance=paged?element.scrollWidth-element.clientWidth:element.scrollHeight-element.clientHeight;
+      setAtFirstSpread(offset<=1);setAtLastSpread(offset>=distance-1);
+    };
+    measure();
+    const observer=new ResizeObserver(measure);observer.observe(element);
+    return ()=>observer.disconnect();
+  },[retainedRanges,paged,mode,activeBookId,readerState.settings.fontSize,readerState.settings.lineHeight]);
+  useEffect(()=>{
+    if(mode!=='reading')return;
+    const beforeSearch=event=>{
+      if(event.detail.id!==scopeId)return;
+      const next=event.detail.state;
+      if(next.query===query&&next.filters?.context===search.filters.context)return;
+      const element=contentRef.current;
+      const saved=searchAnchor.current;
+      const current=element&&(saved?.bookId===activeBookId&&saved.paged===paged&&saved.scroll===(paged?element.scrollLeft:element.scrollTop)?saved.anchor:readingAnchor(element,paged));
+      const anchor=current|| (searchAnchor.current?.bookId===activeBookId?searchAnchor.current.anchor:null);
+      if(!anchor)return;
+      searchAnchor.current={bookId:activeBookId,anchor};
+      const matches=new Map(blocks.map(block=>[block.id,readingMatches(block.text,next.query)]));
+      const destination=next.query.trim()?nearestReadingMatch(blocks,matches,anchor):anchor;
+      pendingSearchAnchor.current=destination;
+      if(destination&&!paged&&chapterByBlock.get(destination.blockId)!==displayedChapter)setTarget({blockId:destination.blockId});
+    };
+    window.addEventListener('cyber-search-before-change',beforeSearch);
+    return ()=>window.removeEventListener('cyber-search-before-change',beforeSearch);
+  },[mode,scopeId,activeBookId,blocks,query,search.filters.context,paged,chapterByBlock,displayedChapter]);
+  useLayoutEffect(()=>{
+    const anchor=pendingSearchAnchor.current,element=contentRef.current;
+    if(!anchor||!element)return;
+    goToReadingAnchor(element,anchor,paged);
+    searchAnchor.current={bookId:activeBookId,anchor,paged,scroll:paged?element.scrollLeft:element.scrollTop};
+    pendingSearchAnchor.current=null;
+    updateScrollProgress();
+  },[query,search.filters.context,displayedChapter,paged]);
   const activeNotes = useMemo(
     () => loadReaderNotes().filter((note) => note.bookId === activeBookId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,7 +250,7 @@ function ReaderOverlay({
   const excerpts = useMemo(() => groupExcerpts(activeNotes), [activeNotes]);
   const highlights = useMemo(() => highlightRanges(blocks, excerpts), [blocks, excerpts]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (restoredInitialBook.current || initialView === 'library') return;
     const initialBook = allBooks.find((book) => book.id === initialBookId);
     if (!initialBook) return;
@@ -233,29 +313,25 @@ function ReaderOverlay({
     if (!element?.clientWidth || savingNote) return;
     dismissNote();
     const max = element.scrollWidth - element.clientWidth;
-    if (direction > 0 && element.scrollLeft >= max - 1 || direction < 0 && element.scrollLeft <= 1) {
-      const next = chapters[chapterIndex + direction];
-      if (next) setTarget({ chapterId: next.id, progress: direction < 0 ? 1 : 0 });
-      return;
-    }
     const spread = Math.ceil((element.scrollLeft - 1) / element.clientWidth);
-    element.scrollLeft = (spread + direction) * element.clientWidth;
+    element.scrollLeft = Math.max(0,Math.min(max,(spread + direction) * element.clientWidth));
   };
+
+  useEscapeBack(event => {
+    if (event.repeat) return;
+    if (selectionQuote || selectedExcerpt) dismissNote();
+    else if (paged) changeReadingMode(false);
+    else if (mode === 'reading') showLibrary();
+    else onClose();
+  }, {
+    matches: event => matchesShortcut(event, shortcuts.readerBack),
+    blocked: event => (mode === 'library' && libraryView === 'excerpts') || savingNote || blocksPageBack(event) ||
+      (event.key !== 'Escape' && typingTarget(event.target))
+  });
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (document.querySelector('dialog[open]')) return;
-      if (matchesShortcut(event, shortcuts.readerBack) && !savingNote &&
-          (event.key === 'Escape' || !typingTarget(event.target))) {
-        event.preventDefault();
-        if (event.repeat) return;
-        if (selectionQuote || selectedExcerpt) dismissNote();
-        else if (paged) changeReadingMode(false);
-        else if (returnToKnowledge) onClose();
-        else if (mode === 'reading') showLibrary();
-        else onClose();
-        return;
-      }
+      if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
       if (!paged || typingTarget(event.target)) return;
       const direction = matchesShortcut(event, shortcuts.previousPage) ? -1
         : matchesShortcut(event, shortcuts.nextPage) ? 1 : 0;
@@ -280,7 +356,7 @@ function ReaderOverlay({
     const position = destination;
     const savedBook = readerState.books?.[activeBook.id];
     const savedProgress = position.progress ?? savedBook?.chapterProgress ?? (chapters.length === 1 ? savedBook?.progress : 0) ?? 0;
-    const targetBlockId = position.blockId ?? (position.progress == null ? savedBook?.blockId : null);
+    const targetBlockId = position.blockId ?? (paged?position.chapterId:null) ?? (position.progress == null ? savedBook?.blockId : null);
 
     const frame = requestAnimationFrame(() => {
       const element = contentRef.current;
@@ -312,6 +388,7 @@ function ReaderOverlay({
 
   const openBook = (book, targetProgress = null, blockId = null) => {
     if (!book || savingNote) return;
+    if (mode === 'library') openedFromShelf.current = true;
     restoredInitialBook.current = true;
     setTarget({ progress: targetProgress, blockId });
     setActiveBookId(book.id);
@@ -342,6 +419,11 @@ function ReaderOverlay({
     const distance = paged ? element.scrollWidth - element.clientWidth : element.scrollHeight - element.clientHeight;
     const offset = paged ? element.scrollLeft : element.scrollTop;
     const localProgress = distance <= 0 ? (chapterIndex === chapters.length - 1 ? 1 : 0) : Math.min(1, Math.max(0, offset / distance));
+    setAtFirstSpread(offset <= 1);
+    setAtLastSpread(offset >= distance - 1);
+    const visibleBlockId=readerPosition(element,paged);
+    if(paged&&visibleBlockId)setPagedChapter({bookId:activeBook.id,id:chapterByBlock.get(visibleBlockId)});
+    if(retainedRanges)return;
     chapterProgress.current = localProgress;
     const chapterStart = blocks.findIndex((block) => block.id === visibleBlocks[0]?.id);
     const nextProgress = blocks.length
@@ -412,11 +494,16 @@ function ReaderOverlay({
     const ranges = blocks.slice(startIndex, endIndex + 1).flatMap((item, index) => {
       const start = index === 0 ? offset(block, range.startContainer, range.startOffset, item.prefix) : 0;
       const end = item.id === endBlock.dataset.block ? offset(endBlock, range.endContainer, range.endOffset, item.prefix) : item.text.length;
-      const text = item.text.slice(start, end);
-      if (!text.trim()) return [];
-      return [{ blockId: item.id, start: start + text.length - text.trimStart().length, end: end - text.length + text.trimEnd().length, text: text.trim() }];
+      const kept=retainedRanges?.get(item.id)??[{start:0,end:item.text.length}];
+      return kept.flatMap(part=>{
+        const left=Math.max(start,part.start),right=Math.min(end,part.end);
+        if(right<=left)return [];
+        const text=item.text.slice(left,right);if(!text.trim())return [];
+        return [{blockId:item.id,start:left+text.length-text.trimStart().length,end:right-text.length+text.trimEnd().length,text:text.trim()}];
+      });
     });
     if (!ranges.length) return false;
+    if (selectionQuote && JSON.stringify(selectionRange.current) === JSON.stringify(ranges)) return true;
     selectionRange.current = ranges;
     setSelectedExcerpt(null);
     setNoteAnchor(anchorFor(range.getBoundingClientRect()));
@@ -425,6 +512,13 @@ function ReaderOverlay({
     setSelectionQuote(ranges.map((item) => item.text).join('\n'));
     setNoteMessage(null);
     return true;
+  };
+
+  const autoCaptureSelection = () => {
+    cancelAnimationFrame(selectionFrame.current);
+    selectionFrame.current = requestAnimationFrame(() => {
+      if (contentRef.current?.isConnected) captureSelection();
+    });
   };
 
   const anchorFor = (rect) => {
@@ -481,7 +575,7 @@ function ReaderOverlay({
       }
       globalThis.getSelection?.()?.removeAllRanges();
       dismissNote();
-      setNoteMessage('摘录已保存到本章节和知识库。');
+      setNoteMessage(null);
       setKnowledgeVersion((version) => version + 1);
       onNoteCreated();
     } catch (error) {
@@ -507,7 +601,7 @@ function ReaderOverlay({
 
   const renameBook = async (book, title) => {
     if (!desktop?.renameBook || !/^(file:|local:)/.test(book.id)) {
-      setReaderState(state => ({ ...state, books: { ...state.books, [book.id]: { ...state.books?.[book.id], customTitle: title } } }));
+      setReaderState(state => ({ ...state, books: { ...state.books, [book.id]: { ...state.books?.[book.id], customTitle: typeof title === 'string' ? title : title.title, ...(typeof title === 'object' ? { customAuthor: title.author } : {}) } } }));
       return;
     }
     const updated = await desktop.renameBook(book.id, title);
@@ -521,7 +615,6 @@ function ReaderOverlay({
     try {
       if (await desktop.deleteBook(book.id)) {
         onBookDeleted(book.id);
-        setDeleteStatus({ message: `已将《${book.title}》移到废纸篓。` });
         return true;
       }
     } catch {
@@ -535,15 +628,24 @@ function ReaderOverlay({
     setKnowledgeVersion((version) => version + 1);
     onNoteCreated();
   };
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
+  useDismissDisplayMenu(displayMenuOpen, setDisplayMenuOpen, overlayRef);
   const chapterNotes = [...excerpts].filter(([, [note]]) => (chapterByBlock.get(note.blockId) ?? chapters[0]?.id ?? '') === displayedChapter);
 
+  if (mode === 'library' && libraryView === 'excerpts') {
+    return <KnowledgeWorkspace onClose={onClose} shelfMenu={<DisplayViewMenu label="书架视图" options={shelfViews} value="excerpts" onChange={setLibraryView}/>} navigationItem={navigationItem} importedBooks={importedBooks} onBooksChanged={onBooksChanged} version={excerptVersion} onStartCopy={onStartCopy} onOpenNote={onOpenNote} />;
+  }
+
   return (
-    <section ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label="本地阅读器">
+    <section data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label="本地阅读器">
       <div className={`reader-shell ${mode === 'library' ? 'library-mode' : 'reading-mode'}`}>
-        <header className="reader-topbar">
+        {mode === 'library' && <DisplayMenuToggle label="展开书架菜单" open={displayMenuOpen} onToggle={() => setDisplayMenuOpen(value => !value)} />}
+        {!paged&&<DisplayCloseButton label="关闭" disabled={savingNote} onClose={onClose} />}
+        <header className="reader-topbar" onPointerLeave={event=>{if(paged&&event.currentTarget.contains(document.activeElement))document.activeElement.blur();}}>
           <div data-edit-item={mode === 'reading' ? '' : undefined}>
-            <h2>{mode === 'library' ? '书房书架' : activeBook?.title ?? '阅读中'}</h2>
+
             {mode === 'reading' && activeBook && <>
+              <h2>{activeBook.title}</h2>
               <ContentActions surface=".reader-shell" preview={false} type="book" id={activeBook.id} title={activeBook.title}/>
               {activeBook &&
                 <ContentCommand label={`修改书名 · ${activeBook.title}`} value={activeBook.title}
@@ -553,21 +655,24 @@ function ReaderOverlay({
                   run={async () => { if (await removeBook(activeBook)) showLibrary(); }} />}
             </>}
           </div>
+          {paged&&<div className="reader-search-slot"/>}
           <div className="reader-top-actions">
             {mode === 'reading' && <>
               <button type="button" disabled={savingNote} aria-pressed={paged} onClick={() => changeReadingMode(!paged)}>{paged ? '退出全屏阅读' : '全屏阅读'}</button>
+              {paged&&<button type="button" className="reader-fullscreen-close" aria-label="关闭" disabled={savingNote} onClick={onClose}>×</button>}
               <button type="button" onClick={showLibrary}>书架</button>
             </>}
-            <button type="button" className="primary-button" disabled={savingNote} onClick={onClose}>{returnToKnowledge ? '返回知识库' : '返回书房'}</button>
+
           </div>
           {mode === 'reading' && <div className="reader-toolbar">
             {chapters.length > 1 && <label className="reader-chapter-select">
               章节
-              <select value={displayedChapter} onChange={(event) => {
+              <select disabled={!selectableChapters.length} value={selectableChapters.some(chapter=>chapter.id===displayedChapter)?displayedChapter:selectableChapters[0]?.id??''} onChange={(event) => {
                 const id = event.target.value;
                 openBook(activeBook, 0, id || null);
               }}>
-                {chapters.map((chapter) => <option key={chapter.id} value={chapter.id}>
+                {!selectableChapters.length&&<option value=""></option>}
+                {selectableChapters.map((chapter) => <option key={chapter.id} value={chapter.id}>
                   {chapter.text}
                 </option>)}
               </select>
@@ -601,9 +706,9 @@ function ReaderOverlay({
 
         {mode === 'library' ? (
           <div className="reader-library">
-            <ActionWorkspace disabled={deleting} label="添加书籍" title="导入书籍"><div className="library-intro">
+            <ActionWorkspace command={libraryView==='all'} showTrigger={false} disabled={deleting} label="添加书籍" title="导入书籍"><div className="library-intro">
 
-              <div className="book-import-actions">
+              <div className="book-import-actions edit-actions">
                 <button type="button" className="import-button" disabled={!desktop?.importBooks || importing || deleting} onClick={() => handleImport(false)}>导入文件</button>
                 <button type="button" className="import-button" disabled={!desktop?.importBooks || importing || deleting} onClick={() => handleImport(true)}>导入文件夹</button>
               </div>
@@ -614,19 +719,8 @@ function ReaderOverlay({
             </div>
             </ActionWorkspace>
             <SearchStatus id={scopeId} label="书库"/>
-            {query.trim() && <section className="book-search-results">
-              {!hits.length && <p>没有找到匹配正文。</p>}
-              {hits.map(({ book, matches }) => <div key={book.id}>
-                <h3>{book.title}</h3><ContentActions type="book" id={book.id} title={book.title}/>
-                {book && <ContentCommand value={book.title}
-                  label={`修改书名 · ${book.title}`} disabled={deleting || importing} run={title => renameBook(book, title)} />}
-                {desktop?.deleteBook && !book.id.startsWith('sample:') && <ContentCommand
-                  label={`删除《${book.title}》`} disabled={deleting || importing} run={() => removeBook(book)} />}
-                {matches.map((block) => <button data-item-open key={block.id} type="button" onClick={() => openBook(book, 0, block.id)}>{block.section && `${block.section} · `}{block.snippet}</button>)}
-              </div>)}
-            </section>}
             {deleteStatus && <p role={deleteStatus.error ? "alert" : "status"}>{deleteStatus.message}</p>}
-            <LibraryShelf books={allBooks} visibleBooks={visibleBooks} readerState={readerState} openBook={openBook} renameBook={renameBook} removeBook={removeBook} canDelete={Boolean(desktop?.deleteBook)} busy={deleting || importing}/>
+            <LibraryShelf initialShelfView={libraryView} searchActive={hasSearch(search)} searchQuery={query} searchHits={hits} onViewChange={setLibraryView} books={allBooks} visibleBooks={visibleBooks} readerState={readerState} openBook={openBook} renameBook={renameBook} removeBook={removeBook} canDelete={Boolean(desktop?.deleteBook)} busy={deleting || importing}/>
 
           </div>
         ) : (<>
@@ -636,7 +730,6 @@ function ReaderOverlay({
               if (!captureSelection()) setNoteMessage('请先在正文中选中要摘录的文字。');
             }} />}
           <SearchStatus id={scopeId} label="当前书籍"/>
-          {query.trim()&&<section className="reader-search-matches" aria-label="书内搜索结果">{!hits.length&&<p>没有匹配的段落。</p>}{hits.flatMap(({book,matches})=>matches.map(block=><button key={block.id} onClick={()=>openBook(book,0,block.id)}>{block.snippet}</button>))}</section>}
           <div className={`reader-workspace${notesOpen ? ' reader-notes-open' : ''}${paged ? ' reader-paged' : ''}`}>
             <aside className="reader-sidebar reader-excerpts">
               {!paged && <button type="button" aria-expanded={notesOpen} aria-label={`本章节摘录，${chapterNotes.length} 条`} aria-controls="reader-chapter-notes"
@@ -648,10 +741,9 @@ function ReaderOverlay({
               </button>}
               {notesOpen && <div id="reader-chapter-notes" className="note-list">
                 {chapterNotes.length === 0 && <p className="book-card-meta">本章还没有摘录。</p>}
-                {chapterNotes.map(([key, [note]]) => <div key={key}>
-                  <button type="button" onClick={() => openBook(activeBook, note.blockId ? 0 : note.progress, note.blockId)}>{note.quote}</button>
-                  <button type="button" onClick={(event) => openExcerpt([key], event)}>查看批注</button>
-                </div>)}
+                {chapterNotes.map(([key, notes]) => <ExcerptCard key={key} notes={notes}
+                  onLocate={() => openBook(activeBook, notes[0].blockId ? 0 : notes[0].progress, notes[0].blockId)}
+                  onEdit={event => openExcerpt([key], event)} />)}
               </div>}
             </aside>
 
@@ -659,21 +751,24 @@ function ReaderOverlay({
               className="reader-content"
               ref={contentRef}
               onScroll={updateScrollProgress}
+              onPointerUp={event => { if (event.button === 0) autoCaptureSelection(); }}
+              onKeyUp={event => { if (event.key === 'Shift' || event.shiftKey) autoCaptureSelection(); }}
               style={{ fontSize: `${readerState.settings.fontSize}px`, lineHeight: readerState.settings.lineHeight }}
               tabIndex="0"
             >
-              {visibleBlocks.map((block) => {
+              {visibleBlocks.flatMap((block) => {
                 const Element = block.type === 'heading' ? 'h3' : 'p';
-                return <Element key={block.id} data-block={block.id} tabIndex={-1}>
+                const fragments=retainedRanges?contiguousReadingRanges(retainedRanges.get(block.id)||[]):[null];
+                return fragments.map(fragment=><Element key={`${block.id}:${fragment?.start??0}`} data-block={block.id} data-chapter-start={block.id===chapterByBlock.get(block.id)||undefined} tabIndex={-1}>
                   {block.prefix}
-                  {renderBlockParts(block, highlights.get(block.id) ?? [], openExcerpt)}
-                </Element>;
+                  {renderBlockParts(block, highlights.get(block.id) ?? [], openExcerpt, readingHighlights.get(block.id) ?? [], fragment?[fragment]:null)}
+                </Element>);
               })}
-
+              {paged&&<div data-reader-padding hidden aria-hidden="true"/>}
             </article>
             {paged && <nav className="reader-page-nav" aria-label="翻页">
-              <button type="button" disabled={atFirstSpread && chapterIndex <= 0 || savingNote} onClick={() => turnPages(-1)}>← 上一页</button>
-              <button type="button" disabled={atLastSpread && chapterIndex >= chapters.length - 1 || savingNote} onClick={() => turnPages(1)}>下一页 →</button>
+              <button type="button" disabled={atFirstSpread || savingNote} onClick={() => turnPages(-1)}>← 上一页</button>
+              <button type="button" disabled={atLastSpread || savingNote} onClick={() => turnPages(1)}>下一页 →</button>
             </nav>}
           </div>
           </>
@@ -733,7 +828,7 @@ function loadReaderNotes() {
   return loadKnowledge().notes;
 }
 
-function renderBlockParts(block, ranges, onOpen) {
+function renderBlockParts(block, ranges, onOpen, searchRanges = [], retained = null) {
   let offset = 0;
   return block.parts.map((part, index) => {
     const start = offset;
@@ -741,16 +836,18 @@ function renderBlockParts(block, ranges, onOpen) {
     offset = end;
     const Inline = part.kind ?? 'span';
     const matching = ranges.filter((range) => range.start < end && range.end > start);
-    const boundaries = [...new Set([start, end, ...matching.flatMap((range) => [
+    const boundaries = [...new Set([start, end, ...[...(retained||[]).filter(range=>range.start<end&&range.end>start),...matching,...searchRanges.filter(range=>range.start<end&&range.end>start)].flatMap((range) => [
       Math.max(start, range.start), Math.min(end, range.end)
     ])])].sort((a, b) => a - b);
     const content = boundaries.slice(0, -1).map((left, i) => {
       const right = boundaries[i + 1];
       const text = part.text.slice(left - start, right - start);
+      if(retained&&!retained.some(r=>r.start<=left&&r.end>=right))return <span key={left} hidden>{text}</span>;
       const covering = matching.filter((range) => range.start <= left && range.end >= right);
-      if (!covering.length) return text;
+      const searched=searchRanges.some(range=>range.start<=left&&range.end>=right);
+      if (!covering.length) return searched?<mark key={left} className="reader-search-hit">{text}</mark>:text;
       const keys = [...new Set(covering.map((range) => range.key))];
-      return <mark key={left} role="button" tabIndex={0} aria-label="查看摘录批注"
+      return <mark key={left} className={searched?'reader-search-hit':undefined} role="button" tabIndex={0} aria-label="查看摘录批注"
         onClick={(event) => onOpen(keys, event)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -759,7 +856,8 @@ function renderBlockParts(block, ranges, onOpen) {
           }
         }}>{text}</mark>;
     });
-    return <Inline key={index}>{part.underline ? <u>{content}</u> : content}</Inline>;
+    const located=content.map((item,i)=><span key={boundaries[i]} data-reader-offset={boundaries[i]}>{item}</span>);
+    return <Inline key={index}>{part.underline ? <u>{located}</u> : located}</Inline>;
   });
 }
 

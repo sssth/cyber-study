@@ -35,7 +35,10 @@ export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', ta
     createdAt: new Date().toISOString(),
     origin: 'user'
   };
-  data.notes = [note, ...data.notes];
+  // Keep the excerpt's representative ID when appending another annotation.
+  const groupKey = excerptKey(note);
+  const first = data.notes.findIndex(existing => excerptKey(existing) === groupKey);
+  data.notes.splice(first + 1, 0, note);
   saveKnowledge(data);
   return note;
 }
@@ -59,7 +62,7 @@ export function excerptKey(note) {
 
 export function removeExcerptAnnotation(note) {
   const related = loadKnowledge().notes.filter((item) => excerptKey(item) === excerptKey(note));
-  if (related.length > 1) return deleteKnowledgeNote(note.id);
+  if (related.length > 1 && related[0].id !== note.id) return deleteKnowledgeNote(note.id);
   editKnowledgeNote(note.id, '');
   return loadKnowledge();
 }
@@ -72,4 +75,22 @@ export function groupExcerpts(notes) {
     groups.get(key).push(note);
   }
   return groups;
+}
+
+export function updateExcerptRange(note, selection) {
+ const data=loadKnowledge(),key=excerptKey(note);
+ if(!selection.quote?.trim()||!selection.ranges?.length)throw Error('摘录范围不能为空。');
+ let updated;
+ data.notes=data.notes.map(item=>{
+  if(excerptKey(item)!==key)return item;
+  const next={...item,quote:selection.quote,blockId:selection.blockId,ranges:selection.ranges,updatedAt:new Date().toISOString()};
+  updated??=next;return next;
+ });
+ if(!updated)throw Error('这条摘录已不存在，请返回列表刷新。');
+ saveKnowledge(data);return updated;
+}
+export function deleteExcerpt(note) {
+ const data=loadKnowledge(),key=excerptKey(note);
+ data.notes=data.notes.filter(item=>excerptKey(item)!==key);
+ saveKnowledge(data);
 }

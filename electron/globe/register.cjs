@@ -21,10 +21,13 @@ function registerGlobe(getWindow) {
   };
   ipcMain.handle('globe:request', async (event, action, input = {}) => {
     if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame) return { error: '无法访问记忆库。' };
-    if (busy) return { error: '记忆库正在处理上一项操作，请稍后重试。' };
-    busy = true;
+    // The repository publishes its index by atomic rename. Readers can use the
+    // last committed snapshot while another read or mutation is in progress.
+    const reading = action === 'list';
+    if (!reading && busy) return { error: '记忆库正在处理上一项操作，请稍后重试。' };
+    if (!reading) busy = true;
     try {
-      if (action === 'list') return await snapshot();
+      if (reading) return await snapshot();
       if (action === 'update') { await repo.update(input.ids, input.patch); return await snapshot(); }
       if (action === 'journey') { await repo.saveJourney(input); return await snapshot(); }
       if (action === 'point') {
@@ -92,7 +95,7 @@ function registerGlobe(getWindow) {
       }
       throw new Error('不支持的记忆库操作。');
     } catch (error) { return { error: error.code ? '记忆库读写失败，请检查文件权限、备份和可用空间。' : error.message }; }
-    finally { busy = false; }
+    finally { if (!reading) busy = false; }
   });
   return () => protocol.handle('study-memory', async request => {
     const url = new URL(request.url);

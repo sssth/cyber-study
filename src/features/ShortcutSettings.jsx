@@ -12,6 +12,11 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
     event.preventDefault();
     event.stopPropagation();
 
+    if (id === 'search' && key === 'Esc') {
+      setMessage('ESC 用于返回上一级，不能用于开关搜索。');
+      return;
+    }
+
     const globalActions = groups.find(([, scope]) => scope === 'global')[2];
     const isGlobal = action => globalActions.some(([actionId]) => actionId === action);
     const conflict = groups.flatMap(([, , rows]) => rows).find(([otherId]) =>

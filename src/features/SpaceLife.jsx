@@ -18,7 +18,7 @@ function useCareClock() {
 function PetPanel({ onClose, model, theme }) {
   const pet = loadPet(useCareClock());
   return (
-    <FeaturePanel title="书房猫" kicker="Quiet Companion" description="在书房里右键单击猫咪，就能抚摸一次。" onClose={onClose}>
+    <FeaturePanel title="书房猫" kicker="Quiet Companion" description="在书房里双击猫咪，就能抚摸一次。" onClose={onClose}>
       <CareModelPreview feature="pet" model={model} theme={theme} label="猫咪" />
       <div className="stat-row">
         <span>心情 {Math.round(pet.mood)}</span>
@@ -32,7 +32,7 @@ function PetPanel({ onClose, model, theme }) {
 function PlantPanel({ onClose, model, theme }) {
   const plant = loadPlant(useCareClock());
   return (
-    <FeaturePanel title="书房植物" kicker="Growth Plant" description="在书房里右键单击植物，就能浇水一次。" onClose={onClose}>
+    <FeaturePanel title="书房植物" kicker="Growth Plant" description="在书房里双击植物，就能浇水一次。" onClose={onClose}>
       <CareModelPreview feature="plant" model={model} theme={theme} label="植物" />
       <div className="stat-row">
         <span>水分 {Math.round(plant.water)}/100</span>

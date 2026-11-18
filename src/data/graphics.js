@@ -28,22 +28,11 @@ export function matchingPreset(value) {
   return Object.keys(graphicsPresets).find(id => graphicsOptions.every(({key}) => value[key] === presetSettings(id)[key])) ?? 'custom';
 }
 export function loadGraphics() {
-  try {
-    const saved = localStorage.getItem('study-graphics');
-    if (!saved) return presetSettings('medium');
-    if (Object.hasOwn(graphicsPresets, saved)) return presetSettings(saved);
-    return normalizeGraphics(JSON.parse(saved));
-  } catch { return presetSettings('medium'); }
+  return presetSettings('low');
 }
 
 export function needsGraphicsCalibration() {
-  try {
-    const saved = localStorage.getItem('study-graphics');
-    if (!saved) return true;
-    if (Object.hasOwn(graphicsPresets, saved)) return false;
-    const value = JSON.parse(saved);
-    return !value || !graphicsOptions.every(({key, choices}) => choices.some(([choice]) => choice === value[key]));
-  } catch { return true; }
+  return false;
 }
 
 // Start at medium; only test high when medium sustains the 60 FPS target.

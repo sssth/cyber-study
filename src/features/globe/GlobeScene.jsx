@@ -1,3 +1,6 @@
+import MemoryMarkers from './MemoryMarkers.jsx';
+import { globeInteraction, zoomGlobeDistance } from './cameraInteraction.js';
+import { createSingleClick } from './singleClick.js';
 import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
@@ -5,7 +8,7 @@ import { CanvasTexture, Color, Object3D, Quaternion, SRGBColorSpace, Vector3, Sp
 import { globePosition } from './geo.js';
 import { atlasPalette as colors } from './palette.js';
 import { RegionLines, CityPoints } from './RegionLines.jsx';
-import { detailTexture, applyDetail } from './detailTexture.js';
+import { detailTexture, applyDetail, createHoverMask, updateHoverMask } from './detailTexture.js';
 import { contains } from './geography.js';
 import landRings from './land.json';
 
@@ -25,36 +28,45 @@ function atlasTexture() {
   const texture = new CanvasTexture(canvas); texture.colorSpace = SRGBColorSpace; texture.anisotropy = 4;
   return texture;
 }
-function GlobeObjects({ geography, places, highlighted, selected, onSelect, command, rotating, reduced, onInteract, onReady, onFailure }) {
+function GlobeObjects({ cameraPosition, initialView, geography, places, highlighted, selected, onSelect, command, rotating, reduced, onInteract, onReady, onFailure }) {
+  const [hoveredPoint, setHoveredPoint] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [hoverPosition, setHoverPosition] = useState([0, 0, 0]);
-  const markerDistance = useRef(0);
-  const controls = useRef(), points = useRef(), flight = useRef(null);
+  const initialCommand = useRef(command);
+  const clickGate = useMemo(() => createSingleClick(), []);
+  const controls = useRef(), flight = useRef(null);
   const { camera, invalidate, gl } = useThree();
   useEffect(() => { setHovered(null); gl.domElement.style.cursor = 'grab'; }, [command, geography?.features, gl]);
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const cancelDouble = event => { if (event.detail > 1) clickGate.cancel(); };
+    canvas.addEventListener('pointerdown', cancelDouble, true);
+    canvas.addEventListener('dblclick', clickGate.cancel, true);
+    return () => { clickGate.cancel(); canvas.removeEventListener('pointerdown', cancelDouble, true); canvas.removeEventListener('dblclick', clickGate.cancel, true); };
+  }, [gl, clickGate]);
+  useEffect(() => { clickGate.cancel(); }, [command, geography?.features, highlighted, clickGate]);
   const texture = useMemo(atlasTexture, []);
+  const hoverMask = useMemo(createHoverMask, []);
+  const hoveredFeatures = useMemo(() => hovered ? [hovered] : [], [hovered]);
+  useLayoutEffect(() => {
+    updateHoverMask(hoverMask, hovered);
+    invalidate();
+  }, [hovered, hoverMask, invalidate]);
+  useEffect(() => () => hoverMask.texture.dispose(), [hoverMask]);
   const detailRegion = geography?.region && (geography.region.geometry ? geography.region : geography.features.find(f=>f.id===geography.region.id) || geography.region);
   const detail = useMemo(()=>detailTexture(detailRegion,geography?.worldFeatures||[]),[detailRegion,geography?.worldFeatures]);
   useEffect(()=>()=>detail?.texture.dispose(),[detail]);
   useEffect(() => { onReady(); const lost = event => { event.preventDefault(); onFailure(); }; gl.domElement.addEventListener('webglcontextlost', lost); return () => { gl.domElement.removeEventListener('webglcontextlost', lost); texture.dispose(); }; }, [gl, texture, onReady, onFailure]);
-  useLayoutEffect(() => {
-    const dummy = new Object3D();
-    places.forEach((place, index) => {
-      dummy.position.fromArray(globePosition(place.latitude, place.longitude, 1.012));
-      dummy.scale.setScalar((place.id === selected ? .022 : .012 + Math.min(place.photos.length, 10) * .0008)*Math.min(1,Math.max(.025,(camera.position.length()-1)/2))); dummy.updateMatrix();
-      points.current.setMatrixAt(index, dummy.matrix); points.current.setColorAt(index, new Color(place.id === selected ? colors.selected : place.photos.some(p => highlighted?.has(p.id)) ? '#66ffdc' : place.photos.every(p => p.visitStatus === 'wish') ? '#c5a5ff' : colors.memory));
-    });
-    if (points.current) { points.current.instanceMatrix.needsUpdate = true; if (points.current.instanceColor) points.current.instanceColor.needsUpdate = true; points.current.computeBoundingSphere(); }
-    invalidate();
-  }, [places, highlighted, selected, invalidate]);
   useEffect(() => {
+    if (initialView?.position && command === initialCommand.current) return;
     if (!command) return;
+    if (command.type === 'restore') { flight.current = null; camera.position.fromArray(command.position); controls.current?.update(); if (cameraPosition) cameraPosition.current = camera.position.toArray(); invalidate(); return; }
     const from = camera.position.clone(), start = from.clone().normalize();
     let end = start.clone(), distance = from.length();
     if (command.type === 'place') { end.fromArray(globePosition(Math.max(-85, Math.min(85, command.place.latitude)), command.place.longitude)); distance = 2.4; }
     if (command.type === 'region') { end.fromArray(globePosition(Math.max(-85,Math.min(85,command.place.latitude)),command.place.longitude)); distance=command.place.distance; }
     if (command.type === 'home') { end.fromArray(globePosition(22, 110)); distance = 3.6; }
-    if (command.type === 'zoom') distance = Math.max(1.015, Math.min(5.5, distance * command.factor));
+    if (command.type === 'zoom') distance = zoomGlobeDistance(distance, command.factor);
     if (command.type === 'turn') { const sphere = new Spherical().setFromVector3(from); sphere.theta += command.x || 0; sphere.phi = Math.max(.08, Math.min(Math.PI - .08, sphere.phi + (command.y || 0))); end.setFromSpherical(sphere).normalize(); }
     const rotation = new Quaternion().setFromUnitVectors(start, end);
     if (reduced) { camera.position.copy(end.multiplyScalar(distance)); controls.current?.update(); flight.current = null; }
@@ -62,12 +74,9 @@ function GlobeObjects({ geography, places, highlighted, selected, onSelect, comm
     invalidate();
   }, [command, reduced, camera, invalidate]);
   useFrame((_, delta) => {
+    if (cameraPosition) cameraPosition.current = camera.position.toArray();
     const distanceNow=camera.position.length();
-    if(points.current && Math.abs(markerDistance.current-distanceNow)>.003) {
-      const factor=Math.min(1,Math.max(.025,(distanceNow-1)/2));const array=points.current.instanceMatrix.array;
-      places.forEach((place,i)=>{const scale=(place.id===selected? .022:.012+Math.min(place.photos.length,10)*.0008)*factor;array[i*16]=scale;array[i*16+5]=scale;array[i*16+10]=scale;});
-      points.current.instanceMatrix.needsUpdate=true;markerDistance.current=distanceNow;
-    }
+    if (controls.current) Object.assign(controls.current, globeInteraction(distanceNow));
     const motion = flight.current;
     if (motion) {
       motion.elapsed += Math.min(delta, .05); const progress = Math.min(1, motion.elapsed / .85), eased = progress * progress * (3 - 2 * progress);
@@ -79,16 +88,16 @@ function GlobeObjects({ geography, places, highlighted, selected, onSelect, comm
     } else if (rotating && !reduced) { controls.current?.update(); invalidate(); }
   });
   return <>
-    <ambientLight intensity={1.8} /><directionalLight position={[3, 4, 5]} intensity={1.4} /><directionalLight position={[-3, -1, -3]} intensity={.65} color="#93b4ae" />
-    <mesh onPointerMove={event=>{if(!geography)return;const v=event.point.clone().normalize();const f=geography.features.find(f=>contains(f.geometry,Math.atan2(-v.z,v.x)*180/Math.PI,Math.asin(v.y)*180/Math.PI));setHovered(f||null);if(f)setHoverPosition(event.point.toArray());gl.domElement.style.cursor=f?'pointer':'grab';}} onPointerOut={()=>{setHovered(null);gl.domElement.style.cursor='grab';}} onClick={event => { event.stopPropagation(); if(event.delta>4 || !geography)return;const v=event.point.clone().normalize();const lat=Math.asin(v.y)*180/Math.PI,lon=Math.atan2(-v.z,v.x)*180/Math.PI;const feature=geography.features.find(f=>contains(f.geometry,lon,lat));if(feature)geography.navigate(feature); }}><sphereGeometry args={[1, 256, 192]} /><meshStandardMaterial key={detail?.texture.uuid || 'global-base'} onBeforeCompile={shader=>applyDetail(shader,detail)} customProgramCacheKey={()=>detail?'regional-detail':'global-base'} map={texture} roughness={.92} metalness={.05} /></mesh>
-    {geography && <><RegionLines features={geography.features}/>{hovered&&<><RegionLines features={[hovered]} color="#f5c780"/><Html position={hoverPosition} style={{pointerEvents:'none'}}><div className="atlas-region-tooltip" role="tooltip">{hovered.name}</div></Html></>}<CityPoints cities={geography.visibleCities} selected={geography.city} onSelect={geography.chooseCity}/></>}
-    <instancedMesh ref={points} args={[null, null, places.length]} key={places.length} frustumCulled={false} onClick={event => {
-      event.stopPropagation(); const place = places[event.instanceId];
-      if (place && new Vector3(...globePosition(place.latitude, place.longitude)).dot(camera.position) > 1.015) onSelect(place);
-    }} onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }} onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
-      <sphereGeometry args={[1, 12, 8]} /><meshBasicMaterial toneMapped={false} />
-    </instancedMesh>
-    <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false} minDistance={1.015} maxDistance={5.5} minPolarAngle={.05} maxPolarAngle={Math.PI - .05} autoRotate={rotating && !reduced && !flight.current} autoRotateSpeed={.35} onStart={() => { flight.current = null; setHovered(null); onInteract(); }} />
+    <ambientLight intensity={1.65} /><directionalLight position={[3, 4, 5]} intensity={1.05} /><directionalLight position={[-3, -1, -3]} intensity={.4} color="#b7c8cf" />
+    <mesh onPointerMove={event=>{if(!geography || event.buttons)return;const v=event.point.clone().normalize();const f=geography.features.find(f=>contains(f.geometry,Math.atan2(-v.z,v.x)*180/Math.PI,Math.asin(v.y)*180/Math.PI));setHovered(f||null);if(f)setHoverPosition(event.point.toArray());gl.domElement.style.cursor=f?'pointer':'grab';}} onPointerOut={()=>{setHovered(null);gl.domElement.style.cursor='grab';}} onClick={event => { event.stopPropagation(); if(event.delta>4 || !geography)return;const v=event.point.clone().normalize();const lat=Math.asin(v.y)*180/Math.PI,lon=Math.atan2(-v.z,v.x)*180/Math.PI;const feature=geography.features.find(f=>contains(f.geometry,lon,lat));if(feature)clickGate.run(event.nativeEvent?.detail || 1, () => geography.navigate(feature)); }}><sphereGeometry args={[1, 256, 192]} /><meshStandardMaterial key={detail?.texture.uuid || 'global-base'} onBeforeCompile={shader=>applyDetail(shader,detail,hoverMask)} customProgramCacheKey={()=>detail?'regional-detail':'global-base'} map={texture} roughness={1} metalness={0} /></mesh>
+    {geography && <><RegionLines features={geography.features}/>{hovered&&<><RegionLines features={hoveredFeatures} color={colors.hover} opacity={.75}/><Html position={hoverPosition} style={{pointerEvents:'none'}}><div className="atlas-region-tooltip" role="tooltip">{hovered.name}</div></Html></>}<CityPoints cities={geography.visibleCities} selected={geography.city} onSelect={(city, event) => { if (event.delta <= 4) clickGate.run(event.nativeEvent?.detail || 1, () => geography.chooseCity(city)); }}/></>}
+    <MemoryMarkers places={places} highlighted={highlighted} hovered={hoveredPoint} reduced={reduced} onClick={event => {
+      event.stopPropagation(); if (event.delta > 4) return; const place = places[event.instanceId];
+      if (place?.photos.some(p => highlighted?.has(p.id)) && new Vector3(...globePosition(place.latitude, place.longitude)).dot(camera.position) > 1.0015) clickGate.run(event.nativeEvent?.detail || 1, () => onSelect(place, { position:camera.position.toArray() }));
+    }} onPointerMove={event => { const place=places[event.instanceId]; if (!place?.photos.some(p => highlighted?.has(p.id)) || new Vector3(...globePosition(place.latitude,place.longitude)).dot(camera.position)<=1.0015) return; event.stopPropagation(); setHovered(null); setHoveredPoint(place.id); gl.domElement.style.cursor='pointer'; }} onPointerOut={() => { setHoveredPoint(null); gl.domElement.style.cursor='grab'; }}>
+</MemoryMarkers>
+    {hoveredPoint && places.filter(p => p.id === hoveredPoint && p.photos.some(photo => highlighted?.has(photo.id))).map(place => <Html key={place.id} position={globePosition(place.latitude,place.longitude,1.025)} style={{pointerEvents:'none'}}><div className="atlas-region-tooltip atlas-memory-tooltip" role="tooltip">{place.name}<br/>{place.photos.length} 个记忆点 · 点击查看</div></Html>)}
+    <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false} minDistance={1.015} maxDistance={5.5} minPolarAngle={.05} maxPolarAngle={Math.PI - .05} autoRotate={rotating && !reduced && !flight.current} autoRotateSpeed={.35} onStart={() => { if (controls.current) Object.assign(controls.current, globeInteraction(camera.position.length())); flight.current = null; setHovered(null); onInteract(); }} />
   </>;
 }
 class GlobeBoundary extends Component {
@@ -98,7 +107,7 @@ class GlobeBoundary extends Component {
   render() { return this.state.error ? null : this.props.children; }
 }
 export default function GlobeScene(props) {
-  return <GlobeBoundary onFailure={props.onFailure}><Canvas camera={{ position: globePosition(22, 110, 3.6), fov: 43, near: .001, far: 30 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true }} fallback={<p>请使用地点列表浏览照片。</p>}>
+  return <GlobeBoundary onFailure={props.onFailure}><Canvas camera={{ position: props.initialView?.position || globePosition(22, 110, 3.6), fov: 43, near: .001, far: 30 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true }} fallback={<p>请使用地点列表浏览照片。</p>}>
     <GlobeObjects {...props} />
   </Canvas></GlobeBoundary>;
 }

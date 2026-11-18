@@ -1,3 +1,5 @@
+import { WorkspaceActions } from './ui.jsx';
+import { textMatches } from '../search/searchCore.js';
 import { useEffect, useState } from 'react';
 
 export const musicPlatformNames = { qq: 'QQ 音乐', netease: '网易云音乐' };
@@ -10,7 +12,7 @@ export async function musicRequest(provider, action, input) {
   return result;
 }
 
-function SourceAccount({ provider, onImport, importing }) {
+function SourceAccount({ provider, onImport, importing, search }) {
   const name = musicPlatformNames[provider];
   const [user, setUser] = useState(null);
   const [playlists, setPlaylists] = useState([]);
@@ -21,6 +23,7 @@ function SourceAccount({ provider, onImport, importing }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
   const [failures, setFailures] = useState([]);
+  const visiblePlaylists=playlists.filter(list=>(!search?.filters?.provider||search.filters.provider===provider)&&textMatches([list.title],search?.query??''));
 
   const loadPlaylists = async () => {
     const { playlists: list } = await musicRequest(provider, 'playlists');
@@ -159,10 +162,11 @@ function SourceAccount({ provider, onImport, importing }) {
           </div>
           {playlists.length > 0 && (
             <div className="music-playlist-picker">
-              <select aria-label={`${name}个人歌单`} value={selected} onChange={event => { setSelected(event.target.value); setStatus(''); setFailures([]); }} disabled={busy}>
-                {playlists.map(list => <option key={list.id} value={list.id}>{name} · {list.title}</option>)}
-              </select>
-              <button type="button" disabled={busy || importing || !selected} onClick={importPlaylist}>导入唱片架</button>
+              <div className="music-platform-list" role="radiogroup" aria-label={`${name}个人歌单`}>
+                {visiblePlaylists.map(list=><label key={list.id}><input type="radio" name={`platform-playlist-${provider}`} value={list.id} checked={selected===list.id} disabled={busy} onChange={()=>{setSelected(list.id);setStatus('');setFailures([]);}}/><span>{list.title}</span></label>)}
+
+              </div>
+              <WorkspaceActions><button type="button" disabled={busy || importing || !visiblePlaylists.some(list=>list.id===selected)} onClick={importPlaylist}>导入唱片架</button></WorkspaceActions>
             </div>
           )}
         </>
@@ -193,7 +197,7 @@ function SourceAccount({ provider, onImport, importing }) {
   );
 }
 
-export function MusicSources({ onImport, importing }) {
+export function MusicSources({ onImport, importing, search }) {
   const [provider, setProvider] = useState('');
   return (
     <section className="music-sources" aria-label="在线音乐">
@@ -203,7 +207,7 @@ export function MusicSources({ onImport, importing }) {
             onClick={() => setProvider(current => current === id ? '' : id)}>{name}</button>
         ))}
       </div>
-      {provider && <SourceAccount key={provider} provider={provider} onImport={onImport} importing={importing} />}
+      {provider && <SourceAccount key={provider} provider={provider} onImport={onImport} importing={importing} search={search} />}
     </section>
   );
 }

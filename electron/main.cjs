@@ -20,6 +20,39 @@ if (!app.isPackaged) {
 registerAudioScheme();
 
 let mainWindow = null;
+const snapshots = require('./snapshots.cjs').snapshotStore(app.isPackaged ? app.getPath('userData') : path.resolve(__dirname,'..'));
+for (const action of ['list','read','save']) {
+  ipcMain.handle('snapshots:'+action,(event,input)=>{
+    if(event.sender!==mainWindow?.webContents || event.senderFrame!==event.sender.mainFrame) throw Error('请从书房访问快照。');
+    return snapshots[action](input);
+  });
+}
+const aiChat = require('./aiChat.cjs');
+const aiSettings = require('./aiSettings.cjs');
+for (const [action, handler] of Object.entries({
+  settings: () => aiSettings.describe(),
+  select: aiSettings.select,
+  'chat-current': aiSettings.chatCurrent
+})) {
+  ipcMain.handle('ai:' + action, (event, input) => {
+    if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame)
+      throw new Error('请从书房主页访问 AI 设置。');
+    return handler(input);
+  });
+}
+ipcMain.handle('ai:stream', (event, id, input) => {
+  const frame = event.senderFrame;
+  if (event.sender !== mainWindow?.webContents || !frame || frame !== event.sender.mainFrame)
+    throw Error('请从书房主页发起对话。');
+  return aiSettings.chatCurrent(input, part => frame.send('ai:delta', id, part));
+});
+ipcMain.handle('ai:list-providers', () => aiChat.listProviders());
+ipcMain.handle('ai:chat', (event, input) => {
+  if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
+    throw new Error('请从书房主页发起对话。');
+  }
+  return aiChat.chat(input);
+});
 registerMusic(() => mainWindow);
 registerBooks(() => mainWindow);
 const serveMemoryPhotos = registerGlobe(() => mainWindow);
@@ -186,6 +219,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  aiSettings.initialize();
   serveCachedAudio();
   serveMoviePosters();
   serveMemoryPhotos();

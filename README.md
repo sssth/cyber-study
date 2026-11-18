@@ -66,23 +66,23 @@ MAC_CODESIGN_IDENTITY="Developer ID Application: 你的公司名 (TEAMID)" pnpm 
 
 ## 下载场景包
 
-场景包体积较大（约 2.2GB），不随仓库分发，请从 GitHub Release 下载默认场景「3D版Loft v0.2」：
+场景资源与源码分开分发，不随仓库下载。默认场景「3D版Loft v0.2」提供两档画质包，**任选其一**下载即可：
 
-👉 **[场景包下载 · 3D版Loft v0.2](https://github.com/sssth/cyber-study/releases/tag/scene-pack-loft-v0.2)**
+👉 **[场景包下载 · GitHub Releases](https://github.com/sssth/cyber-study/releases/tag/scene-pack-loft-v0.2-v2)**
 
-安装步骤：
+| 压缩包 | 大小 | 说明 |
+|--------|------|------|
+| `Loft-v0.2-场景包-完整版.zip` | 约 1.9GB | 内含低 / 中 / 高三档画质资源，可在应用内随时切换画质 |
+| `Loft-v0.2-场景包-低画质版.zip` | 约 478MB | 仅低画质资源，体积小、下载快，应用默认即低画质启动 |
 
-1. 下载以下 3 个压缩包（见 Release 附件）：
+安装步骤（两档相同）：
 
-   | 文件 | 大小 | 内容 |
-   |------|------|------|
-   | `loft-v0.2-models-main.zip` | 约 1.5GB | 主模型 + LOD 精简模型 |
-   | `loft-v0.2-models-shared.zip` | 约 584MB | 共享公共模型 |
-   | `loft-v0.2-extras.zip` | 约 63MB | 贴图、音效、scene.json |
+1. 下载其中一个压缩包并解压，得到形如 `Loft-v0.2-场景包-完整版/` 的文件夹（内含 `scene.json`、`models/`、`textures/`、`sounds/`）；
+2. 把该文件夹放进项目根目录的 `场景包/` 目录下；
+3. 打开 [scene.config.json](./scene.config.json)，把 `sceneFolder` 改为解压出的文件夹名，例如 `"场景包/Loft-v0.2-场景包-完整版"` 或 `"场景包/Loft-v0.2-场景包-低画质版"`；
+4. 启动应用。下载完整版的用户可在应用内按需切换低 / 中 / 高画质。
 
-2. 在项目根目录新建文件夹 `场景包/3D版Loft v0.2/`；
-3. 把 3 个 zip 解压到该文件夹内（合并后应看到 `models/`、`textures/`、`sounds/`、`scene.json`）；
-4. 无需修改配置，`scene.config.json` 默认即指向该场景包，直接启动即可。
+> 旧版三分卷下载方式（models-main / models-shared / extras）已废弃，新压缩包均为自包含单文件。
 
 ## 打包场景包预览工具
 
@@ -186,8 +186,26 @@ assets/        后续图片、音频、书籍素材
 
 QQ 音乐连接使用 [Simple Music v2.7.0](https://github.com/Yyyangshenghao/simple-music/tree/v2.7.0) 的部分模块。网易云使用与 [YesPlayMusic](https://github.com/qier222/YesPlayMusic) 相同的 NeteaseCloudMusicApi。上游来源和许可证见 [NOTICE](electron/music/simple-music/NOTICE.md)。
 
+## 水晶聊天（AI 对话，可选）
+
+在「互动菜单 → 水晶球」中提供**可选**的 AI 对话功能，不需要该功能可完全跳过本节，应用其余功能不受影响。想使用时：把项目根目录的 [ai-settings.example.json](./ai-settings.example.json) 复制为 `ai-settings.json`，在对应厂商的 `apiKey` 字段填入你自己的 API Key，并在 `current` 里选择默认厂商和模型即可。`ai-settings.json` 含个人密钥，已被 `.gitignore` 排除，不会被提交。
+
 
 ## 项目资料
 
 - [开发文档与更新报告](开发文档/README.md)
 - [场景与统一素材库](场景包/README.md)
+
+
+### 默认低画质打包
+
+双击「打包赛博书房.command」默认只收录低画质模型及其实际依赖；缺少低画质版本的模型沿用原模型。不会修改源场景。应用每次启动使用低画质，不自动测试硬件或恢复上次高画质设置。运行中仍可手动切换画质；低画质安装包不含原尺寸模型，完整场景配置及对应资源可用时才能获得完整高画质素材。
+
+
+### 单独发布场景资源
+
+GitHub 上的源码与场景资源分开保存。双击 `导出场景资源包.command`（或运行 `node scripts/package-scenes.mjs`） 会在 `场景发布包/日期/` 下生成低画质版和完整版两个场景目录及各自的 ZIP；它们不包含 APP、Electron 或用户数据。此目录已排除在源码提交之外。
+
+上传场景资源时选择这里的两个 ZIP。解压后文件夹内直接包含 scene.json、models、textures、sounds；scene.config.json 的 sceneFolder 应指向解压后的文件夹。
+
+Release 留给自行打包的应用测试产物，场景资源发布不使用 Release 目录。默认应用打包仍使用低画质，应用打包由用户自行执行。

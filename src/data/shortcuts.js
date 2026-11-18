@@ -12,7 +12,9 @@ export const movementShortcuts = [
 export function shortcutGroups(scene) {
   return [
     ['通用', 'global', [
-      ['search', '搜索与筛选当前集合', ['Cmd+K', 'Ctrl+K']],
+      ['showOnGlobe', '在地球仪中显示', ['Shift+Cmd+X', 'Ctrl+Shift+X']],
+      ['snapshot', '快照保存', ['Shift+Cmd+S', 'Ctrl+Shift+S']],
+      ['search', '搜索与筛选当前集合', ['Shift+Cmd+Z', 'Ctrl+Shift+Z']],
       ['createContent', '新建当前页面的内容', ['Shift+Cmd+A', 'Ctrl+Shift+A']]
     ]],
     ['书房场景', 'scene', [
@@ -47,7 +49,9 @@ export function loadShortcuts(groups) {
     saved = null;
   }
   return Object.fromEntries(groups.flatMap(([, , actions]) => actions.map(([id, , defaults]) => {
-    const keys = saved?.[id];
+    const stored = saved?.[id];
+    // Migrate the former search bindings; Escape belongs to navigation.
+    const keys = id === 'search' && Array.isArray(stored) && stored.some(key => ['Cmd+K', 'Ctrl+K', 'Esc'].includes(key)) ? defaults : stored;
     return [id, Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys : defaults];
   })));
 }

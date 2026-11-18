@@ -1,7 +1,0 @@
-{
-  "status": 429,
-  "error": {
-    "message": "Synthetic failure 429"
-  },
-  "expected": "保留已有资料，可重试；不写入成功状态"
-}

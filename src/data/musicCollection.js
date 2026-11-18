@@ -12,7 +12,7 @@ export function mergeMusicPlaylist(tracks, provider, list, imported) {
     const membership = previous?.playlists?.find(entry => entry.id === playlistId);
     const { cacheState, ...saved } = item;
     merged.set(id, {
-      ...previous, ...saved, id,
+      ...previous, ...saved, id, createdAt:previous ? previous.createdAt : new Date().toISOString(),
       cachedUrl: item.cachedUrl || previous?.cachedUrl,
       audioAssetId: item.cachedUrl || previous?.audioAssetId || previous?.cachedUrl || null,
       playlists: [

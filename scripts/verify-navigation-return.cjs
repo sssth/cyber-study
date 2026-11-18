@@ -1,0 +1,25 @@
+const {app,BrowserWindow}=require('electron');const fs=require('fs'),os=require('os'),path=require('path');
+app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'study-return-')));
+app.whenReady().then(async()=>{
+ const w=new BrowserWindow({width:1440,height:1000,show:true,webPreferences:{backgroundThrottling:false}});
+ const run=s=>w.webContents.executeJavaScript(s);const pause=()=>new Promise(r=>setTimeout(r,350));
+ const key=async()=>{w.focus();w.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});w.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});await pause();};
+ const check=async(expression)=>{if(!await run(expression))throw Error(expression);};
+ const choose=async text=>{await run(`document.querySelector('.display-menu-toggle').click();[...document.querySelectorAll('button')].find(b=>b.textContent==='${text}').click()`);await pause();};
+ await w.loadURL('http://127.0.0.1:5173/tests/ui/navigation-return.html');await pause();
+ await choose('待办');await run("navigatePreview('typewriter')");await pause();
+ w.webContents.sendInputEvent({type:'keyDown',keyCode:'Z',modifiers:['meta','shift']});w.webContents.sendInputEvent({type:'keyUp',keyCode:'Z',modifiers:['meta','shift']});await pause();
+ await check(`!!document.querySelector('.unified-search')`);await key();await check(`!document.querySelector('.unified-search')`);
+ await check(`document.querySelector('[data-page="memo"]') && [...document.querySelectorAll('button[aria-pressed="true"]')].some(b=>b.textContent==='待办')`);
+ await key();await check(`!!document.querySelector('[data-page="scene"]')`);
+ await run("resetPreview('memo');");await pause();await run("navigatePreview('typewriter')");await pause();
+ w.webContents.sendInputEvent({type:'keyDown',keyCode:'A',modifiers:['meta','shift']});w.webContents.sendInputEvent({type:'keyUp',keyCode:'A',modifiers:['meta','shift']});await pause();
+ await check(`!!document.querySelector('dialog.edit-sidebar[open]')`);await key();await check(`!!document.querySelector('[data-page="memo"]') && !document.querySelector('dialog.edit-sidebar[open]')`);
+ await run("resetPreview('memo')");await pause();await choose('便签');await run("navigatePreview('typewriter')");await pause();await choose('已完成作品');await run("navigatePreview('reader')");await pause();await key();await check("!!document.querySelector('.reader-workspace:not(.reader-paged)')");await key();
+ await check(`document.querySelector('[data-page="typewriter"]') && [...document.querySelectorAll('button[aria-pressed="true"]')].some(b=>b.textContent==='已完成作品')`);
+ await key();await check(`!!document.querySelector('[data-page="scene"]')`);
+ await run("resetPreview('reader')");await pause();await check(`!!document.querySelector('.reader-immersive')`);await key();await check("!!document.querySelector('.reader-workspace:not(.reader-paged)')");await key();await check(`!!document.querySelector('.reader-library')`);
+ await run(`document.querySelector('.shelf-read').dispatchEvent(new MouseEvent('dblclick',{bubbles:true,detail:2}))`);await pause();
+ await check(`!!document.querySelector('dialog.edit-sidebar[open] input')`);await run(`document.querySelector('dialog.edit-sidebar[open] input').focus()`);await key();await check(`!!document.querySelector('[data-page="scene"]')`);
+ console.log('NAVIGATION_RETURN_PASS: exact Memo menu, latest origin only, completed works, book → shelf → scene');app.quit();
+}).catch(e=>{console.error(e);app.exit(1)});

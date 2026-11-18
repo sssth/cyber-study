@@ -3,7 +3,8 @@ import { BufferGeometry, Float32BufferAttribute, Object3D, Vector3 } from 'three
 import { useThree } from '@react-three/fiber';
 import { globePosition } from './geo.js';
 import { polygons } from './geography.js';
-export function RegionLines({ features, color = '#bdd8cf' }) {
+import { atlasPalette } from './palette.js';
+export function RegionLines({ features, color = atlasPalette.border, opacity = .32 }) {
   const geometry = useMemo(()=>{
     const positions=[];
     for(const f of features) for(const polygon of polygons(f.geometry)) for(const ring of polygon) for(let i=1;i<ring.length;i++) {
@@ -14,10 +15,10 @@ export function RegionLines({ features, color = '#bdd8cf' }) {
     const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(positions,3));return g;
   },[features]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
-  return <lineSegments geometry={geometry} raycast={()=>null}><lineBasicMaterial color={color} transparent opacity={.8} /></lineSegments>;
+  return <lineSegments geometry={geometry} raycast={()=>null}><lineBasicMaterial color={color} transparent opacity={opacity} /></lineSegments>;
 }
 export function CityPoints({ cities, selected, onSelect }) {
   const ref=useRef();const {camera,invalidate}=useThree();
   useLayoutEffect(()=>{const o=new Object3D();cities.forEach((city,i)=>{o.position.fromArray(globePosition(city.latitude,city.longitude,1.002));o.scale.setScalar(city.id===selected?.id? .0012:.0005);o.updateMatrix();ref.current.setMatrixAt(i,o.matrix)});if(ref.current){ref.current.instanceMatrix.needsUpdate=true;ref.current.computeBoundingSphere()}invalidate();},[cities,selected,invalidate]);
-  return <instancedMesh key={cities.length} ref={ref} args={[null,null,cities.length]} frustumCulled={false} onClick={e=>{e.stopPropagation();const c=cities[e.instanceId];if(c&&new Vector3(...globePosition(c.latitude,c.longitude)).dot(camera.position)>1.002)onSelect(c)}}><sphereGeometry args={[1,8,6]}/><meshBasicMaterial color="#77d9ff" toneMapped={false}/></instancedMesh>;
+  return <instancedMesh key={cities.length} ref={ref} args={[null,null,cities.length]} frustumCulled={false} onClick={e=>{e.stopPropagation();const c=cities[e.instanceId];if(c&&new Vector3(...globePosition(c.latitude,c.longitude)).dot(camera.position)>1.002)onSelect(c,e)}}><sphereGeometry args={[1,8,6]}/><meshBasicMaterial color="#77d9ff" toneMapped={false}/></instancedMesh>;
 }

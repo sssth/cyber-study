@@ -67,3 +67,16 @@
 .memory-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
 .memory-journey-stops li { margin-bottom: 8px; overflow-wrap: anywhere; }
 .memory-journey-stops button { margin: 3px; }
+
+.globe-control-workspace .atlas-controls { position:static; display:flex; justify-content:flex-start; margin:16px 0; }
+.globe-control-workspace .atlas-sidebar { display:grid; gap:16px; width:100%; padding:0; }
+.globe-control-workspace .atlas-breadcrumbs { position:static; }
+
+.globe-selector-sections { display:grid; gap:22px; }
+.globe-selector-sections .music-create-song-options { max-height:180px; overscroll-behavior:contain; }
+.globe-region-options > button { text-align:left; width:100%; padding:9px 10px; border:0; border-radius:6px; background:#ffffff05; font-size:13px; }
+.globe-region-options > button[aria-pressed="true"] { background:#497c7940; }
+
+/* A programmatic return focus must not frame the entire 3D viewport. */
+.atlas-stage:focus { outline:none; }
+.atlas-stage:focus-visible::after { content:''; position:absolute; bottom:8px; left:calc(50% - 16px); width:32px; height:2px; background:var(--atlas-ink); pointer-events:none; }

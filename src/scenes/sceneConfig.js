@@ -52,5 +52,6 @@ export const hotspots = {
   globe: { id: 'globe', label: '地球仪', detail: '照片按地点与日期归档' },
   typewriter: { id: 'typewriter', label: '打字机', detail: '经典片段逐字抄写' },
   pet: { id: 'pet', label: '书房猫', detail: '抚摸与亲密度成长' },
+  crystal: { id: 'crystal', label: '水晶对话' },
   plant: { id: 'plant', label: '书房植物', detail: '专注时长影响生长' }
 };

@@ -139,7 +139,7 @@ function registerMusic(getWindow) {
         const user = await api.account(cookie);
         if (!user) return { error: '登录已失效，请重新扫码。' };
         const list = await api.playlists(cookie, user);
-        return { playlists: list.map(item => ({ id: String(item.id), title: item.name })).filter(item => item.title) };
+        return { playlists: list.map(item => ({ id: String(item.id), title: item.name, cover: httpsUrl(item.cover || item.coverImgUrl) })).filter(item => item.title) };
       }
       if (action === 'tracks') {
         if (!isDigits(input.id) && !(provider === 'qq' && input.id === 'qq-liked:201')) {

@@ -1,7 +1,28 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+let streamId = 0;
+
 contextBridge.exposeInMainWorld('cyberStudy', {
   name: '赛博书房',
+  snapshots: {
+    save: input=>ipcRenderer.invoke('snapshots:save',input),
+    list: ()=>ipcRenderer.invoke('snapshots:list'),
+    read: name=>ipcRenderer.invoke('snapshots:read',name)
+  },
+  ai: {
+    getSettings: () => ipcRenderer.invoke('ai:settings'),
+    selectModel: settings => ipcRenderer.invoke('ai:select', settings),
+    streamCurrent: async (input, onText) => {
+      const id = ++streamId;
+      const listener = (_event, source, part) => { if (source === id) onText(part); };
+      ipcRenderer.on('ai:delta', listener);
+      try { return await ipcRenderer.invoke('ai:stream', id, input); }
+      finally { ipcRenderer.removeListener('ai:delta', listener); }
+    },
+    chatCurrent: input => ipcRenderer.invoke('ai:chat-current', input),
+    listProviders: () => ipcRenderer.invoke('ai:list-providers'),
+    chat: input => ipcRenderer.invoke('ai:chat', input)
+  },
   importLocalAudio: bytes => ipcRenderer.invoke('music:import-local',bytes),
   globe: (action, input) => ipcRenderer.invoke('globe:request', action, input),
   onGlobeProgress: (callback) => {

@@ -1,7 +1,13 @@
+import useContentOrder from '../ui/useContentOrder.js';
+import { orderType } from '../data/contentOrder.js';
+import useMapSource, {mapEntities} from '../ui/useMapSource.js';
+import { useNavigationState } from '../ui/useNavigationState.js';
+import { WorkspaceActions } from './ui.jsx';
 import { ContentCommand } from './ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../search/useSearchScope.jsx';
-import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
+import {matchesItem,textMatches,hasSearch,termsOf} from '../search/searchCore.js';
 import ContentActions from './ContentActions.jsx';
+import { createPortal } from 'react-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '../../shared/contentSchema.js';
 import { sampleBooks } from '../reader/sampleBooks.js';
@@ -37,19 +43,24 @@ function makePhoto(work, heading, paper) {
   return canvas.toDataURL('image/jpeg', 0.94);
 }
 
-export default function TypewriterPanel({ onClose, importedBooks = [], initialSource = null }) {
+export default function TypewriterPanel({ onClose, importedBooks = [], initialSource = null, editItem }) {
   const search=useSearchScope({id:'typewriter',label:'抄写作品',priority:10,filters:[{key:'status',label:'抄写状态',options:[['not_started','未开始'],['in_progress','进行中'],['completed','已完成']]}]});
-  const [editorOpen, setEditorOpen] = useState(Boolean(initialSource));
+  const [showCompleted, setShowCompleted] = useNavigationState('typewriter','showCompleted',false);
+  const [writing, setWriting] = useState(false);
+  const writingSearch=useSearchScope({id:'typewriter-original',label:'当前抄写原文',priority:30,enabled:writing,filters:[]});
+  const [editorOpen, setOpen] = useState(Boolean(initialSource || editItem));
+  const setEditorOpen = open => { setOpen(open); if (!open && editItem) onClose(); };
+  const order = useContentOrder();
   const [works, setWorks] = useState(() => loadSpaceData('typewriter', []));
   useSearchCount('typewriter',works.filter(item=>matchesItem('typing_work',item,search)).length);
   const books = useMemo(()=>[...sampleBooks,...importedBooks], [importedBooks]);
-  const [bookId,setBookId]=useState(initialSource?.bookId || books[0]?.id || '');
+  const [bookId,setBookId]=useState(editItem?.bookId || initialSource?.bookId || books[0]?.id || '');
   const [chapterId,setChapterId]=useState('whole');
-  const [source,setSource]=useState(initialSource);
-  const [draftId, setDraftId] = useState(null);
+  const [source,setSource]=useState(editItem ? {...editItem} : initialSource);
+  const [draftId, setDraftId] = useState(editItem?.id ?? null);
   const draftRef=useRef(null);
   draftRef.current=draftId;
-  const [typed, setTyped] = useState('');
+  const [typed, setTyped] = useState(editItem?.typedText ?? (editItem?.complete ? editItem.text : ''));
   const [message, setMessage] = useState('');
   const [work, setWork] = useState(null);
   const [heading, setHeading] = useState('');
@@ -59,18 +70,32 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   const {chapters,chapterByBlock}=useMemo(()=>indexChapters(blocks),[blocks]);
   const selected=source||{bookId,bookTitle:book?.title||'',chapterTitle:chapterId==='whole'?'全文':chapters.find(c=>c.id===chapterId)?.text||'',text:blocks.filter(b=>chapterId==='whole'||chapterByBlock.get(b.id)===chapterId).map(b=>b.text).join('\n')};
   selected.title ||= `${selected.bookTitle} · ${selected.chapterTitle}`;
+  const originalParts=useMemo(()=>{
+    const terms=termsOf(writingSearch.query).sort((a,b)=>b.length-a.length);
+    if(!terms.length)return [{text:selected.text,match:false}];
+    const pattern=new RegExp(terms.map(term=>term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'giu');
+    const parts=[];let cursor=0;
+    for(const match of selected.text.matchAll(pattern)){
+      if(match.index>cursor)parts.push({text:selected.text.slice(cursor,match.index),match:false});
+      parts.push({text:match[0],match:true});cursor=match.index+match[0].length;
+    }
+    if(cursor<selected.text.length)parts.push({text:selected.text.slice(cursor),match:false});
+    return parts;
+  },[selected.text,writingSearch.query]);
+  useSearchCount('typewriter-original',originalParts.filter(part=>part.match).length);
   const characters = [...typed];
   const target = [...selected.text];
   const complete = Boolean(selected.text) && typed === selected.text;
-  const visibleStart=Math.max(0,characters.length-120);
+  const inkRef = useRef(null);
+  const errorCount = characters.filter((char,index)=>char!==target[index]).length;
 
-  const persist = (next, success) => {
+  const persist = (next) => {
     if (!saveSpaceData('typewriter', next)) {
       setMessage('保存失败，本地存储可能已满。');
       return false;
     }
     setWorks(next);
-    setMessage(success);
+    setMessage('');
     return true;
   };
 
@@ -80,14 +105,14 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     const existingWorks=loadSpaceData('typewriter',[]);
     const previous=existingWorks.find(w=>w.id===id);
     const progress=CyberContentSchema.copyState(selected.text,typed,previous?.completedAt);
-    const record = { id, bookId:selected.bookId, chapterTitle:selected.chapterTitle, title: previous?.title || selected.title, text: selected.text, ...progress, complete:progress.status==='completed', createdAt:previous?.createdAt || new Date().toISOString(), updatedAt:new Date().toISOString() };
-    if (persist([record, ...existingWorks.filter((item) => item.id !== id)], complete ? '作品已完成并保存。' : '草稿已保存。')) {
-      draftRef.current=id;setDraftId(id);
+    const record = { id, bookTitle:selected.bookTitle, bookId:selected.bookId, chapterTitle:selected.chapterTitle, title: selected.title, text: selected.text, ...progress, complete:progress.status==='completed', createdAt:previous ? previous.createdAt : new Date().toISOString(), updatedAt:new Date().toISOString() };
+    if (persist([record, ...existingWorks.filter((item) => item.id !== id)])) {
+      draftRef.current=id;setDraftId(id);return true;
     }
   };
 
-  const latestSave=useRef(null);latestSave.current=typed?save:null;
-  useEffect(()=>{if(!typed)return;const timer=setTimeout(()=>latestSave.current?.(),600);return ()=>clearTimeout(timer);},[typed]);
+  const latestSave=useRef(null);latestSave.current=writing?save:null;
+  useEffect(()=>{if(!writing)return;const timer=setTimeout(()=>latestSave.current?.(),600);return ()=>clearTimeout(timer);},[typed,writing]);
   useEffect(()=>()=>latestSave.current?.(),[]);
 
   const deliver = (destination) => {
@@ -103,10 +128,10 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     const today=items.find(i=>destination==='diary'&&new Date(i.date).toDateString()===new Date().toDateString());
     const item = destination === 'diary'
       ? today ? {...today,text:[today.text,heading||work.title].filter(Boolean).join('\n\n'),photos:[...(today.photos||[today.photo].filter(Boolean)),photo]} : { id: createId('diary'), text: heading || work.title, photo, photos:[photo], date: new Date().toISOString(), mood: '抄写作品' }
-      : { id: createId('image'), type: 'image', photo, ...memoPosition(items, 'image') };
+      : { id: createId('image'), createdAt:new Date().toISOString(), type: 'image', photo, ...memoPosition(items, 'image') };
     const saved = saveSpaceData(destination, today?items.map(i=>i.id===today.id?item:i):[item,...items]);
     if(saved){const links=loadSpaceData('content-relations',[]),fromId=`typing_work:${work.id}`,toId=`${destination}:${item.id}`;if(!links.some(l=>l.fromId===fromId&&l.toId===toId))saveSpaceData('content-relations',[...links,{id:createId('relation'),fromId,toId,relationType:'related',createdAt:new Date().toISOString()}]);}
-    setMessage(saved ? (destination === 'diary' ? '已保存到日记。' : '已添加到 Memo。') : '保存失败，本地存储可能已满。');
+    setMessage(saved ? '' : '保存失败，本地存储可能已满。');
   };
 
   const startNew = () => {
@@ -117,60 +142,73 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     setSource(null);
     setMessage('');
   };
-  return (
-    <FeaturePanel title="打字机" kicker="Slow Writing" onClose={onClose}>
-      <ActionWorkspace onCreate={startNew} label="新建抄写" title="抄写作品" open={editorOpen} onOpenChange={setEditorOpen}><div className="stack-form">
-        <label>来源书籍<select aria-label="抄写书籍" value={bookId} disabled={Boolean(draftId || typed)} onChange={e=>{setBookId(e.target.value);setChapterId('whole');setSource(null);}}>{books.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></label>
-        <label>来源章节<select aria-label="抄写章节" value={chapterId} disabled={Boolean(draftId || typed)} onChange={e=>{setChapterId(e.target.value);setSource(null);}}><option value="whole">整本书</option>{chapters.map(c=><option key={c.id} value={c.id}>{c.text}</option>)}</select></label>
-        <p>{selected.title}{source ? ' · 已选原文' : ''}</p>
-        <ContentCommand kind="create" label="新建另一份作品" run={startNew} />
-        <div className="calligraphy-text copying-sheet" aria-label="抄写字模">
-          {target.slice(visibleStart,visibleStart+480).map((char, offset) => {const index=visibleStart+offset;return <span key={index} className={characters[index] === undefined ? 'template-char' : characters[index] === char ? '' : 'incorrect-char'}>{characters[index] ?? char}</span>;})}
-        </div>
-        <textarea rows="4" aria-label="抄写输入" value={typed} onChange={(event) => {
+  const openWork = (item, immersive) => {
+    latestSave.current?.();
+    setBookId(item.bookId || books[0]?.id || '');
+    setSource({bookId:item.bookId,bookTitle:item.bookTitle||item.title,chapterTitle:item.chapterTitle||'',title:item.title,text:item.text});
+    draftRef.current=item.id;setDraftId(item.id);
+    setTyped(item.typedText ?? (item.complete ? item.text : ''));
+    setMessage('');setWriting(immersive);setEditorOpen(!immersive);
+  };
+  useMapSource({priority:10,detail:Boolean(writing || work),label:'抄写作品',entities:mapEntities('typing_work',writing?[{...works.find(item=>item.id===draftId),...selected,...CyberContentSchema.copyState(selected.text,typed),id:draftId}]:work?[work]:works.filter(item=>(item.status==='completed'||item.complete===true)===showCompleted&&matchesItem('typing_work',item,search)))});
+  const leaveWriting = () => {if(save())setWriting(false);};
+  if (writing) return createPortal(<section className="typewriter-immersive" role="dialog" aria-modal="true" aria-label="沉浸式抄写" onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();leaveWriting();}}}>
+    <header><h2>{selected.title}</h2><button type="button" onClick={leaveWriting}>返回作品库</button></header>
+    <main>
+        <div className="copying-spread">
+        <section><h3>原文</h3><div className="copying-original">{originalParts.map((part,index)=>part.match ? <mark className="copying-search-hit" key={index}>{part.text}</mark> : part.text)}</div></section>
+        <section><h3>抄写 {errorCount > 0 && <span className="copying-error-count" aria-label={`${errorCount} 个错字`}>{errorCount}</span>}</h3>
+        <div className="copying-input-stack">
+        <div ref={inkRef} className="copying-ink" aria-hidden="true">{characters.map((char,index)=><span key={index} className={char!==target[index] ? 'copying-error' : undefined}>{char}</span>)}<span className="copying-inline-hint">{target.slice(characters.length,characters.length+16).join('')}</span>{'\u200b'}</div>
+        <textarea onScroll={event=>{if(inkRef.current){inkRef.current.scrollTop=event.currentTarget.scrollTop;inkRef.current.scrollLeft=event.currentTarget.scrollLeft;}}} rows="4" aria-label="抄写输入" value={typed} onChange={(event) => {
           if (event.nativeEvent.isComposing) { setTyped(event.target.value); return; }
           setTyped([...event.target.value].slice(0, target.length).join(''));
         }} onCompositionEnd={(event) => setTyped([...event.currentTarget.value].slice(0, target.length).join(''))}
           onPaste={(event) => event.preventDefault()} onDrop={(event) => event.preventDefault()}
-          autoComplete="off" placeholder="原文" />
-        <p className="card-meta">进度 {Math.min(characters.length, target.length)}/{target.length}</p>
-        <button type="button" disabled={!selected.text} onClick={save}>{complete ? '保存完成作品' : '保存草稿'}</button>
+          autoFocus autoComplete="off" />
+        </div>
+        </section></div>
+    {message?.includes('失败') && <div role="alert">{message}</div>}</main>
+  </section>,document.body);
+  const editor = (<ActionWorkspace onCreate={startNew} label="新建抄写" title={draftId ? "编辑作品" : "新建作品 · 选择原文"} open={editorOpen} onOpenChange={setEditorOpen}><div className="stack-form">
+        <label>来源书籍<select aria-label="抄写书籍" value={bookId} onChange={e=>{setBookId(e.target.value);setChapterId('whole');setSource(null);setTyped('');}}>{books.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></label>
+        <label>来源章节<select aria-label="抄写章节" value={chapterId} onChange={e=>{setChapterId(e.target.value);setSource(null);setTyped('');}}><option value="whole">整本书</option>{chapters.map(c=><option key={c.id} value={c.id}>{c.text}</option>)}</select></label>
+        <p>{selected.title}{source ? ' · 已选原文' : ''}</p>
+        <label>原文<textarea rows="8" aria-label="抄写原文" value={selected.text} onChange={event=>{setSource({...selected,text:event.target.value});setTyped('');}} /></label>
+        {draftId && complete && <>{!editItem && <button type="button" onClick={()=>{setWork(works.find(item=>item.id===draftId));setHeading(selected.title);setEditorOpen(false);}}>制作图片</button>}<button type="button" onClick={()=>{setTyped('');setSource({...selected});}}>重新抄写（保存后生效）</button></>}
+        <WorkspaceActions>
+        <button type="button" disabled={!selected.text} onClick={()=>{if(save())setEditorOpen(false);}}>{draftId ? '保存' : '创建作品'}</button>
         {draftId && <button type="button" onClick={() => {
           if (!window.confirm('确认删除这份抄写作品？')) return;
-          if (!persist(works.filter(item => item.id !== draftId), '作品已删除。')) return;
+          if (!persist(works.filter(item => item.id !== draftId))) return;
           latestSave.current = null; draftRef.current = null; setDraftId(null); setTyped(''); setEditorOpen(false);
-        }}>删除作品</button>}
-        <p role="status">{message}</p>
+        }}>删除</button>}
+        </WorkspaceActions>
+        {message && <p role="status">{message}</p>}
       </div>
-      </ActionWorkspace>
+      </ActionWorkspace>);
+  if (editItem) return editor;
+  return (
+    <FeaturePanel hasMenu title="打字机" kicker="Slow Writing" onClose={onClose}>
+      <div className="globe-mode-switch" aria-label="抄写作品库">{[[false,'未完成作品'],[true,'已完成作品']].map(([value,label])=><button key={String(value)} type="button" aria-pressed={showCompleted===value} onClick={()=>setShowCompleted(value)}>{label}</button>)}</div>
+      {editor}
       <SearchStatus id="typewriter" label="抄写作品"/>
-      {!works.some(item=>matchesItem('typing_work',item,search))&&<p role="status">没有匹配的抄写作品。</p>}
-      {[false, true].map((finished) => (
-        <section className="admin-list" key={String(finished)}>
+
+      {[showCompleted].map((finished) => (
+        <section className="admin-list copying-library" key={String(finished)}>
           <h3>{finished ? '已完成作品库' : '未完成作品库'}</h3>
-          {works.filter((item) => (item.complete !== false) === finished && matchesItem('typing_work',item,search)).map((item) => (
-            <article className="admin-card" key={item.id}>
-              <div><p>{item.title} · {item.completedAt ? `完成于 ${new Date(item.completedAt).toLocaleDateString('zh-CN')}` : `创建于 ${new Date(item.createdAt).toLocaleDateString('zh-CN')}`} · 已抄 {item.cursor ?? Array.from(item.typedText ?? item.text).length} 字</p><p className="calligraphy-text">{item.text}</p></div>
-              <ContentActions type="typing_work" id={item.id} title={item.title}/><div className="card-actions">
-                {finished ? <button data-item-open type="button" onClick={() => {
-                  setWork(item); setHeading(item.title); setMessage('');
-                }}>制作图片</button> : null}
-                <ContentCommand label={`继续抄写 · ${item.title}`} run={() => {
-                  const legacy = typewriterTexts.find(entry => entry.id === item.textId);
-                  setEditorOpen(true);
-                  setBookId(item.bookId || books[0]?.id || '');
-                  setSource({ bookId: item.bookId, bookTitle: item.title, chapterTitle: item.chapterTitle || '',
-                    title: item.title, text: item.status ? item.text : legacy?.text || item.text });
-                  setDraftId(item.id);
-                  setTyped(item.typedText ?? item.text);
-                }} />
+          {orderType(works,'typing_work',order).filter((item) => (item.status === 'completed' || item.complete === true) === finished && matchesItem('typing_work',item,search)).map((item) => (
+            <button type="button" data-edit-item data-item-open className="admin-card copying-work-card" key={item.id} onClick={()=>openWork(item,true)}>
+              <div className="copying-work-cover"><p>{item.title} · {item.completedAt ? `完成于 ${new Date(item.completedAt).toLocaleDateString('zh-CN')}` : `创建于 ${new Date(item.createdAt).toLocaleDateString('zh-CN')}`} · 已抄 {item.cursor ?? Array.from(item.typedText ?? item.text).length} 字</p><p className="calligraphy-text">{item.text}</p></div>
+              <ContentActions orderItem={item} type="typing_work" id={item.id} title={item.title}/><div className="card-actions">
+                <ContentCommand label={`编辑作品 · ${item.title}`} run={()=>openWork(item,false)} />
                 <ContentCommand label={`删除抄写作品 · ${item.title}`} confirm run={() => {
-                  if (!persist(works.filter((entry) => entry.id !== item.id), '作品已删除。')) return;
+                  if (!persist(works.filter((entry) => entry.id !== item.id))) return;
                   if (work?.id === item.id) setWork(null);
                   if (draftId === item.id) {latestSave.current=null;draftRef.current=null;setDraftId(null);setTyped('');}
                 }} />
               </div>
-            </article>
+            </button>
           ))}
         </section>
       ))}
@@ -185,7 +223,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
           <button type="button" onClick={() => deliver('memo')}>添加到 Memo</button>
           <button type="button" onClick={() => setWork(null)}>关闭预览</button>
         </div>
-        <p role="status">{message}</p>
+        {message && <p role="status">{message}</p>}
       </section>}
     </FeaturePanel>
   );

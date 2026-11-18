@@ -2,6 +2,7 @@
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
+import { constants } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -16,17 +17,20 @@ const previewRoot = path.join(projectRoot, '场景包预览工具');
 const appName = isPreview ? '场景包预览工具' : packageJson.productName || packageJson.name || 'App';
 const appVersion = packageJson.version || '0.0.0';
 const bundleId = process.env.MAC_BUNDLE_ID || 'com.cyberstudy.local';
-const outputRoot = path.join(projectRoot, 'release', 'mac');
+const tier = process.argv.includes('--full') ? 'full' : 'low';
+const edition = tier === 'full' ? '完整画质版' : '低画质版';
+if (!isPreview) process.env.SCENE_PACKAGE_TIER = tier;
+const outputRoot = path.join(projectRoot, 'release', 'mac', ...(isPreview ? [] : [edition]));
 
 // 使用本机时区生成打包日期，例如 2026-11-10。
 const packageDate = new Intl.DateTimeFormat('en-CA', {
-  timeZone: process.env.PACKAGE_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone,
+  timeZone: process.env.PACKAGE_TIMEZONE || 'Asia/Shanghai',
   year: 'numeric',
   month: '2-digit',
   day: '2-digit'
 }).format(new Date());
 
-const datedAppName = `${appName}-${packageDate}`;
+const datedAppName = `${appName}-${packageDate}${isPreview ? '' : '-' + edition}`;
 const stagingRoot = path.join(outputRoot, `${datedAppName}.app`);
 const zipPath = path.join(outputRoot, `${datedAppName}.zip`);
 const legacyAppPath = path.join(outputRoot, `${appName}.app`);
@@ -52,7 +56,8 @@ async function copyTo(source, target) {
   await fs.cp(source, target, {
     recursive: true,
     force: true,
-    verbatimSymlinks: true
+    verbatimSymlinks: true,
+    mode: constants.COPYFILE_FICLONE
   });
 }
 
@@ -240,8 +245,8 @@ async function main() {
   console.log(`ZIP 大小：约 ${zipSizeMb} MB`);
   console.log(`应用版本：${appVersion}`);
   console.log(`Bundle ID：${bundleId}`);
-  console.log(`双击路径：release/mac/${datedAppName}.app`);
-  console.log(`可传输路径：release/mac/${datedAppName}.zip`);
+  console.log(`双击路径：release/mac/${edition}/${datedAppName}.app`);
+  console.log(`可传输路径：release/mac/${edition}/${datedAppName}.zip`);
   console.log('\n发给其他 Mac 时，建议直接发送 ZIP；对方解压后再打开 App。');
 }
 

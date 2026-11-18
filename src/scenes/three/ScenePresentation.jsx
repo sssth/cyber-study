@@ -64,11 +64,8 @@ export function SceneTextures({ scene, theme, materialsOnly = false, children })
         texture.generateMipmaps = false;
         texture.minFilter = texture.magFilter = LinearFilter;
       }
-      if (!texture.userData?.gpuPrewarmed) {
-        texture.needsUpdate = true;
-        texture.userData = { ...texture.userData, gpuPrewarmed: true };
-        gl.initTexture?.(texture);
-      }
+      texture.needsUpdate = true;
+      gl.initTexture?.(texture);
     }
   }, [gl, paths, panoramaPaths, textures]);
   const byFile = useMemo(() => Object.fromEntries(paths.map((path, index) => [path, textures[index]])), [paths, textures]);
@@ -86,30 +83,23 @@ function EquirectangularPanorama({ config }) {
   const texture = textures[config?.file];
   const front = textures[config?.front?.file];
   const original = textures[config?.original];
+  // 注意：uniforms 必须在 useMemo 里带实际值创建（R3F 克隆 uniforms prop，
+  // 挂载后改写原对象不会同步到材质上），详见 RegionalPanorama 的同类注释。
   const uniforms = useMemo(() => ({
-    panorama: { value: null },
-    frontImage: { value: null },
-    originalImage: { value: null },
-    hasOriginal: { value: false },
-    hasFront: { value: false },
-    isOutpaint: { value: false },
-    frontTanHalfFov: { value: 1 },
-    frontAspect: { value: 1 },
-    frontBlend: { value: 0.035 },
+    panorama: { value: texture },
+    frontImage: { value: front ?? texture },
+    originalImage: { value: original ?? front ?? texture },
+    hasOriginal: { value: Boolean(original) },
+    hasFront: { value: Boolean(front) },
+    isOutpaint: { value: Boolean(config?.outpaint) },
+    frontTanHalfFov: { value: config?.front?.tanHalfFov ?? 1 },
+    frontAspect: { value: config?.front?.aspect ?? 1 },
+    frontBlend: { value: config?.front?.blend ?? 0.035 },
     inverseProjection: { value: new Matrix4() },
     cameraRotation: { value: new Matrix4() }
-  }), []);
+  }), [texture, front, original, config]);
   useLayoutEffect(() => {
     if (!texture) return;
-    uniforms.panorama.value = texture;
-    uniforms.frontImage.value = front ?? texture;
-    uniforms.originalImage.value = original ?? front ?? texture;
-    uniforms.hasOriginal.value = Boolean(original);
-    uniforms.hasFront.value = Boolean(front);
-    uniforms.isOutpaint.value = Boolean(config?.outpaint);
-    uniforms.frontTanHalfFov.value = config?.front?.tanHalfFov ?? 1;
-    uniforms.frontAspect.value = config?.front?.aspect ?? 1;
-    uniforms.frontBlend.value = config?.front?.blend ?? 0.035;
     for (const image of [texture, front, original].filter(Boolean)) {
       const wrapS = image === texture && !front ? RepeatWrapping : image.wrapS;
       if (image.userData?.equirectConfigured && image.wrapS === wrapS) continue;

@@ -17,7 +17,9 @@ export default function StudyScene(props) {
     <div className="study-scene">
       <Furniture3DLayer
         scene={scene}
+        books={props.books} onSceneBooks={props.onSceneBooks}
         liveGraphics={props.liveGraphics} onLiveGraphics={props.onLiveGraphics}
+        renderingPaused={props.renderingPaused}
         forceAlwaysRender={props.forceAlwaysRender}
         quality={props.quality} graphicsTest={props.graphicsTest} onGraphicsResult={props.onGraphicsResult}
         shortcuts={props.shortcuts}

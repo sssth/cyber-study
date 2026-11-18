@@ -1,7 +1,13 @@
+import { blocksPageBack } from './ui/useEscapeBack.js';
+import CrystalChat from './features/CrystalChat.jsx';
+import {requestGlobeBack} from './data/globeBack.js';
+import MapProjection from './features/MapProjection.jsx';
+import SnapshotCommand from './features/SnapshotCommand.jsx';
+import { captureViews, restoreViews, clearRestoredViews, createReturnPoint } from './data/viewNavigation.js';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
 import GlobalSearch from './search/GlobalSearch.jsx';
-import {getSearch,setSearch} from './search/searchStore.js';
+import {getSearch,setSearch,currentScope} from './search/searchStore.js';
 import ContentRelationshipPanel from './features/ContentRelationshipPanel.jsx';
 import GraphicsSettings from './features/GraphicsSettings.jsx';
 import { loadGraphics, needsGraphicsCalibration, calibrationDecision, presetSettings } from './data/graphics.js';
@@ -18,11 +24,14 @@ import { addFocusMinute, initializePlantClock, waterPlant } from './data/plantSt
 import { petCat } from './data/petStore.js';
 import { hotspots } from './scenes/sceneConfig.js';
 import { dispatchSceneFeature, featureCatalog } from './scenes/featureBindings.js';
-import KnowledgeWorkspace from './features/KnowledgeWorkspace.jsx';
+import EntityCatalog from './features/EntityCatalog.jsx';
 import { MusicPlayer, MovieCollection } from './features/MediaCollections.jsx';
 import { DiaryPanel, MemoBoard } from './features/DiaryMemo.jsx';
 import { GlobePanel, TypewriterPanel, PetPanel, PlantPanel } from './features/SpaceLife.jsx';
 
+import ManualOperations from './features/ManualOperations.jsx';
+import ManualOverview from './features/ManualOverview.jsx';
+import { DisplayCloseButton } from './ui/DisplayControls.jsx';
 import ShortcutSettings from './features/ShortcutSettings.jsx';
 import { loadShortcuts, matchesShortcut, saveShortcuts, shortcutGroups } from './data/shortcuts.js';
 import ProfilerHud from './ui/ProfilerHud.jsx';
@@ -49,12 +58,14 @@ function App() {
   const [lightsOn, setLightsOn] = useState(defaultSettings.scene.lightsOn);
   const [rainOn, setRainOn] = useState(hasOutdoorRain && !defaultPackage.appearance?.nightTheme);
   const [readerOpen, setReaderOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [returnToKnowledge, setReturnToKnowledge] = useState(false);
   const readerNavigation = useRef(null);
-  const relationReturn = useRef(null);
+  const relationReturn = useRef(createReturnPoint());
   const [navigation, setNavigation] = useState({ item: null, revision: 0 });
   const updateNavigation = item => setNavigation(current => ({ item, revision: current.revision + 1 }));
   const [readerEntry, setReaderEntry] = useState('last');
+  const [sceneBookIds,setSceneBookIds]=useState(null);
   const [activeHotspot, setActiveHotspot] = useState(null);
   const [audioReady, setAudioReady] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
@@ -100,7 +111,7 @@ function App() {
   const [readerJumpProgress, setReaderJumpProgress] = useState(null);
   const [activeFeature, setActiveFeature] = useState(null);
   const [copyRequest, setCopyRequest] = useState(null);
-  const startCopy = request => {setCopyRequest(request);setReaderOpen(false);setReturnToKnowledge(false);setActiveFeature('typewriter');};
+  const startCopy = request => {rememberOrigin();clearRestoredViews();setCopyRequest(request);setReaderOpen(false);setReturnToKnowledge(false);setActiveFeature('typewriter');};
   const [detailModel, setDetailModel] = useState(null);
   const [sceneTheme, setSceneTheme] = useState(null);
   const careSound = useRef(null);
@@ -149,6 +160,8 @@ function App() {
     catch { setGraphicsError('已应用，但保存失败，下次启动将恢复默认画质。'); }
   };
   const [menuOpen, setMenuOpen] = useState(false);
+  const [catalogEditor, setCatalogEditor] = useState(null);
+  useEffect(() => { if (activeFeature !== 'knowledge' || readerOpen) setCatalogEditor(null); }, [activeFeature, readerOpen]);
   const [pendingCommand, setPendingCommand] = useState(null);
   const clearPendingCommand = useCallback(() => setPendingCommand(null), []);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -164,6 +177,11 @@ function App() {
     }
   };
   const menuRef = useRef(null);
+  const [manualTab, setManualTab] = useState(0);
+  const manualPages = ['功能区介绍', '操作说明'];
+  const manualTitle = manualPages[manualTab];
+  const manual = useRef(null);
+  const [manualOpen, setManualOpen] = useState(false);
   const menuButton = useRef(null);
   const captionTimer = useRef(null);
   const audioManager = useMemo(() => new AudioManager({
@@ -239,7 +257,7 @@ function App() {
       }
     };
     const dismissOnEscape = (event) => {
-      if (document.querySelector('dialog[open]') || event.repeat || !matchesShortcut(event, shortcuts.closeMenu)) return;
+      if (blocksPageBack(event) || event.repeat || !matchesShortcut(event, shortcuts.closeMenu)) return;
       event.preventDefault();
       setMenuOpen(false);
       setSettingsOpen(false);
@@ -297,7 +315,8 @@ function App() {
   useEffect(() => () => careSound.current?.pause(), []);
 
   const openFeature = (featureId, model) => {
-    relationReturn.current = null;
+    relationReturn.current.clear();
+    clearRestoredViews();
     updateNavigation(null);
     setDetailModel(model ?? null);
     showCaption(hotspots[featureId]);
@@ -305,6 +324,9 @@ function App() {
   };
 
   const openKnowledgeNote = (note) => {
+    rememberOrigin();
+    clearRestoredViews();
+    setActiveFeature(null);
     setReturnToKnowledge(true);
     setLastBookId(note.bookId);
     openReader('last', note.blockId ? 0 : note.progress, note.blockId);
@@ -323,6 +345,7 @@ function App() {
   };
 
   const openReader = (entry = 'last', progress = null, blockId = null) => {
+    setSceneBookIds(null);
     if (entry === 'library') showCaption(hotspots.shelf);
     setReaderEntry(entry);
     setReaderJumpProgress(progress);
@@ -332,7 +355,8 @@ function App() {
   };
 
   const closeReader = () => {
-    relationReturn.current = null;
+    relationReturn.current.clear();
+    clearRestoredViews();
     setReaderOpen(false);
     setReturnToKnowledge(false);
     setReaderJumpProgress(null);
@@ -345,7 +369,15 @@ function App() {
     if (item.type !== 'book' && !feature) return;
     setReturnToKnowledge(false);
     setCopyRequest(null);
+    clearRestoredViews();
+    if (item.type === 'memo' || item.type === 'todo') restoreViews({ 'memo.view': item.type });
     updateNavigation(item);
+    if (['excerpt','annotation'].includes(item.type)) {
+      setActiveFeature(null);
+      setSearch('knowledge',{query:'',filters:{id:item.id}});
+      openReader('library');
+      return;
+    }
     if (item.type === 'book') {
       setActiveFeature(null);
       setLastBookId(item.id);
@@ -354,15 +386,35 @@ function App() {
     }
     setReaderOpen(false);
     const scope = contentScope(item);
-    setSearch(scope, { query: '', filters: item.type === 'playlist' ? {} : { id: item.id } });
+    setSearch(scope, { query: '', filters: item.type === 'playlist' ? { playlistId: item.id } : { id: item.id } });
     setActiveFeature(feature);
   };
 
-  const visitRelation = (item, source) => {
+  function createCatalogItem(type) {
+    rememberOrigin(null);
+    clearRestoredViews();
+    const feature = contentFeatures[type];
+    const scope = contentScope({ type });
+    if (scope) setSearch(scope, { query: '', filters: {} });
+    if (type === 'memo' || type === 'todo') restoreViews({ 'memo.view': type });
+    updateNavigation({ type, catalogCommand: true });
+    setPendingCommand({ destination: type === 'book' ? 'true:null' : `false:${feature}` });
+    if (type === 'book') {
+      setActiveFeature(null);
+      openReader('library');
+    } else {
+      setReaderOpen(false);
+      setActiveFeature(feature);
+    }
+  }
+
+  function rememberOrigin(source = navigation.item) {
     const reader = readerOpen ? readerNavigation.current?.() : null;
-    const sourceItem = !readerOpen && contentFeatures[source.type] === activeFeature ? source : null;
-    const scope = contentScope(sourceItem);
-    relationReturn.current = {
+    const sourceItem = !readerOpen && source && contentFeatures[source.type] === activeFeature ? source : null;
+    const scope = currentScope()?.id || contentScope(sourceItem);
+    relationReturn.current.remember({
+      views: captureViews(),
+      sceneBookIds,
       reader,
       feature: activeFeature,
       item: sourceItem,
@@ -370,24 +422,31 @@ function App() {
       copyRequest,
       scope,
       search: scope ? getSearch(scope) : null
-    };
+    });
+  }
+
+  const visitRelation = (item, source) => {
+    rememberOrigin(source);
     openContent(item);
   };
 
   useEffect(() => {
     const goBack = event => {
       if (event.key !== 'Escape' || event.repeat || event.defaultPrevented ||
-          document.querySelector('dialog[open], .unified-search') || !relationReturn.current) return;
+          blocksPageBack(event) ||
+          (document.querySelector('.reader-overlay:not([inert])') && !document.querySelector('.reader-overlay')?.closest('[inert]') && readerNavigation.current?.()?.localBack) || !relationReturn.current.has()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      const origin = relationReturn.current;
-      relationReturn.current = null;
+      if (requestGlobeBack()) return;
+      const origin = relationReturn.current.take();
+      restoreViews(origin.views);
       updateNavigation(origin.item);
       if (origin.scope) setSearch(origin.scope, origin.search);
       setActiveFeature(origin.feature);
       setReturnToKnowledge(origin.returnToKnowledge);
       setCopyRequest(origin.copyRequest);
       setReaderOpen(Boolean(origin.reader));
+      setSceneBookIds(origin.sceneBookIds);
       if (origin.reader) {
         setLastBookId(origin.reader.bookId);
         setReaderEntry(origin.reader.view);
@@ -400,7 +459,8 @@ function App() {
   }, []);
 
   const closeFeature = () => {
-    relationReturn.current = null;
+    relationReturn.current.clear();
+    clearRestoredViews();
     setActiveFeature(null);
   };
 
@@ -419,13 +479,16 @@ function App() {
       </div>}
       <section className="scene-stage" aria-label="书房场景">
         <StudyScene
+          renderingPaused={activeFeature === 'knowledge'}
+          books={importedBooks}
+          onSceneBooks={ids=>{if(!ids.length)return;if(ids.length===1){setLastBookId(ids[0]);openReader('last');}else{openReader('library');setSceneBookIds(ids);}}}
           liveGraphics={menuOpen && graphicsOpen} onLiveGraphics={setGraphicsLive}
           forceAlwaysRender={forceAlwaysRender}
           quality={quality} graphicsTest={graphicsTest || Boolean(calibration)} onGraphicsResult={finishGraphicsTest}
           shortcuts={shortcuts}
           lightsOn={lightsOn}
           onTheme={applySceneTheme}
-          inputActive={!calibration && !readerOpen && !activeFeature && !menuOpen}
+          inputActive={!mapOpen && !calibration && !readerOpen && !activeFeature && !menuOpen}
           rainOn={rainOn}
           onSceneSettled={markSceneSettled}
           onOpenReader={openReader}
@@ -438,11 +501,15 @@ function App() {
           <PanelLoading key={navigation.revision} title="正在打开阅读器">
             <ReaderOverlay
               navigationRef={readerNavigation}
+              navigationItem={navigation.item}
+              onOpenNote={openKnowledgeNote}
+              excerptVersion={knowledgeVersion}
               onStartCopy={startCopy}
               shortcuts={shortcuts}
               onClose={closeReader}
               returnToKnowledge={returnToKnowledge}
               initialView={readerEntry}
+              initialLibraryBookIds={sceneBookIds}
               importedBooks={importedBooks}
               initialBookId={lastBookId}
               initialProgress={readerJumpProgress}
@@ -471,6 +538,22 @@ function App() {
           >
             <span aria-hidden="true">☰</span> 互动菜单
           </button>
+          <dialog ref={manual} className="study-manual" aria-label="使用说明书"
+            onKeyDown={event => event.stopPropagation()}
+            onClose={() => { setManualOpen(false); menuButton.current?.focus(); }}>
+            <DisplayCloseButton label="关闭说明书" onClose={() => manual.current.close()} />
+            <div className="manual-layout">
+              <nav className="manual-options" aria-label="说明书栏目">
+                {manualPages.map((title, index) => (
+                  <button key={title} type="button" aria-pressed={manualTab === index}
+                    aria-controls="manual-page" onClick={() => setManualTab(index)}>{title}</button>
+                ))}
+              </nav>
+              <div id="manual-page" key={manualTab} tabIndex={0} role="region" aria-label={manualTitle}>
+                {manualTab === 0 ? <ManualOverview /> : <ManualOperations shortcuts={shortcuts} />}
+              </div>
+            </div>
+          </dialog>
           {menuOpen && settingsOpen && (
             <ShortcutSettings groups={groups} bindings={shortcuts} onChange={updateShortcuts} onBack={() => {
               setSettingsOpen(false);
@@ -505,6 +588,7 @@ function App() {
                   </button>
                 </div>
               </section>
+              <button type="button" aria-haspopup="dialog" onClick={() => { setMenuOpen(false); setManualTab(0); manual.current.showModal(); setManualOpen(true); }}>使用说明书</button>
               <button type="button" onClick={() => setGraphicsOpen(true)}>画质与流畅度</button>
               <button type="button" onClick={() => setSettingsOpen(true)}>快捷键设置</button>
             </nav>
@@ -512,20 +596,23 @@ function App() {
         </div>
       )}
 
-      <ContentCommands viewKey={commandView} shortcuts={shortcuts} disabled={settingsOpen || calibration}
+      <CrystalChat open={activeFeature === 'crystal'} onClose={closeFeature} />
+      <ContentCommands viewKey={commandView} shortcuts={shortcuts} disabled={manualOpen || activeFeature === 'crystal' || mapOpen || settingsOpen || calibration}
         pending={pendingCommand} onPendingHandled={clearPendingCommand} />
-      <UnifiedSearch viewKey={`${readerOpen}:${activeFeature}:${readerEntry}:${sceneTheme}:${navigation.revision}`} shortcuts={shortcuts} disabled={settingsOpen || calibration}/>
+      <MapProjection shortcuts={shortcuts} disabled={manualOpen || settingsOpen || graphicsOpen || calibration} onOpen={() => relationReturn.current.clear()} onActiveChange={setMapOpen}/>
+      <SnapshotCommand shortcuts={shortcuts} disabled={manualOpen || settingsOpen || graphicsOpen || calibration} projection={mapOpen}/>
+      <UnifiedSearch viewKey={`${readerOpen}:${activeFeature}:${readerEntry}:${sceneTheme}:${navigation.revision}`} shortcuts={shortcuts} disabled={manualOpen || activeFeature === 'crystal' || mapOpen || settingsOpen || calibration}/>
       <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!menuOpen&&!calibration} onOpen={item => {
-        relationReturn.current = null;
+        relationReturn.current.clear();
         openContent(item);
       }}/>
       <ContentRelationshipPanel books={importedBooks} onNavigate={visitRelation} />
-      <MusicPlayer navigation={navigation} shortcuts={shortcuts} shortcutsEnabled={!settingsOpen || !menuOpen} open={activeFeature === 'music'} onClose={closeFeature} />
+      <MusicPlayer catalogItem={activeFeature === 'knowledge' && ['music','playlist'].includes(catalogEditor?.type) ? catalogEditor : null} onCatalogClose={() => setCatalogEditor(null)} navigation={navigation} shortcuts={shortcuts} shortcutsEnabled={!settingsOpen || !menuOpen} open={activeFeature === 'music'} onClose={closeFeature} />
 
-      {activeFeature && activeFeature !== 'music' && (
+      {activeFeature && activeFeature !== 'music' && activeFeature !== 'crystal' && (
         <PanelLoading key={`${activeFeature}:${navigation.revision}`} title={`正在打开${hotspots[activeFeature]?.label ?? '模块'}`}>
           {activeFeature === 'knowledge' && (
-            <KnowledgeWorkspace navigationItem={navigation.item} onStartCopy={startCopy} suspended={returnToKnowledge} onClose={closeFeature} version={knowledgeVersion} importedBooks={importedBooks} onOpenNote={openKnowledgeNote} />
+            <EntityCatalog books={importedBooks} editing={catalogEditor} onEdit={setCatalogEditor} onBooksChanged={updateBooks} onBookDeleted={id => setImportedBooks(current => current.filter(book => book.id !== id))} onStartCopy={startCopy} onOpenNote={openKnowledgeNote} onCreate={createCatalogItem} onOpen={item => visitRelation(item, null)} onClose={closeFeature} />
           )}
           {activeFeature === 'movie' && <MovieCollection onClose={closeFeature} />}
           {activeFeature === 'diary' && <DiaryPanel navigationItem={navigation.item} onClose={closeFeature} />}

@@ -1,0 +1,14 @@
+{
+  "current": {
+    "provider": "deepseek",
+    "model": "deepseek-chat"
+  },
+  "providers": {
+    "claude": { "models": [], "apiKey": "" },
+    "openai": { "models": [], "apiKey": "" },
+    "gemini": { "models": [], "apiKey": "" },
+    "deepseek": { "models": [], "apiKey": "" },
+    "glm": { "models": [], "apiKey": "" },
+    "kimi": { "models": [], "apiKey": "" }
+  }
+}

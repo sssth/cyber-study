@@ -217,3 +217,49 @@
   pointer-events: none;
   user-select: none;
 }
+
+.study-manual {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(46rem, 94vw);
+  height: min(40rem, 88dvh);
+  max-height: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 3.25rem clamp(.65rem, 3vw, 1.5rem) 1rem;
+  background: #24221f;
+  color: #f4eddf;
+  border: 1px solid #716452;
+  border-radius: 1rem;
+}
+.study-manual::backdrop { background: rgb(14 12 10 / 65%); }
+.manual-layout {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 24%) minmax(0, 1fr);
+  height: 100%;
+  gap: clamp(.5rem, 2vw, 1rem);
+}
+.manual-options, #manual-page { min-height: 0; overflow: auto; }
+.manual-options { display: flex; flex-direction: column; gap: .5rem; }
+.manual-options button { flex: none; padding: .55rem .3rem; }
+.manual-options button[aria-pressed="true"] { background: #ddc9aa; color: #24221f; }
+#manual-page { padding: .9rem; border: 1px solid #716452; border-radius: .6rem; line-height: 1.65; }
+#manual-page h3 { margin: 0 0 .35rem; }
+#manual-page section + section { margin-top: 1.2rem; }
+#manual-page ul { margin: 0; padding-inline-start: 1.2em; }
+#manual-page li + li { margin-top: .25rem; }
+#manual-page p { margin: 0; }
+
+#manual-page kbd, #manual-page .manual-mouse-control {
+  display: inline-block;
+  padding: .05em .4em;
+  border: 1px solid #716452;
+  border-bottom-width: 2px;
+  border-radius: .3em;
+  background: #39332b;
+  color: #fff4dc;
+  font: inherit;
+  line-height: 1.3;
+  white-space: nowrap;
+}

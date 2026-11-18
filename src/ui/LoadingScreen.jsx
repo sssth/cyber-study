@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState } from 'react';
+import { Component } from 'react';
 
 export function LoadingScreen({ title, percent = 0, detail, done = false, error, panel = false }) {
   return (
@@ -33,43 +33,9 @@ export class LoadingBoundary extends Component {
   }
 }
 
-export function PanelLoading({ title, children }) {
-  const content = useRef(null);
-  const [showProgress, setShowProgress] = useState(false);
-  const [progress, setProgress] = useState({ loaded: 0, total: 0, ready: false });
-
-  useEffect(() => {
-    let disposed = false;
-    let reveal;
-    const delay = setTimeout(() => setShowProgress(true), 120);
-    const prepare = requestAnimationFrame(async () => {
-      const images = Array.from(content.current.querySelectorAll('img'));
-      setProgress({ loaded: 0, total: images.length, ready: false });
-      await Promise.all(images.map(async image => {
-        try { await image.decode(); }
-        catch { /* A failed image must not block the rest of the panel. */ }
-        if (!disposed) setProgress(current => ({ ...current, loaded: current.loaded + 1 }));
-      }));
-      if (disposed) return;
-      reveal = requestAnimationFrame(() => {
-        clearTimeout(delay);
-        setProgress(current => ({ ...current, ready: true }));
-      });
-    });
-    return () => {
-      disposed = true;
-      clearTimeout(delay);
-      cancelAnimationFrame(prepare);
-      cancelAnimationFrame(reveal);
-    };
-  }, []);
-
-  const percent = progress.ready ? 100 : Math.floor(99 * progress.loaded / (progress.total || 1));
-  return <>
-    <div ref={content} className={progress.ready ? undefined : 'loading-panel-content'} inert={!progress.ready}>
-      {children}
-    </div>
-    {showProgress && <LoadingScreen title={title} percent={percent} done={progress.ready} panel
-      detail={progress.total ? `图片 ${progress.loaded} / ${progress.total}` : undefined} />}
-  </>;
+// Render the destination shell in the same commit as navigation. Waiting for
+// every image hid the entire page and briefly exposed the 3D room; slow assets
+// now use their own image/model loading states without blocking the page.
+export function PanelLoading({ children }) {
+  return children;
 }

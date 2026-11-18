@@ -65,12 +65,12 @@ class MemoryRepository {
     const previous = input.id ? data.photos.find(p => p.id === input.id && !p.deletedAt) : null;
     if (input.id && !previous) throw new Error('找不到这个记忆点。');
     const fields = {};
-    for (const key of ['location', 'caption', 'date', 'time', 'country', 'region', 'city', 'cityId']) {
+    for (const key of ['title', 'location', 'caption', 'date', 'time', 'country', 'region', 'city', 'cityId']) {
       const value = input[key] ?? '';
       if (typeof value !== 'string' || value.length > 10000) throw new Error('记忆点内容无效。');
       fields[key] = value.trim();
     }
-    if (!fields.location && !fields.caption && !previous?.hash && !bytes) throw new Error('请填写地点、文字或添加照片。');
+    if (!fields.title && !fields.location && !fields.caption && !previous?.hash && !bytes) throw new Error('请填写地点、文字或添加照片。');
     const hasCoords = input.latitude != null || input.longitude != null;
     if (hasCoords && !coordinates(input.latitude, input.longitude)) throw new Error('请输入有效的纬度和经度。');
     if (!['visited', 'wish'].includes(input.visitStatus)) throw new Error('请选择到访状态。');
@@ -99,7 +99,8 @@ class MemoryRepository {
     else {
       if (typeof input.title !== 'string' || !input.title.trim() || input.title.length > 200 || typeof input.note !== 'string' || input.note.length > 10000 || !Array.isArray(input.pointIds)) throw new Error('请填写有效的旅程名称和内容。');
       if(input.startDate&&input.endDate&&input.endDate<input.startDate)throw new Error('结束日期不能早于开始日期。');
-      const journey = { startDate:input.startDate||null,endDate:input.endDate||null, id: input.id ?? randomUUID(), title: input.title.trim(), note: input.note, pointIds: [...new Set(input.pointIds)] };
+      const createdAt = input.id ? journeys.find(j => j.id === input.id)?.createdAt : new Date().toISOString();
+      const journey = { createdAt, startDate:input.startDate||null,endDate:input.endDate||null, id: input.id ?? randomUUID(), title: input.title.trim(), note: input.note, pointIds: [...new Set(input.pointIds)] };
       data.journeys = input.id ? journeys.map(j => j.id === input.id ? journey : j) : [...journeys, journey];
     }
     await this.commit(data);

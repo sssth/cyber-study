@@ -112,3 +112,15 @@ test('photo-free points and ordered journeys survive trash, backup and restore',
   await restored.saveJourney({id:data.journeys[0].id, remove:true});
   assert.equal((await restored.load()).photos.length, 2);
 });
+
+test('memory titles persist independently of city and journey membership', async t => {
+  const { root, repo } = await fixture(t);
+  await repo.savePoint({ title:'湖边的日落', location:'杭州', city:'杭州市', visitStatus:'visited', latitude:30, longitude:120 });
+  const point = (await repo.load()).photos[0];
+  await repo.saveJourney({ title:'周末旅行', note:'', pointIds:[point.id] });
+  await repo.savePoint({ ...point, title:'西湖黄昏', city:'杭州市' });
+  const data = await new MemoryRepository(path.join(root, 'library'), decode).load();
+  assert.equal(data.photos[0].title, '西湖黄昏');
+  assert.equal(data.photos[0].location, '杭州');
+  assert.deepEqual(data.journeys[0].pointIds, [point.id]);
+});

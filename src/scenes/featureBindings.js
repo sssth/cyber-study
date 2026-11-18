@@ -5,8 +5,9 @@ export const featureCatalog = [
   ['knowledge', '知识库', '打开知识库与创作台'], ['music', '唱片机', '打开音乐'],
   ['movie', '影碟机', '打开电影收藏'], ['diary', '日记', '打开日记'],
   ['memo', '便签', '打开便签与待办'], ['globe', '地球仪', '打开地点照片'],
-  ['typewriter', '打字机', '打开抄写功能'], ['cat', '猫', '左键查看猫咪 · 右键抚摸'],
-  ['plant', '植物', '左键查看植物 · 右键浇水']
+  ['typewriter', '打字机', '打开抄写功能'], ['cat', '猫', '单击查看猫咪 · 双击抚摸'],
+  ['crystal', '水晶对话', '打开 AI 对话'],
+  ['plant', '植物', '单击查看植物 · 双击浇水']
 ].map(([id, label, description]) => ({ id, label, description }));
 export const featureIds = [...featureCatalog.map(f => f.id), 'pet'];
 export function resolveSceneFeature(model) {

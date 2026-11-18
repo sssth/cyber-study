@@ -61,3 +61,31 @@ export function highlightRanges(blocks, groups) {
   }
   return byBlock;
 }
+
+// Store a source-text position rather than a page number, which changes on filtering.
+export function readingAnchor(element, paged) {
+  const bounds=element.getBoundingClientRect();
+  for(const token of element.querySelectorAll('[data-reader-offset]')){
+    if(![...token.getClientRects()].some(r=>r.width>0&&r.height>0&&(paged?r.right>bounds.left+2&&r.left<bounds.right-2:r.bottom>bounds.top+2&&r.top<bounds.bottom-2)))continue;
+    const walker=document.createTreeWalker(token,NodeFilter.SHOW_TEXT);let node;
+    while((node=walker.nextNode())){
+      if(node.parentElement.closest('[hidden]'))continue;
+      const range=document.createRange();let low=0,high=node.length;
+      while(low<high){const mid=Math.floor((low+high)/2);range.setStart(node,mid);range.setEnd(node,mid+1);const r=range.getBoundingClientRect();if(paged?r.right<=bounds.left+2:r.bottom<=bounds.top+2)low=mid+1;else high=mid;}
+      if(low<node.length)return {blockId:token.closest('[data-block]').dataset.block,offset:Number(token.dataset.readerOffset)+low};
+    }
+  }
+  const blockId=readerPosition(element,paged);return blockId?{blockId,offset:0}:null;
+}
+
+export function goToReadingAnchor(element, anchor, paged) {
+  const tokens=[...element.querySelectorAll(`[data-block="${CSS.escape(anchor.blockId)}"] [data-reader-offset]`)];
+  const token=tokens.find(t=>Number(t.dataset.readerOffset)<=anchor.offset&&Number(t.dataset.readerOffset)+t.textContent.length>anchor.offset&&t.getBoundingClientRect().width>0);
+  if(!token){const block=element.querySelector(`[data-block="${CSS.escape(anchor.blockId)}"]`);if(block)goToReaderBlock(element,block,paged);return;}
+  const walker=document.createTreeWalker(token,NodeFilter.SHOW_TEXT);const node=walker.nextNode();if(!node)return;
+  const range=document.createRange(),offset=Math.min(node.length-1,Math.max(0,anchor.offset-Number(token.dataset.readerOffset)));
+  range.setStart(node,offset);range.setEnd(node,offset+1);
+  const rect=range.getBoundingClientRect(),bounds=element.getBoundingClientRect();
+  if(paged)element.scrollLeft=Math.floor(Math.max(0,element.scrollLeft+rect.left-bounds.left+1)/element.clientWidth)*element.clientWidth;
+  else element.scrollTop+=rect.top-bounds.top-24;
+}

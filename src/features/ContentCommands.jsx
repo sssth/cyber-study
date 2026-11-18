@@ -1,3 +1,7 @@
+import { editActivationEvent } from '../ui/editGesture.js';
+import EditSurface from '../ui/EditSurface.jsx';
+import { WorkspaceActions } from './ui.jsx';
+import { setItemEditing } from '../data/contentOrder.js';
 import { useEffect, useRef, useState } from 'react';
 
 import { contentAt } from '../data/contentRelations.js';
@@ -26,13 +30,13 @@ export function ContentCommand({ kind = 'edit', label, run, disabled = false, co
 }
 
 function available(kind, target) {
-  const modal = (target instanceof Element && target.closest('dialog[open]')) ||
-    [...document.querySelectorAll('dialog[open]')].at(-1);
+  const modal = (target instanceof Element && target.closest('dialog:modal')) ||
+    [...document.querySelectorAll('dialog:modal')].at(-1);
   const panels = [...document.querySelectorAll('.feature-overlay, .reader-overlay, .knowledge-detail')];
   const panel = modal || panels.findLast(node => !node.closest('[inert]')) || document.querySelector('.app-shell') || document.body;
   const options = [...commands].filter(([node, read]) =>
     panel.contains(node) && (!node.closest('dialog') || node.closest('dialog').open) &&
-    !node.closest('[inert]') && node.parentElement?.checkVisibility() && read().kind === kind
+    !node.closest('[inert]') && (kind === 'create' || node.parentElement?.checkVisibility()) && read().kind === kind
   );
   const item = editTarget(target);
   const local = item && options.filter(([node]) => item.contains(node));
@@ -53,7 +57,7 @@ function relatedContent(item) {
 function itemEntries(item) {
   return [...commands].filter(([node, read]) =>
     item.contains(node) && node.closest(itemSelector) === item &&
-    read().kind === 'edit' && !read().disabled && node.parentElement?.checkVisibility()
+    read().kind === 'edit' && !read().disabled
   );
 
 }
@@ -69,6 +73,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
   latest.current = { shortcuts, disabled, viewKey, saving, selection };
 
   const close = () => {
+    setItemEditing(false);
     dialog.current?.close();
     setSelection(null);
     setTextEdit(null);
@@ -79,13 +84,13 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
   const launch = (kind, entries) => {
     const enabled = entries.filter(([, read]) => !read().disabled);
     if (!enabled.length) return;
-    window.dispatchEvent(new Event('cyber-close-search'));
     const command = enabled.length === 1 && enabled[0][1]();
     if (kind === 'create' && command && !command.confirm) {
       command.run();
       return;
     }
     if (kind === 'edit') {
+      setItemEditing(true);
       const editable = enabled.filter(([, read]) => !/删除|移除|解除关联/.test(read().label));
       const primary = editable[0];
       if (primary) {
@@ -95,7 +100,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       }
     }
     setSelection({ kind, entries: enabled });
-    dialog.current.showModal();
+    dialog.current.show();
     requestAnimationFrame(() => {
       dialog.current?.querySelector('input[type="search"], .stack-form > button:not(:disabled)')?.focus();
     });
@@ -115,6 +120,22 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       open.current('edit', itemEntries(item));
     };
     const click = event => {
+      if(event.target.closest('[data-instant-selection], .display-shelf-stage'))return;
+      if (document.body.hasAttribute('data-item-editing') && !event.target.closest('dialog, .edit-sidebar')) {
+        const item = editTarget(event.target);
+        const control = event.target.closest('button,a[href]');
+        if (item && ((control && (control === item || control.hasAttribute('data-item-open'))) || (!control && item.hasAttribute('data-edit-select')))) {
+          event.preventDefault(); event.stopImmediatePropagation();
+          cancelClick();
+          if (event.detail < 2 && !latest.current.saving) pendingClick = { timer: setTimeout(() => {
+            pendingClick = null;
+            if (!item.isConnected) return;
+            if (dialog.current?.open) close();
+            open.current('edit', itemEntries(item));
+          }, itemClickDelay) };
+          return;
+        }
+      }
       if (replaying || event.button !== 0 || !event.detail || event.metaKey ||
           event.ctrlKey || event.altKey || event.shiftKey || latest.current.disabled || dialog.current?.open) return;
       const item = editTarget(event.target);
@@ -137,14 +158,13 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
         finally { replaying = false; }
       }, itemClickDelay) };
     };
-    const openItem = item => {
-      const source = relatedContent(item);
-      if (source) window.dispatchEvent(new CustomEvent('cyber-show-relations', {
-        detail: { source, item, canEdit: itemEntries(item).length > 0 }
-      }));
-      else openEdit(item);
-    };
     const doubleClick = event => {
+      // The shared globe stage owns its reversible edit toggle in every host.
+      if(event.target.closest('[data-instant-selection], .display-shelf-stage, .atlas-stage'))return;
+      if (document.body.hasAttribute('data-item-editing') && !event.target.closest('input,textarea,select,[contenteditable], .edit-sidebar, dialog')) {
+        cancelClick(); event.preventDefault(); event.stopImmediatePropagation();
+        window.dispatchEvent(new Event('cyber-exit-item-edit')); close(); return;
+      }
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
           latest.current.disabled || dialog.current?.open) return;
       const item = editTarget(event.target);
@@ -160,16 +180,24 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       event.preventDefault();
       event.stopImmediatePropagation();
       if (event.repeat) return;
-      if (dialog.current?.open) {
-        if (latest.current.selection?.kind === 'create' && !latest.current.saving) close();
+      if (dialog.current?.open && latest.current.selection?.kind === 'create') {
+        if (!latest.current.saving) close();
         return;
       }
+      if (latest.current.saving) return;
       const workspace = document.querySelector('dialog[data-create-workspace][open]');
       if (workspace) {
         workspace.dispatchEvent(new Event('cancel', { cancelable: true }));
         return;
       }
       cancelClick();
+      const entries = available('create', event.target);
+      if (document.body.hasAttribute('data-item-editing')) {
+        window.dispatchEvent(new Event('cyber-exit-item-edit'));
+        close();
+        requestAnimationFrame(() => open.current('create', entries));
+        return;
+      }
       const cancellation = available('cancel-create', event.target).find(([, read]) => !read().disabled);
       if (cancellation) { cancellation[1]().run(); return; }
       open.current('create', available('create', event.target));
@@ -182,7 +210,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
     window.addEventListener('cyber-edit-presented-item', editPresented);
     window.addEventListener('keydown', keys, true);
     window.addEventListener('click', click, true);
-    window.addEventListener('dblclick', doubleClick, true);
+    window.addEventListener(editActivationEvent, doubleClick, true);
     window.addEventListener('contextmenu', cancelClick, true);
     window.addEventListener('cyber-edit-item', editItem, true);
     return () => {
@@ -190,33 +218,39 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       window.removeEventListener('cyber-edit-presented-item', editPresented);
       window.removeEventListener('keydown', keys, true);
       window.removeEventListener('click', click, true);
-      window.removeEventListener('dblclick', doubleClick, true);
+      window.removeEventListener(editActivationEvent, doubleClick, true);
       window.removeEventListener('contextmenu', cancelClick, true);
       window.removeEventListener('cyber-edit-item', editItem, true);
     };
   }, []);
 
   useEffect(() => { close(); }, [viewKey, disabled]);
+  useEffect(() => {
+    const failure = event => setError(event.detail);
+    window.addEventListener('cyber-order-error', failure);
+    return () => window.removeEventListener('cyber-order-error', failure);
+  }, []);
 
   useEffect(() => {
-    if (!pending || pending.from === viewKey || disabled) return;
+    if (!pending || disabled) return;
+    if (pending.destination !== viewKey) { onPendingHandled(); return; }
     let frame;
     const deadline = performance.now() + 5000;
     const waitForPanel = () => {
-      const panel = document.querySelector('.feature-overlay, .reader-overlay, .knowledge-detail');
-      if ((!panel || panel.closest('[inert]')) && performance.now() < deadline) {
+      const entries = available('create');
+      if (!entries.some(([, read]) => !read().disabled) && performance.now() < deadline) {
         frame = requestAnimationFrame(waitForPanel);
         return;
       }
       onPendingHandled();
-      open.current('create', available('create'));
+      if (entries.some(([, read]) => !read().disabled)) open.current('create', entries);
     };
     frame = requestAnimationFrame(waitForPanel);
     return () => cancelAnimationFrame(frame);
   }, [pending, viewKey, disabled, onPendingHandled]);
 
   const title = selection?.kind === 'create' ? '新建' : '编辑';
-  return <dialog ref={dialog} data-content-command-dialog className="action-workspace" aria-labelledby="content-command-title"
+  return <EditSurface ref={dialog} data-content-command-dialog aria-labelledby="content-command-title"
     onCancel={event => { event.preventDefault(); if (!saving) close(); }}>
     <header><h2 id="content-command-title">{title}</h2><button type="button" disabled={saving} onClick={close}>取消</button></header>
     {textEdit ? <form className="stack-form" onSubmit={async event => {
@@ -234,9 +268,9 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
         setSaving(false);
       }
     }}>
-      <label>{textEdit.read().label}<input autoFocus required value={textEdit.value}
+      <label>名称<input aria-label={textEdit.read().label} autoFocus required value={textEdit.value}
         onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} /></label>
-      <button disabled={saving || !textEdit.value.trim()}>保存修改</button>
+      <WorkspaceActions><button disabled={saving || !textEdit.value.trim()}>保存</button>
       {selection?.entries.filter(([, read]) => /删除|移除|解除关联/.test(read().label)).map(([node, read], index) =>
         <button key={index} type="button" disabled={saving || read().disabled} onClick={async () => {
           if (!node.isConnected || read().disabled || !window.confirm(`确认${read().label}？`)) return;
@@ -244,10 +278,10 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
           try { if (await read().run() !== false) close(); }
           catch (failure) { setError(failure.message); }
           finally { setSaving(false); }
-        }}>{read().label}</button>)}
+        }}>删除</button>)}</WorkspaceActions>
       {error && <p role="alert">{error}</p>}
     </form> : <div className="stack-form">
-      {(selection?.entries.length ?? 0) > 12 && <input type="search" aria-label="筛选操作" placeholder="按内容名称筛选"
+      {(selection?.entries.length ?? 0) > 12 && <input type="search" aria-label="筛选操作"
         value={query} onChange={event => setQuery(event.target.value)} />}
       {selection?.entries.map(([node, read], index) => {
         const command = read();
@@ -264,5 +298,5 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
         }}>{command.label}</button>;
       })}
     </div>}
-  </dialog>;
+  </EditSurface>;
 }

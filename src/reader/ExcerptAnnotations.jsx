@@ -1,3 +1,6 @@
+import useContentOrder from '../ui/useContentOrder.js';
+import { orderType } from '../data/contentOrder.js';
+import useMapSource, {mapEntities} from '../ui/useMapSource.js';
 import { ContentCommand } from '../features/ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus} from '../search/useSearchScope.jsx';
 import {matchesItem,hasSearch} from '../search/searchCore.js';
@@ -5,13 +8,15 @@ import { useState } from 'react';
 import Annotation from '../features/Annotation.jsx';
 import { addKnowledgeNote, removeExcerptAnnotation } from '../data/knowledgeStore.js';
 
-export default function ExcerptAnnotations({ notes, onChange }) {
+export default function ExcerptAnnotations({ notes, annotationId, onChange }) {
+  const order = useContentOrder();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const scopeId=`annotations:${notes?.[0]?.id}`;
   const search=useSearchScope({id:scopeId,label:'当前摘录的批注',priority:40,enabled:Boolean(notes?.length)});
-  useSearchCount(scopeId,(notes||[]).filter(note=>note.annotation&&matchesItem('annotation',note,search)).length);
+  useSearchCount(scopeId,(notes||[]).filter(note=>note.annotation&&(!annotationId||note.id===annotationId)&&matchesItem('annotation',note,search)).length);
+  useMapSource({priority:40,enabled:Boolean(notes?.length),entities:[...mapEntities('excerpt',[notes?.[0]]),...mapEntities('annotation',(notes||[]).filter(n=>n.annotation&&(!annotationId||n.id===annotationId)&&matchesItem('annotation',n,search)))]});
   if (!notes?.length) return null;
 
   const mutate = (operation) => {
@@ -25,9 +30,9 @@ export default function ExcerptAnnotations({ notes, onChange }) {
   };
 
   return <div className="reader-excerpt-annotations"><SearchStatus id={scopeId} label="批注"/>
-    {notes.filter((note) => note.annotation&&matchesItem('annotation',note,search)).map((note) => (
+    {orderType(notes,'annotation',order).filter((note) => note.annotation&&(!annotationId||note.id===annotationId)&&matchesItem('annotation',note,search)).map((note) => (
       <div className="reader-annotation-card" key={note.id}>
-        <Annotation note={note} onSaved={onChange} onDelete={() => mutate(() => removeExcerptAnnotation(note))} />
+        <Annotation inlineEdit note={note} onSaved={onChange} onDelete={() => mutate(() => removeExcerptAnnotation(note))} />
       </div>
     ))}
     {!adding && <ContentCommand kind="create" label="新建批注" run={() => setAdding(true)} />}

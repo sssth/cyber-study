@@ -3,9 +3,9 @@ import ContentActions from './ContentActions.jsx';
 import { useState } from 'react';
 import { editKnowledgeNote } from '../data/knowledgeStore.js';
 
-export default function Annotation({ note, onSaved, onDelete }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState('');
+export default function Annotation({ note, onSaved, onDelete, inlineEdit = false, editOnly = false, onCancel }) {
+  const [editing, setEditing] = useState(editOnly);
+  const [value, setValue] = useState(editOnly ? note.annotation : '');
   const [status, setStatus] = useState('');
 
   const start = () => {
@@ -22,17 +22,17 @@ export default function Annotation({ note, onSaved, onDelete }) {
         try {
           editKnowledgeNote(note.id, value.trim());
           setEditing(false);
-          setStatus('批注已保存。');
+          setStatus('');
           onSaved();
         } catch (error) { setStatus(error.message); }
       }}>✓</button>
-      <button type="button" onClick={() => setEditing(false)}>取消</button>
+      <button type="button" onClick={() => {setEditing(false);onCancel?.();}}>取消</button>
       {onDelete && <ContentEditButton label="删除批注" confirm run={onDelete} />}
     </div> : <>
-      <p className="annotation-text">{note.annotation || '空白批注'}</p>
+      {inlineEdit ? <button type="button" data-instant-selection className="annotation-text" onClick={start}>{note.annotation || '空白批注'}</button> : <p className="annotation-text">{note.annotation || '空白批注'}</p>}
       <ContentCommand label={`编辑批注 · ${note.annotation?.slice(0, 40) || '空白批注'}`} run={start} />
     </>}
     {onDelete && !editing && <ContentCommand label={`删除批注 · ${note.annotation.slice(0, 40)}`} confirm run={onDelete} />}
-    <ContentActions type="annotation" id={note.id} title={note.annotation?.slice(0,24)}/>{status && <p role="status">{status}</p>}
+    <ContentActions surface={inlineEdit ? ".reader-annotation-card" : undefined} orderItem={note} type="annotation" id={note.id} title={note.annotation?.slice(0,24)}/>{status && <p role="status">{status}</p>}
   </div>;
 }

@@ -9,12 +9,12 @@ export function removeRelation(id){const links=loadSpaceData('content-relations'
 export function buildCatalog({books=[],globe={}}={}){
  const result=new Map();const add=(type,item,title)=>{if(!item?.id||item.deletedAt)return;const key=`${type}:${item.id}`;result.set(key,{...item,key,id:item.id,type,title:title||item.title||item.text?.slice(0,40)||'未命名内容'});};
  books.forEach(i=>add('book',i));
- for(const [key,type] of [['movies','movie'],['music','music'],['diary','diary'],['typewriter','typing_work'],['playlists','playlist']]){const rows=loadSpaceData(key,[]);if(Array.isArray(rows))rows.forEach(i=>add(type,i));}
+ for(const [key,type] of [['movies','movie'],['music','music'],['diary','diary'],['typewriter','typing_work'],['playlists','playlist']]){const rows=loadSpaceData(key,[]);if(Array.isArray(rows))rows.forEach(i=>add(type,i,type === 'diary' ? `${new Date(i.date).toLocaleDateString('zh-CN')} 日记` : undefined));}
  loadSpaceData('memo',[]).forEach(i=>add(i.type==='todo'?'todo':'memo',i,i.text?.slice(0,40)||(i.type==='image'?'图片便签':'')));
  const notes=loadSpaceData('knowledge',{notes:[]}).notes||[];
  for(const items of groupExcerpts(notes).values()){const note=items[0];add('excerpt',note,note.quote?.slice(0,40));}
  notes.filter(n=>n.annotation).forEach(n=>add('annotation',n,n.annotation.slice(0,40)));
- (globe.photos||[]).forEach(i=>add('memory_point',i,i.location||i.filename||i.caption?.slice(0,40)));
+ (globe.photos||[]).forEach(i=>add('memory_point',i,i.title||i.location||i.filename||i.caption?.slice(0,40)));
  (globe.journeys||[]).forEach(i=>add('journey',i));
  loadSpaceData('music',[]).forEach(t=>(t.playlists||[]).forEach(p=>{if(!result.has(`playlist:${p.id}`))add('playlist',p);}));
  return [...result.values()];

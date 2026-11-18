@@ -17,7 +17,7 @@ node scripts/package-mac.mjs
 STATUS=$?
 
 if [ "$STATUS" -eq 0 ]; then
-  latest_app="$(find release/mac -maxdepth 1 -type d -name '赛博书房-*.app' -print | sort | tail -n 1)"
+  latest_app="$(find release/mac/低画质版 -maxdepth 1 -type d -name '赛博书房-*.app' -print | sort | tail -n 1)"
   if [ -n "$latest_app" ]; then
     open "$latest_app"
   fi

@@ -25,3 +25,16 @@ assets/
 
 # Python 编译缓存
 __pycache__/
+
+/ai-settings.json
+/ai-settings.json.tmp
+
+# 快照保存目录：保留空文件夹（.gitkeep），忽略其中的内容
+/快照保存/*
+!/快照保存/.gitkeep
+
+# 内部审计报告，不公开
+/premium-audit.json
+
+# 单独发布的场景资源
+场景发布包/

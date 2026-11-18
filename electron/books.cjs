@@ -120,7 +120,7 @@ async function importBook(filename, source) {
   const metadata = {
     id, source,
     title: content.match(/^# (.+)$/m)?.[1].trim() || name,
-    author: content.match(/^作者：(.+)$/m)?.[1].trim() || '本地导入'
+    author: content.match(/^作者：(.+)$/m)?.[1].trim() || ''
   };
   await publishBook(directory, metadata, content);
   return { status: 'imported', source };
@@ -290,9 +290,12 @@ function registerBooks(getWindow) {
       if (existing.content !== previousContent) throw new Error('Markdown 文件已修改，请重新打开应用后再试。');
       return publishBook(directory, existing, content);
     }
-    return publishBook(directory, { id, title, author, source }, content);
+    return publishBook(directory, { id, title, author, source, createdAt:book.createdAt ?? book.importedAt }, content);
   }
   handle('rename', (_window, id, title) => {
+    const fields = typeof title === 'object' && title ? title : null;
+    if (fields) title = fields.title;
+    if (fields && (typeof fields.author !== 'string' || fields.author.length > 500)) throw new Error('作者不能超过 500 个字符。');
     if (deleting || ['selecting', 'scanning', 'processing'].includes(importState.phase)) {
       throw new Error('请等待当前书库操作完成。');
     }
@@ -300,7 +303,7 @@ function registerBooks(getWindow) {
         typeof title !== 'string' || !title.trim() || title.length > 500) {
       throw new Error('书名必须为 1–500 个字符。');
     }
-    const result = pendingSave.then(() => renameBook(bookDirectory(id), title.trim()));
+    const result = pendingSave.then(() => renameBook(bookDirectory(id), title.trim(), fields?.author));
     pendingSave = result.catch(() => {});
     return result;
   });

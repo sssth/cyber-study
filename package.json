@@ -12,7 +12,8 @@
     "test": "node --test",
     "start": "vite build && electron .",
     "package:mac": "node scripts/package-mac.mjs",
-    "package:preview:mac": "node scripts/package-mac.mjs --preview"
+    "package:preview:mac": "node scripts/package-mac.mjs --preview",
+    "package:mac:full": "node scripts/package-mac.mjs --full"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

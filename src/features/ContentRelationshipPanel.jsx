@@ -1,3 +1,4 @@
+import useMapSource, {mapEntities} from '../ui/useMapSource.js';
 import { ContentCommand } from './ContentCommands.jsx';
 import {useSearchCount,useSearchScope} from '../search/useSearchScope.jsx';
 import {matchesCatalogItem} from '../search/searchCore.js';
@@ -26,7 +27,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   if(results[1].status==='rejected'||globe?.error)errors.push('地球仪内容读取失败');
   const items=buildCatalog({books:[...sampleBooks,...books,...(Array.isArray(storedBooks)?storedBooks:[])],globe:globe?.error?{}:globe});
   setCatalog(items);setLinks(loadSpaceData('content-relations',[]));
-  
+
   setError(errors.length?errors.join('；')+'。其他类型仍可使用，可点击重试。':'');setLoading(false);
  },[books]);
  useEffect(()=>{
@@ -55,24 +56,24 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
     event.stopPropagation();
     show(current);
   };
-  const preview = event => show(event.detail.source, event.detail.item, event.detail.canEdit);
   // Keep application-wide reader and player keys from acting behind the modal.
   const key = event => {
     if (!dialog.current?.open || event.target?.closest?.('[data-content-command-dialog]')) return;
     event.stopImmediatePropagation();
   };
+  const showRequested = event => show(event.detail?.source);
+  window.addEventListener('cyber-show-relations', showRequested);
   document.addEventListener('contextmenu', handler, true);
-  window.addEventListener('cyber-show-relations', preview);
   document.addEventListener('keydown', key);
   return () => {
+    window.removeEventListener('cyber-show-relations', showRequested);
     document.removeEventListener('contextmenu', handler, true);
-    window.removeEventListener('cyber-show-relations', preview);
     document.removeEventListener('keydown', key);
     requestId.current++;
   };
  },[books, refreshCatalog]);
  useEffect(()=>{if(!source)return;const update=()=>setLinks(loadSpaceData('content-relations',[]));window.addEventListener('cyber-content-changed',update);return()=>window.removeEventListener('cyber-content-changed',update);},[source]);
- async function connect(item){setError('');try{setStatus(addRelation(source,item)?'已建立关联。':'已经关联，无需重复添加。');}catch(e){setError(e.message);}}
+ async function connect(item){setError('');try{setStatus(addRelation(source,item)?'':'已经关联，无需重复添加。');}catch(e){setError(e.message);}}
  function create(){if(!text.trim()){setError('请输入记录文字。');return;}const key=target==='diary'?'diary':'memo',old=loadSpaceData(key,[]),now=new Date();let record;
   if(target==='diary'){const today=old.find(i=>new Date(i.date).toDateString()===now.toDateString());record=today?{...today,text:[today.text,text.trim()].filter(Boolean).join('\n\n'),updatedAt:now.toISOString()}:{id:createId('diary'),date:now.toISOString(),text:text.trim(),mood:'',photo:'',createdAt:now.toISOString()};}
   else record={id:createId(target),type:target==='todo'?'todo':'sticky',text:text.trim(),done:false,completedAt:null,tone:'blue',...memoPosition(old,target==='todo'?'todo':'sticky'),createdAt:now.toISOString()};
@@ -80,7 +81,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   if(!canRelate(source,destination)){setError('当前类型不能与这种记录关联。');return;}
   const next=old.some(i=>i.id===record.id)?old.map(i=>i.id===record.id?record:i):[record,...old];
   if(!saveSpaceData(key,next)){setError('记录保存失败，请检查本地空间。');return;}
-  try{addRelation(source,destination);setCatalog(items=>[...items.filter(i=>i.key!==destination.key),destination]);setText('');setStatus(target==='diary'?'已记入今日日记并关联。':'记录已创建并关联。');setError('');}catch(e){const rolledBack=saveSpaceData(key,old);setError(rolledBack?e.message:'记录已保存但关联失败，请在对应模块查看后重试关联。');}
+  try{addRelation(source,destination);setCatalog(items=>[...items.filter(i=>i.key!==destination.key),destination]);setText('');setStatus('');setError('');}catch(e){const rolledBack=saveSpaceData(key,old);setError(rolledBack?e.message:'记录已保存但关联失败，请在对应模块查看后重试关联。');}
  }
  const existing = source ? links.filter(link => link.relationType === 'related' &&
    (link.fromId === source.key || link.toId === source.key)) : [];
@@ -95,6 +96,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
    !relationExists(links, source.key, item.key) && matchesCatalogItem(item, search)) : [];
  const visibleCandidates = candidates.filter(item => !category || item.type === category);
  const visibleRelated = related.filter(record => matchesCatalogItem(record.item ?? record, search));
+ useMapSource({priority:100,label:'内容关联 · '+(source?.title || ''),enabled:Boolean(source),loading,entities:tab==='view'?visibleRelated.map(r=>r.item).filter(Boolean):tab==='existing'?visibleCandidates:[catalog.find(item=>item.key===source?.key) ?? (source && {id:source.id,type:source.type,key:source.key,title:source.title})]});
 
  useSearchCount(source ? `${tab === 'view' ? 'related' : 'relations'}:${source.key}` : 'relations',
    loading ? null : tab === 'view' ? visibleRelated.length : visibleCandidates.length);
@@ -119,6 +121,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
        <h2 id="content-relation-title">{source?.title}</h2><small>{contentTypes[source?.type]}</small>
      </div>
      <div className="relation-header-actions">
+       {tab === 'view' && <button type="button" onClick={() => changeTab('existing')}>添加关联</button>}
        {tab === 'view' && editItem.current && <button type="button" onClick={chooseEdit}>编辑条目</button>}
        {tab !== 'view' && <button type="button" onClick={() => changeTab('view')}>返回已关联</button>}
        <button type="button" onClick={close} aria-label="关闭关联面板">关闭</button>
@@ -134,8 +137,8 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
      {tab === 'view' && <div className="relation-overview">
        <section aria-label="已关联内容" className="relation-existing">
          <h3>已关联内容 <small>{existing.length}</small></h3>
-         {!existing.length && <p>暂无关联条目。</p>}
-         {existing.length > 0 && !visibleRelated.length && <p>没有匹配的关联条目。</p>}
+
+
          {visibleRelated.map(({ link, item, title, type }) => {
            const preview = relatedPreview(item);
            return <article key={link.id} data-edit-item>
@@ -148,7 +151,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
              <ContentCommand label={`解除关联 · ${title}`} confirm run={() => {
                try {
                  removeRelation(link.id);
-                 setStatus('已解除关联。');
+                 setStatus('');
                } catch (failure) {
                  setError(failure.message);
                }
@@ -170,7 +173,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
            <article key={item.key}>
              <div><strong>{item.title}</strong><small>{contentTypes[item.type]}</small></div>
              <button type="button" onClick={() => connect(item)}>关联</button>
-           </article>) : <p className="empty-state">暂无可关联内容。</p>}
+           </article>) : <></>}
        </section>
      </div>}
      {tab === 'new' && <div className="stack-form">
@@ -182,7 +185,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
        <button type="button" onClick={create} disabled={!target || !text.trim()}>保存并关联</button>
      </div>}
    </div>
-   <footer><p role="status">{status}</p>
+   <footer>{status && <p role="status">{status}</p>}
      {error && <p role="alert">{error}<button type="button" disabled={loading} onClick={refreshCatalog}>重新读取</button></p>}
    </footer>
  </dialog>, document.body);

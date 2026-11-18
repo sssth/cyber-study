@@ -1,3 +1,5 @@
+import { prioritizeShelfBooks } from './shelfPointerPriority.js';
+import SceneShelfBooks from './SceneShelfBooks.jsx';
 import StaticSceneOptimizer from './StaticSceneOptimizer.jsx';
 import { useSceneGLTF } from './useSceneGLTF.js';
 import ModelLod from './ModelLod.jsx';
@@ -8,7 +10,7 @@ import GraphicsMonitor, { FrameProfilerBridge, LiveGraphicsMonitor } from './Gra
 import '../../styles/scene-package.css';
 
 import { Suspense, memo, useCallback, useMemo, useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, events } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { Box3, Vector3, Raycaster } from 'three';
 import { SceneTextures, ThemePanorama, ThemeGlows, ThemeLighting, useThemeMaterials } from './ScenePresentation.jsx';
@@ -39,6 +41,9 @@ function FirstSceneFrame({ onReady }) {
 }
 
 const Model = memo(function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHover, onLeave, theme, hidden }) {
+  const careClickTimer = useRef(null);
+  const cancelCareClick = () => { clearTimeout(careClickTimer.current); careClickTimer.current = null; };
+  useEffect(() => cancelCareClick, [onCare, hidden, onModelSelect]);
   const supportItem = models.find(model => model.id === item.support) || item;
   const { scene: supportScene } = useSceneGLTF(supportItem.modelUrl);
   const { scene } = useSceneGLTF(item.modelUrl);
@@ -76,7 +81,7 @@ const Model = memo(function Model({ item, models, onSelect, onCare, selected, on
 
   useThemeMaterials(prepared.object, theme);
 
-  return <group visible={!hidden} position={prepared.position} scale={prepared.scale}
+  return <group userData={{sceneFurnitureId:item.id}} visible={!hidden} position={prepared.position} scale={prepared.scale}
     onPointerMove={onHover && !hidden ? (event) => {
       if (event.buttons !== 0 || event.pointerType === 'touch') return;
       event.stopPropagation();
@@ -84,13 +89,19 @@ const Model = memo(function Model({ item, models, onSelect, onCare, selected, on
     } : undefined}
     onPointerOut={onLeave && !hidden ? () => onLeave(item.id) : undefined}
     onClick={!hidden && (onModelSelect || item.feature) ? (event) => {
-      if (event.delta > 4) return;
+      if (event.button !== 0 || event.delta > 4) return;
       event.stopPropagation();
       if (onModelSelect) onModelSelect(item.id);
+      else if (onCare) {
+        cancelCareClick();
+        if (event.nativeEvent.detail > 1) return;
+        careClickTimer.current = setTimeout(() => { onSelect?.(item.feature, item); }, 420);
+      }
       else onSelect?.(item.feature, item);
     } : undefined}
-    onContextMenu={onCare && !hidden ? (event) => {
-      if (event.button !== 2 || event.delta > 4) return;
+    onDoubleClick={onCare && !hidden && !onModelSelect ? (event) => {
+      if (event.button !== 0 || event.delta > 4) return;
+      cancelCareClick();
       event.nativeEvent.preventDefault();
       event.stopPropagation();
       onCare(item.feature);
@@ -192,7 +203,7 @@ function FeatureHint({ description }) {
   return visible ? <span className="scene-feature-hint">{description}</span> : null;
 }
 
-function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = false, viewState, quality = 'medium', graphicsTest, onGraphicsResult, scene, lightsOn = true, mode, onFeature, onCare, onModelSelect, selectedId, previewView, previewTheme, rainOn = true, onSceneSettled, onTheme, inputActive = true, shortcuts }) {
+function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGraphics, onLiveGraphics, forceAlwaysRender = false, viewState, quality = 'medium', graphicsTest, onGraphicsResult, scene, lightsOn = true, mode, onFeature, onCare, onModelSelect, selectedId, previewView, previewTheme, rainOn = true, onSceneSettled, onTheme, inputActive = true, shortcuts }) {
   const preset = normalizeGraphics(quality);
   const controls = useRef();
   const bindings = useMemo(() => shortcuts ?? Object.fromEntries(
@@ -225,6 +236,7 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = fals
     return () => window.removeEventListener('keydown', press);
   }, [appearance, flipDay, scene.views, inputActive, previewView, previewTheme, view, bindings]);
   const [initialCamera] = useState(() => ({ position: scene.camera.position, fov: scene.camera.fov, near: 0.1, far: scene.camera.far ?? 150 }));
+  const [bookHint,setBookHint]=useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const modelUrls = useMemo(() => [...new Set(scene.models.map(model => model.modelUrl))], [scene.models]);
   const [loadedUrls, setLoadedUrls] = useState(() => new Set());
@@ -240,16 +252,19 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = fals
   const percent = ready ? 100 : Math.floor(99 * loadedCount / (modelUrls.length || 1));
   const featureHover = Boolean(onFeature && !onModelSelect);
   const hoveredFeature = featureHover && scene.models.find(item => item.id === hoveredId)?.feature;
-  const hint = featureCatalog.find(feature => feature.id === (hoveredFeature === 'pet' ? 'cat' : hoveredFeature))?.description;
+  const hint = bookHint || featureCatalog.find(feature => feature.id === (hoveredFeature === 'pet' ? 'cat' : hoveredFeature))?.description;
   const dim = !lightsOn || mode === 'low-light';
 
   const careFor = feature => inputActive && onCare && ['cat', 'pet', 'plant'].includes(feature) ? onCare : undefined;
-  const clearHover = useCallback(() => setHoveredId(null), []);
+  const clearHover = useCallback(() => {setHoveredId(null);setBookHint(null);}, []);
   const handleLeave = useCallback(id => setHoveredId(current => current === id ? null : current), []);
   const canvasDpr = useMemo(() => [1, preset.dpr], [preset.dpr]);
+  const monitoring = graphicsTest || liveGraphics || forceAlwaysRender;
+  const animatingRain = rainOn && preset.rain > 0 && scene.outdoorRain && (!theme || theme.rain);
+  const frameLoop = renderingPaused && ready && !monitoring ? 'never' : monitoring || animatingRain ? 'always' : 'demand';
   const canvasGl = useMemo(() => ({ antialias: preset.antialias }), [preset.antialias]);
 
-  return <div className={hoveredFeature ? 'furniture-3d-layer feature-hovered' : 'furniture-3d-layer'}
+  return <div className={hoveredFeature || bookHint ? 'furniture-3d-layer feature-hovered' : 'furniture-3d-layer'}
     aria-label="三维书房，拖动旋转视角，滚轮缩放"
     onPointerDownCapture={featureHover ? clearHover : undefined}
     onPointerLeave={featureHover ? clearHover : undefined}
@@ -262,7 +277,7 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = fals
       layer.style.setProperty('--scene-pointer-y', `${event.clientY - top}px`);
     } : undefined}>
     <LoadingBoundary message="房间加载失败，请重新打开应用。" onError={onSceneSettled}>
-      <Canvas frameloop={(rainOn && preset.rain > 0 && scene.outdoorRain && (!theme || theme.rain)) || graphicsTest || liveGraphics || forceAlwaysRender ? 'always' : 'demand'} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={canvasDpr} gl={canvasGl}>
+      <Canvas events={state=>({...events(state),filter:prioritizeShelfBooks})} frameloop={frameLoop} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={canvasDpr} gl={canvasGl}>
         <FrameProfilerBridge />
         {liveGraphics && ready && <LiveGraphicsMonitor onUpdate={onLiveGraphics} />}
         {graphicsTest && ready && <GraphicsMonitor onResult={onGraphicsResult} />}
@@ -284,28 +299,15 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = fals
           {scene.models.map(item => <Model key={item.id} item={item} models={scene.models} onSelect={onFeature}
             onCare={careFor(item.feature)} theme={theme} hidden={theme?.hidden?.includes(item.id)}
             onModelSelect={onModelSelect} selected={item.id === selectedId}
-            onHover={featureHover && item.feature ? setHoveredId : undefined}
+            onHover={featureHover && item.feature ? id=>{setBookHint(null);setHoveredId(id);} : undefined}
             onLeave={featureHover && item.feature ? handleLeave : undefined} />)}
+            {!onModelSelect&&<SceneShelfBooks scene={scene} books={books} onActivate={onSceneBooks} onHover={setBookHint} inputActive={inputActive} hidden={theme?.hidden}/> }
             <StaticSceneOptimizer ready={ready} theme={theme} models={scene.models} disabled={Boolean(onModelSelect)} />
             {preset.glows && theme?.glows && <ThemeGlows config={theme.glows} />}
           </SceneTextures>
           {rainOn && preset.rain > 0 && scene.outdoorRain && (!theme || theme.rain) && <OutdoorRain density={preset.rain} bounds={scene.outdoorRain} />}
           {!ready && <FirstSceneFrame onReady={reportReady} />}
         </Suspense>
-        {inputActive && previewView !== 'orbit' && scene.hotspots?.filter(spot => !spot.view || spot.view === view?.id).map(spot => {
-          const model = scene.models.find(item => item.feature === spot.feature);
-          return <Html key={spot.id} position={spot.position} center zIndexRange={[3, 2]}>
-            <button type="button" className="scene-world-hotspot" onClick={() => {
-              if (onModelSelect && model) onModelSelect(model.id);
-              else onFeature?.(spot.feature, model);
-            }} onContextMenu={careFor(spot.feature) ? (event) => {
-              if (event.button !== 2) return;
-              event.preventDefault();
-              event.stopPropagation();
-              onCare(spot.feature);
-            } : undefined}>{spot.label}</button>
-          </Html>;
-        })}
         {previewView === 'orbit' ? <FreeView scene={scene} /> : (view || scene.roam)
           ? <PackageCamera config={scene.camera} view={view} roam={scene.roam} controls={controls} inputActive={inputActive} shortcuts={bindings} />
           : <RoomView key={initialCameraKey(scene.camera)} controls={controls} config={scene.camera} />}
@@ -331,7 +333,7 @@ function FurnitureScene({ liveGraphics, onLiveGraphics, forceAlwaysRender = fals
         </button>
       </div>}
     </div>}
-    {hint && <FeatureHint key={hoveredId} description={hint} />}
+    {hint && <FeatureHint key={bookHint||hoveredId} description={hint} />}
     {onModelSelect && <div className="scene-camera-help">{previewView === 'orbit' ? '拖动旋转 · 右键拖动平移 · 滚轮缩放'
       : <>拖动环顾 · 滚轮调整视野 <button onClick={() => controls.current?.reset()}>重置视角</button></>}</div>}
   </div>;
