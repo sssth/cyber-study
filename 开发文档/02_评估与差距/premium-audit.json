@@ -128,7 +128,7 @@
     }
   ],
   "mode": "strict",
-  "projectRoot": "/Users/hengtang/Desktop/赛博书房",
+  "projectRoot": ".",
   "schemaVersion": 1,
   "summary": {
     "errors": 14,

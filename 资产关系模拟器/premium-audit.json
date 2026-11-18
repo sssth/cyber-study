@@ -92,7 +92,7 @@
     }
   ],
   "mode": "strict",
-  "projectRoot": "/Users/hengtang/Desktop/赛博书房/资产关系模拟器",
+  "projectRoot": ".",
   "schemaVersion": 1,
   "summary": {
     "errors": 10,

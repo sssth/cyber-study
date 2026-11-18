@@ -5,8 +5,8 @@ cd "$(dirname "$0")"
 
 if command -v node >/dev/null 2>&1; then
   export PATH="$(dirname "$(command -v node)"):$PATH"
-elif [ -x "/Users/hengtang/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node" ]; then
-  export PATH="/Users/hengtang/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH"
+elif [ -x "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node" ]; then
+  export PATH="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH"
 else
   echo "未找到 Node.js。请先安装 Node.js 20 或更高版本。"
   read -r "?按回车键关闭..."

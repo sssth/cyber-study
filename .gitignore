@@ -22,3 +22,6 @@ assets/
 
 # 超大边界测试样例（81MB，超过 GitHub 50MB 告警线）
 测试样例/09_异常样例/超过80MB_照片大小限制.jpg
+
+# Python 编译缓存
+__pycache__/
