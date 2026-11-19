@@ -1,3 +1,4 @@
+import { excerptAppearance } from '../data/knowledgeStore.js';
 import { editActivationProps } from '../ui/editGesture.js';
 import { useEffect, useRef } from 'react';
 import { itemClickDelay } from '../features/ContentCommands.jsx';
@@ -14,6 +15,6 @@ export default function ExcerptCard({ notes, onLocate, onEdit }) {
   if(event.key==='F2'){event.preventDefault();cancel();onEdit(event);}
  }}>
   <span className="reader-excerpt-quote">{note.quote}</span>
-  <span className="reader-excerpt-meta"><time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleDateString('zh-CN')}</time><span>{notes.filter(n=>n.annotation?.trim()).length} 条批注</span></span>
+  <span className="reader-excerpt-meta"><time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleDateString('zh-CN')}</time><span>{excerptAppearance(note).excerptType === 'hidden' && '不显示 · '}{notes.filter(n=>n.annotation?.trim()).length} 条批注</span></span>
  </button>;
 }

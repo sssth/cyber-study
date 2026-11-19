@@ -51,13 +51,15 @@ export default function CatalogEditor({item, catalog, books, onBooksChanged, onB
     </ActionWorkspace>;
     case 'book': return <BookEditor editing={item} onClose={onClose} canDelete={Boolean(window.cyberStudy?.deleteBook)}
       renameBook={async (book, values) => {
-        if (window.cyberStudy?.renameBook && /^(file:|local:)/.test(book.id)) {
-          onBooksChanged([await window.cyberStudy.renameBook(book.id, values)]);
-        } else {
-          const state = loadReaderState();
-          state.books[book.id] = {...state.books[book.id], customTitle:values.title, customAuthor:values.author};
-          saveReaderState(state);
-        }
+        const { readingStatus, ...metadata } = values;
+        const storedLocally = !window.cyberStudy?.renameBook || !/^(file:|local:)/.test(book.id);
+        if (!storedLocally) onBooksChanged([await window.cyberStudy.renameBook(book.id, metadata)]);
+        const state = loadReaderState();
+        state.books[book.id] = {
+          ...state.books[book.id], readingStatus,
+          ...(storedLocally ? { customTitle: metadata.title, customAuthor: metadata.author } : {})
+        };
+        saveReaderState(state);
       }}
       removeBook={async book => {
         const removed = await window.cyberStudy.deleteBook(book.id);

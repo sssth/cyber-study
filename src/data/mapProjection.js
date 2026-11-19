@@ -1,8 +1,8 @@
 // Each visible surface supplies its complete filtered collection, not just mounted cards.
 const sources = new Map();
 export function registerMapSource(token, read) { sources.set(token, read); return () => sources.delete(token); }
-export function currentMapSource() {
-  return [...sources.values()].map(read => read()).filter(source => source.enabled !== false)
+export function currentMapSource({ snapshot = false } = {}) {
+  return [...sources.values()].map(read => read()).filter(source => source.enabled !== false && (!snapshot || source.snapshotEnabled !== false))
     .sort((a,b) => (b.priority || 0) - (a.priority || 0))[0];
 }
 export const mapEntities = (type, items) => items.filter(Boolean).map(item => ({ id:item.id, deletedAt:item.deletedAt, type, key: `${type}:${item.id}`, record:item }));

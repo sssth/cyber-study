@@ -17,7 +17,36 @@ export function saveKnowledge(data) {
   if (!saveSpaceData('knowledge', data)) throw new Error('保存失败，本地存储可能已满。');
 }
 
-export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', tags = [], progress = 0, blockId = null, side = 'left', markdownUnderline = false, ranges }) {
+export const creatableExcerptTypes = { excerpt: '摘录', underline: '划线', bookmark: '书签', highlight: '高亮' };
+export const excerptTypes = { ...creatableExcerptTypes, hidden: '不显示' };
+export const defaultExcerptColor = '#70c9bc';
+export const excerptColors = {
+  [defaultExcerptColor]: '青绿',
+  '#f0cb68': '金黄',
+  '#f5a36c': '橙色',
+  '#ee91ac': '粉红',
+  '#8dbdf6': '浅蓝',
+  '#b4a2ee': '紫色'
+};
+
+export function excerptAppearance(note) {
+  return {
+    excerptType: Object.hasOwn(excerptTypes, note?.excerptType) ? note.excerptType : 'excerpt',
+    color: /^#[0-9a-f]{6}$/i.test(note?.color) ? note.color : defaultExcerptColor
+  };
+}
+
+function applyAppearance(data, key, appearance) {
+  data.notes = data.notes.map(note => excerptKey(note) === key ? { ...note, ...appearance } : note);
+}
+
+export function updateExcerptAppearance(note, changes) {
+  const data = loadKnowledge();
+  applyAppearance(data, excerptKey(note), excerptAppearance({ ...note, ...changes }));
+  saveKnowledge(data);
+}
+
+export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', tags = [], progress = 0, blockId = null, side = 'left', markdownUnderline = false, ranges, excerptType, color }, { updateAppearance = false } = {}) {
   const data = loadKnowledge();
   const note = {
     id: createId('note'),
@@ -30,6 +59,7 @@ export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', ta
     blockId,
     side,
     markdownUnderline,
+    ...excerptAppearance({ excerptType, color }),
     ranges,
     source: bookTitle,
     createdAt: new Date().toISOString(),
@@ -38,6 +68,17 @@ export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', ta
   // Keep the excerpt's representative ID when appending another annotation.
   const groupKey = excerptKey(note);
   const first = data.notes.findIndex(existing => excerptKey(existing) === groupKey);
+  if (first >= 0) {
+    if (updateAppearance && excerptAppearance(data.notes[first]).excerptType === 'hidden') {
+      throw Error('这段文字已有隐藏摘录，请在摘录汇总中编辑。');
+    }
+    if (updateAppearance) applyAppearance(data, groupKey, excerptAppearance(note));
+    if (!annotation && updateAppearance) {
+      saveKnowledge(data);
+      return data.notes[first];
+    }
+    Object.assign(note, excerptAppearance(data.notes[first]));
+  }
   data.notes.splice(first + 1, 0, note);
   saveKnowledge(data);
   return note;

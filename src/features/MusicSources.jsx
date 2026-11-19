@@ -2,7 +2,7 @@ import { WorkspaceActions } from './ui.jsx';
 import { textMatches } from '../search/searchCore.js';
 import { useEffect, useState } from 'react';
 
-export const musicPlatformNames = { qq: 'QQ 音乐', netease: '网易云音乐' };
+export const musicPlatformNames = { qq: 'QQ 音乐', netease: '网易云音乐', spotify: 'Spotify' };
 
 export async function musicRequest(provider, action, input) {
   const request = window.cyberStudy?.music;
@@ -17,6 +17,7 @@ function SourceAccount({ provider, onImport, importing, search }) {
   const [user, setUser] = useState(null);
   const [playlists, setPlaylists] = useState([]);
   const [selected, setSelected] = useState('');
+  const [pairCode, setPairCode] = useState('');
   const [qr, setQr] = useState(null);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +38,7 @@ function SourceAccount({ provider, onImport, importing, search }) {
     try {
       await task();
     } catch (failure) {
+      setStatus('');
       setError(failure.message);
     } finally {
       setBusy(false);
@@ -82,7 +84,7 @@ function SourceAccount({ provider, onImport, importing, search }) {
           setQr(null);
           return;
         }
-        setStatus(result === 'scanned' ? '请在手机上确认登录。' : '');
+        setStatus(provider === 'spotify' ? '等待 Spotify 配对确认…' : result === 'scanned' ? '请在手机上确认登录。' : '');
         timer = setTimeout(poll, 2000);
       } catch (failure) {
         if (!active) return;
@@ -97,7 +99,15 @@ function SourceAccount({ provider, onImport, importing, search }) {
   const start = type => run(async () => {
     setQr(null);
     setStatus('');
-    const { image } = await musicRequest(provider, 'qr-start', { type });
+    setPairCode('');
+    const { image, code, status: result } = await musicRequest(provider, 'qr-start', { type });
+    if (result === 'confirmed') {
+      const { user: account } = await musicRequest(provider, 'account');
+      setUser(account);
+      await loadPlaylists();
+      return;
+    }
+    setPairCode(code || '');
     if (!image) throw new Error('二维码未生成，请重试。');
     setQr(image);
   });
@@ -107,6 +117,13 @@ function SourceAccount({ provider, onImport, importing, search }) {
     if (!list) return;
     setStatus('');
     setFailures([]);
+    if (provider === 'spotify') {
+      setStatus('正在读取 Spotify 歌单…');
+      const { tracks, pending } = await musicRequest(provider, 'tracks', { id: selected });
+      onImport(provider, list, tracks);
+      setStatus(`已同步 ${tracks.length} 首 Spotify 歌曲，可在线播放。${pending ? `另有 ${pending} 首资料暂未返回，可稍后重新同步。` : ''}`);
+      return;
+    }
     // The development page can reload while the desktop process is still on the old version.
     const capability = await window.cyberStudy?.music?.(provider, 'cache-status');
     if (!capability?.supported) throw new Error('当前桌面程序尚未加载歌单缓存功能。请按 ⌘Q 完全退出书房，再重新启动。');
@@ -173,10 +190,14 @@ function SourceAccount({ provider, onImport, importing, search }) {
       ) : (
         <>
           <div className="card-actions">
-            <button type="button" disabled={busy} onClick={() => start('qq')}>{provider === 'qq' ? 'QQ 扫码' : '网易云扫码'}</button>
+            <button type="button" disabled={busy} onClick={() => start('qq')}>{provider === 'qq' ? 'QQ 扫码' : provider === 'spotify' ? 'Spotify 扫码' : '网易云扫码'}</button>
             {provider === 'qq' && <button type="button" disabled={busy} onClick={() => start('wx')}>微信扫码</button>}
           </div>
           {qr && <img className="music-login-qr" src={qr} alt={`${name}登录二维码`} />}
+          {qr && pairCode && <div className="stack-form">
+            <p>Spotify 配对码 <strong>{pairCode}</strong></p>
+            <button type="button" onClick={() => run(() => musicRequest('spotify', 'pair-open'))}>在浏览器中配对</button>
+          </div>}
         </>
       )}
       {progress ? (

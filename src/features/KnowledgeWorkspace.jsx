@@ -1,9 +1,10 @@
+import { persistExcerptChange } from '../reader/excerptPersistence.js';
 import useContentOrder from '../ui/useContentOrder.js';
 import { orderType } from '../data/contentOrder.js';
 import { blocksPageBack } from '../ui/useEscapeBack.js';
 import useMapSource, {mapEntities} from '../ui/useMapSource.js';
-import { useNavigationState } from '../ui/useNavigationState.js';
-import { excerptRange, replaceExcerptUnderlines } from '../reader/excerptRange.js';
+import { useNavigationState, useNavigationScroll } from '../ui/useNavigationState.js';
+import { excerptRange } from '../reader/excerptRange.js';
 import { ContentCommand } from './ContentCommands.jsx';
 import {useSearchCount,useSearchScope} from '../search/useSearchScope.jsx';
 import {matchesItem,textMatches,hasSearch} from '../search/searchCore.js';
@@ -12,13 +13,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FeaturePanel, ActionWorkspace, WorkspaceActions } from './ui.jsx';
 import ExcerptAnnotations from '../reader/ExcerptAnnotations.jsx';
-import { parseMarkdownContent, underlineMarkdown } from '../reader/markdownReader.js';
+import { parseMarkdownContent } from '../reader/markdownReader.js';
 import { highlightRanges, indexChapters } from '../reader/readerPosition.js';
-import { loadKnowledge, groupExcerpts, excerptKey, updateExcerptRange, deleteExcerpt } from '../data/knowledgeStore.js';
+import { loadKnowledge, groupExcerpts, excerptAppearance, excerptTypes, excerptKey } from '../data/knowledgeStore.js';
 
 function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, onClose, version = 0, importedBooks = [], onBooksChanged, onOpenNote, suspended = false }) {
 
-  const [detailKey, setDetailKey] = useNavigationState('knowledge','detailKey',() => ['excerpt', 'annotation'].includes(navigationItem?.type) ? excerptKey(navigationItem) : null);
+  const [detailKey, setDetailKey] = useNavigationState('knowledge','detailKey',() => ['excerpt', 'annotation'].includes(navigationItem?.type) ? excerptKey(navigationItem) : null, { preferInitial:Boolean(navigationItem) });
   const [editKey,setLocalEditKey]=useState(editItem ? excerptKey(editItem) : null),[rangeEditing,setRangeEditing]=useState(false),[editError,setEditError]=useState(''),[editBusy,setEditBusy]=useState(false);
   const setEditKey = key => { setLocalEditKey(key); if (editItem && !key) onClose(); };
   const [revision, setRevision] = useState(0);
@@ -61,28 +62,15 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   const detail = entries.find((entry) => entry.key === detailKey);
   useMapSource({priority:shelfMenu?40:10,enabled:!suspended&&!detail,entities:mapEntities('excerpt',filtered.map(({note,chapter,items})=>({...note,chapterTitle:chapter,notes:items})))});
 
-  async function mutateExcerpt(note, selection) {
-    const source=sources.get(note.bookId),old=source?.book;
-    let updated;
-    if(old&&note.markdownUnderline&&globalThis.cyberStudy?.saveBookMarkdown){
-      const others=loadKnowledge().notes.filter(n=>n.bookId===note.bookId&&excerptKey(n)!==excerptKey(note));
-      const content=replaceExcerptUnderlines(old.content,source.blocks,note.ranges||[],others.flatMap(n=>n.ranges||[]),selection?.ranges||[],parseMarkdownContent,underlineMarkdown);
-      if(content!==old.content)updated=await globalThis.cyberStudy.saveBookMarkdown({...old,content},old.content);
-    }
-    try{
-      const result=selection?updateExcerptRange(note,selection):deleteExcerpt(note);
-      if(updated)onBooksChanged?.([updated]);
-      return result;
-    }catch(error){
-      if(updated){try{await globalThis.cyberStudy.saveBookMarkdown(old,updated.content);}catch{onBooksChanged?.([updated]);throw Error('摘录保存失败，原文划线已更新，请重试以同步。');}}
-      throw error;
-    }
+  function mutateExcerpt(note, selection) {
+    const source = sources.get(note.bookId);
+    return persistExcerptChange(note, selection, source?.book, source?.blocks, onBooksChanged);
   }
 
   if (suspended) return null;
   if (detail) {
     const closeDetail = () => { setDetailKey(null); setRangeEditing(false); if (editItem) onClose(); };
-    const content = <ExcerptDetail annotationId={navigationItem?.type === 'annotation' ? navigationItem.id : undefined} compact={Boolean(editItem)} entry={detail} onClose={closeDetail}
+    const content = <ExcerptDetail key={detail.key} annotationId={navigationItem?.type === 'annotation' ? navigationItem.id : undefined} compact={Boolean(editItem)} entry={detail} onClose={closeDetail}
       rangeEditing={rangeEditing} onSaveRange={mutateExcerpt} onRangeSaved={note => {
         if (editItem) { onClose(); return; }
         setDetailKey(excerptKey(note)); setRangeEditing(false); setRevision(v => v + 1);
@@ -114,7 +102,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
               <span className="knowledge-preview">“{preview}”</span>
             </span>
             <ContentCommand label={`管理摘录与批注 · ${note.quote.slice(0, 48)}`} run={() => {setEditKey(key);setEditError('');}} />
-            <ContentActions orderItem={note} type="excerpt" id={note.id} title={note.quote?.slice(0,40)}/><span className="knowledge-note-count">{items.filter((item) => item.annotation).length} 条批注</span>
+            <ContentActions orderItem={note} type="excerpt" id={note.id} title={note.quote?.slice(0,40)}/><span className="knowledge-note-count">{excerptTypes[excerptAppearance(note).excerptType]} · {items.filter((item) => item.annotation).length} 条批注</span>
           </button>;
         })}
       </section>
@@ -127,10 +115,11 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
 function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange, onRangeSaved, onClose, onOpenNote, onChange }) {
   const { key, items, note, source, blockId, chapterId, chapter } = entry;
   const original = useRef(null);
+  const detailRoot = useRef(null);
   const [rangeDraft,setRangeDraft]=useState(null),[rangeError,setRangeError]=useState(''),[rangeBusy,setRangeBusy]=useState(false);
   const chapterBlocks = chapterId === undefined ? [] : source.blocks.filter((block) => source.chapterByBlock.get(block.id) === chapterId);
   const highlights = highlightRanges(chapterBlocks, new Map([[key, rangeDraft?[{...note,...rangeDraft}]:items]]));
-  useEffect(() => {
+  useLayoutEffect(() => {
     const focus = original.current?.querySelector('mark') ?? original.current?.querySelector('[data-excerpt-focus]');
     if (focus) {
       const pane = original.current;
@@ -142,8 +131,9 @@ function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [key, chapterId, blockId]);
+  useNavigationScroll(`excerpt.detail.${compact ? 'edit' : 'read'}`, detailRoot, '[data-scroll-memory]');
 
-  return <section className={compact ? "catalog-range-editor" : "knowledge-detail"} role={compact ? undefined : "dialog"} aria-modal={compact ? undefined : true} aria-label="摘录详情">
+  return <section ref={detailRoot} className={compact ? "catalog-range-editor" : "knowledge-detail"} role={compact ? undefined : "dialog"} aria-modal={compact ? undefined : true} aria-label="摘录详情">
     {!compact && <header>
       <h2>{[note.bookTitle, chapter].filter(Boolean).join(' · ')}</h2>
       <div>
@@ -151,7 +141,7 @@ function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange
         <button type="button" onClick={onClose}>返回列表</button>
       </div>
     </header>}
-    <article ref={original} className="knowledge-original" aria-label="章节原文" tabIndex={0} onPointerUp={()=>{
+    <article ref={original} data-scroll-memory={`original-${key}`} className="knowledge-original" aria-label="章节原文" tabIndex={0} onPointerUp={()=>{
       if(!rangeEditing)return;
       const selection=getSelection();if(!selection?.rangeCount||selection.isCollapsed)return;
       const range=selection.getRangeAt(0),element=node=>(node.nodeType===1?node:node.parentElement)?.closest('[data-range-block]');
@@ -169,15 +159,19 @@ function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange
           {block.prefix}{cuts.slice(0, -1).map((start, index) => {
             const end = cuts[index + 1];
             const text = block.text.slice(start, end);
-            return ranges.some((range) => range.start <= start && range.end >= end) ? <mark key={start}>{text}</mark> : text;
+            const range = ranges.find(range => range.start <= start && range.end >= end);
+            return range ? <mark key={start} data-excerpt-type={range.excerptType} style={{ '--excerpt-color': range.color }}
+              data-bookmark-start={range.excerptType === 'bookmark' && start === range.start ? '' : undefined}>{text}</mark> : text;
           })}
         </Element>;
       }) : <>
         <p>当前书库里找不到对应章节，以下是已保存的摘录。</p>
-        <blockquote><mark>{note.quote}</mark></blockquote>
+        <blockquote>{excerptAppearance(note).excerptType === 'hidden' ? note.quote : <mark data-excerpt-type={excerptAppearance(note).excerptType}
+          data-bookmark-start={excerptAppearance(note).excerptType === 'bookmark' ? '' : undefined}
+          style={{ '--excerpt-color': excerptAppearance(note).color }}>{note.quote}</mark>}</blockquote>
       </>}
     </article>
-    <aside className="knowledge-annotations" aria-label="摘录批注">
+    <aside data-scroll-memory={`annotations-${key}`} className="knowledge-annotations" aria-label="摘录批注">
       {rangeEditing&&<div className="excerpt-range-editor"><p>在原文中重新选取摘录范围。</p>{rangeDraft&&<blockquote>{rangeDraft.quote}</blockquote>}<button disabled={!rangeDraft||rangeBusy} onClick={async()=>{setRangeBusy(true);try{const updated=await onSaveRange(note,rangeDraft);getSelection()?.removeAllRanges();setRangeDraft(null);onRangeSaved(updated);}catch(e){setRangeError(e.message);}finally{setRangeBusy(false);}}}>保存范围</button>{rangeError&&<p role="alert">{rangeError}</p>}</div>}
       {!compact && <><ContentActions type="excerpt" id={note.id} title={note.quote?.slice(0,24)}/><h3>批注</h3>
       <ExcerptAnnotations key={key} notes={items} annotationId={annotationId} onChange={onChange} /></>}

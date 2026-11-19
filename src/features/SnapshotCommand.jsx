@@ -13,7 +13,7 @@ export default function SnapshotCommand({shortcuts,disabled,projection}){
     const save=async ()=>{
       if(disabled) return;
       try {
-        const source=currentMapSource(),snapshot=captureEntities(projection && !source?.projection?undefined:source);
+        const source=currentMapSource({snapshot:true}),snapshot=captureEntities(projection && !source?.projection?undefined:source);
         if(!snapshot.entities.length){notice(snapshot.message);return;}
         const time=Date.now(),markdown=snapshotMarkdown({...snapshot,source,scope:currentScope(),time});
         if(!window.cyberStudy?.snapshots) throw Error('请在桌面应用中保存快照');

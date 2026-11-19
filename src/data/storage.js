@@ -29,10 +29,29 @@ export function loadReaderState() {
   }
 }
 
+export function bookReaderSettings(state, bookId) {
+  return { ...fallbackReaderState.settings, ...state.settings, ...state.books[bookId]?.settings };
+}
+
 export function saveReaderState(state) {
   try {
     globalThis.localStorage?.setItem(READER_STORAGE_KEY, JSON.stringify(state));
   } catch {
     // 阅读进度保存失败时不打断当前阅读。
   }
+}
+
+export const readingStatusLabels = { unread: '待读', reading: '在读', finished: '已读' };
+
+export function bookReadingStatus(record = {}) {
+  if (Object.hasOwn(readingStatusLabels, record.readingStatus)) return record.readingStatus;
+  if (record.finished || record.progress >= 1) return 'finished';
+  return record.openedAt || record.lastReadAt || record.updatedAt || record.progress > 0 ? 'reading' : 'unread';
+}
+
+export function bookActivityTime(book, record = {}) {
+  return Math.max(
+    Date.parse(book.createdAt || book.importedAt) || 0,
+    Date.parse(record.openedAt || record.lastReadAt || record.updatedAt) || 0
+  );
 }

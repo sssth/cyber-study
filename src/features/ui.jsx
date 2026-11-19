@@ -7,10 +7,10 @@ import useDismissDisplayMenu from '../ui/useDismissDisplayMenu.js';
 import { ContentCommand } from './ContentCommands.jsx';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-export function FeaturePanel({ title, onClose, onBack = onClose, children, wide = false, hasMenu = false }) {
+export function FeaturePanel({ title, onClose, onBack = onClose, children, wide = false, hasMenu = false, scrollContext }) {
   const panel = useRef(null);
-  const [menuOpen, setMenuOpen] = useNavigationState(title,'menuOpen',false);
-  useNavigationScroll(`${title}.scroll`, panel, '.feature-body,.knowledge-results,.memo-board');
+  const [menuOpen, setMenuOpen] = useNavigationState(title,'menuOpen',false,{ remember:false });
+  useNavigationScroll(`${title}.scroll`, panel, '.feature-body,.knowledge-results,.memo-board,[data-scroll-memory]');
   useDismissDisplayMenu(menuOpen, setMenuOpen, panel);
   useEscapeBack(() => { onBack(); }, {
     blocked: event => panel.current?.closest('[inert]') || blocksPageBack(event)
@@ -20,7 +20,7 @@ export function FeaturePanel({ title, onClose, onBack = onClose, children, wide 
       <div className="feature-shell">
         {hasMenu && <DisplayMenuToggle open={menuOpen} onToggle={() => setMenuOpen(value => !value)} />}
         <DisplayCloseButton onClose={onClose} />
-        <div className="feature-body">{children}</div>
+        <div className="feature-body" data-scroll-memory={scrollContext}>{children}</div>
       </div>
     </section>
   );
@@ -31,12 +31,13 @@ export function EmptyState({ children }) {
 }
 
 // Shared secondary workspace: the collection remains the default surface.
-export function ActionWorkspace({ label = '新建', title = label, children, open: controlled, onOpenChange, command = true, onCreate, showTrigger = true, disabled = false, portalHost }) {
+export function ActionWorkspace({ label = '新建', title = label, children, open: controlled, onOpenChange, command = true, onCreate, showTrigger = true, disabled = false, portalHost, scrollMemoryKey }) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlled ?? localOpen;
   const editing = /编辑|修改/.test(title);
   const dialog = useRef(null);
   const trigger = useRef(null);
+  useNavigationScroll(scrollMemoryKey, dialog, '[data-scroll-memory]');
   const change = value => { setLocalOpen(value); onOpenChange?.(value); };
   useLayoutEffect(() => {
     if (open && !dialog.current.open) { dialog.current.show(); }
@@ -48,7 +49,7 @@ export function ActionWorkspace({ label = '新建', title = label, children, ope
     : showTrigger && <div className="secondary-action"><button ref={trigger} type="button" onClick={() => change(true)}>{label}</button></div>}
     {createPortal(<EditSurface ref={dialog} data-create-workspace={command && !editing ? true : undefined} aria-label={title}
       onCancel={event => { event.preventDefault(); change(false); }}
-      onClose={() => { if (!dialog.current?.open) { change(false); trigger.current?.focus(); } }}>
+      onClose={() => { if (!dialog.current?.open) { change(false); trigger.current?.focus({ preventScroll:true }); } }}>
       <header><h2>{title}</h2><button type="button" onClick={() => change(false)}>返回内容</button></header>
       <WorkspaceFields>{children}</WorkspaceFields>
     </EditSurface>, portalHost || document.body)}</>;

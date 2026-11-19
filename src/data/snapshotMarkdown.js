@@ -34,9 +34,11 @@ export function snapshotMarkdown({entities,source,scope,time}){
     lines.push('','## '+String(index+1).padStart(2,'0')+'｜'+contentTypes[type]+(heading?'｜'+heading:''));
     const add=(label,input)=>{const body=value(input);if(body) lines.push('','**'+label+'**', '',body);};
     for(const pair of (fields[type] || '').split(' ')){
-      const [key,label]=pair.split(':');add(label,record[key]);
+      const [key,label]=pair.split(':');
+      add(type === 'book' && key === 'content' && record.chapterTitle ? '本章正文' : label, record[key]);
     }
     add('标签',record.tags);
+    if(type==='excerpt') add('摘要', [...new Set([record.summary, ...(record.notes || []).map(note => note.summary)].filter(Boolean))].join('\n\n'));
     if(type==='excerpt') add('用户批注（不是原作者的话）',record.notes?.map(note=>note.annotation).filter(Boolean).join('\n\n') || record.annotation || (record.notes?'无批注':'本次未包含批注'));
     if(type==='annotation') add('用户批注',record.annotation || record.text);
     if(type==='todo') add('完成状态',record.done?'已完成':'未完成');

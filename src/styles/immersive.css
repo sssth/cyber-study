@@ -12,7 +12,7 @@
 .feature-overlay .memory-atlas, .feature-overlay .atlas-layout { height:100%; }
 .feature-overlay .atlas-layout { display:block; }
 .feature-overlay .atlas-stage { height:100%; min-height:0; border:0; border-radius:0; background:transparent; }
-.atlas-heading, .atlas-stage-caption, .arrangement-hint, .shelf-view-bar > span, .shelf-book-meta { display:none; }
+.atlas-heading, .atlas-stage-caption, .arrangement-hint, .shelf-view-bar > span { display:none; }
 /* Edge navigation, independent of the display canvas. */
 .shelf-view-bar, .arrangement-toolbar, .arrangement-layers,
 .feature-overlay .knowledge-filters, .feature-overlay .atlas-breadcrumbs,

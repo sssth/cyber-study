@@ -77,7 +77,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   const [listSelection,setListSelection]=useState([]);
   const order = useContentOrder();
   useEffect(()=>{saveSpaceData('playlists',savedPlaylists);},[savedPlaylists]);
-  const [musicView, setMusicView] = useState('player');
+  const [musicView, setMusicView] = useNavigationState('music','view','player');
   const [playerEditor, setPlayerEditor] = useState(false);
   const [localEditor, setLocalEditor] = useState(null);
   const musicEditor = catalogItem?.type === 'music'
@@ -90,7 +90,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   useEffect(() => {
     if (!open) return;
     const item = navigation?.item;
-    setMusicView(item?.catalogCommand || item?.type === 'playlist' || item?.type === 'music' ? 'playlists' : 'player');
+    if (item?.catalogCommand || item?.type === 'playlist' || item?.type === 'music') setMusicView('playlists');
     setPlayerEditor(false);
   }, [open, navigation]);
   const [resume] = useState(() => loadSpaceData('musicResume', {}));
@@ -103,6 +103,11 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   const audioRef = useRef(null);
   const pendingSeek = useRef(0);
   const selection = useRef(0);
+  const spotifyTrack = useRef(null);
+  const [spotifyOutput, setSpotifyOutput] = useState(null);
+  const [spotifyDevices, setSpotifyDevices] = useState(null);
+  const [spotifyDevicesBusy, setSpotifyDevicesBusy] = useState(false);
+  const spotifyCommand = useRef(Promise.resolve());
   const startingOnline = useRef(false);
   const [loading, setLoading] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -121,7 +126,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   const playlists = new Map(tracks.flatMap(track => (track.playlists ?? []).map(list => [
     list.id, [musicPlatformNames[track.provider], list.title].filter(Boolean).join(' · '),
   ])));
-  savedPlaylists.forEach(p=>{const provider=p.provider || (['qq','netease'].includes(p.id.split(':')[0])?p.id.split(':')[0]:null);playlists.set(p.id,[p.showSource!==false?musicPlatformNames[provider]:null,p.title].filter(Boolean).join(' · '));});
+  savedPlaylists.forEach(p=>{const provider=p.provider || (['qq','netease','spotify'].includes(p.id.split(':')[0])?p.id.split(':')[0]:null);playlists.set(p.id,[p.showSource!==false?musicPlatformNames[provider]:null,p.title].filter(Boolean).join(' · '));});
   if (stagedImport) playlists.set(stagedImport.id, stagedImport.title);
   const current = stagedImport?.tracks.get(currentId)?.cachedUrl
     ? stagedImport.tracks.get(currentId)
@@ -153,7 +158,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
     const list=savedPlaylists.find(p=>p.id===id)??songs.find(t=>t.playlists?.some(p=>p.id===id))?.playlists?.find(p=>p.id===id)??{title};
     const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&textMatches([list.title],search.query);
     const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&textMatches(search.filters?.musicTarget==='artist'?[t.artist]:search.filters?.musicTarget==='song'?[t.title]:[t.title,t.artist],search.query))||!search.query.trim()));
-    const provider=list.provider||(['qq','netease'].includes(id.split(':')[0])?id.split(':')[0]:null);
+    const provider=list.provider||(['qq','netease','spotify'].includes(id.split(':')[0])?id.split(':')[0]:null);
     if(!hasSearch(search)||(search.filters.playlistId && !search.query.trim() && !search.filters.provider)||matching.length||(titleHit&&(!search.filters?.provider||provider===search.filters.provider))) filteredLists.set(id,{title,songs:matching,record:{...list,id,trackNames:songs.map(track=>track.title)}});
   }
   const browserFilter=filteredLists.has(activeFilter)?activeFilter:filteredLists.keys().next().value??'';
@@ -211,7 +216,13 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
     });
   };
 
-  const selectTrack = async (track, playlistId = songPlaylist || activeFilter) => {
+  const commandSpotify = (action, input) => {
+    const pending = spotifyCommand.current.catch(() => {}).then(() => musicRequest('spotify', action, input));
+    spotifyCommand.current = pending;
+    return pending;
+  };
+
+  const selectTrack = async (track, playlistId = songPlaylist || activeFilter, { restart = false, output = spotifyOutput } = {}) => {
     if (track?.cacheState && track.cacheState !== 'ready') return;
     setPlayingPlaylistId(track ? playlistId : '');
     if (track?.id === currentId && startingOnline.current) return;
@@ -229,13 +240,47 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
     audio.removeAttribute('src');
     audio.load();
     setPlaying(false);
-    pendingSeek.current = track?.id === currentId ? elapsed : 0;
+    pendingSeek.current = !restart && track?.id === currentId ? elapsed : 0;
     setElapsed(pendingSeek.current);
     setDuration(0);
     setPreview(false);
     setLoading(false);
     setCurrentId(track?.id ?? null);
+    if (track?.provider !== 'spotify' && spotifyTrack.current) {
+      const previousSpotify = spotifyTrack.current;
+      try {
+        await commandSpotify('pause', {deviceId:previousSpotify.deviceId});
+        if (spotifyTrack.current === previousSpotify) spotifyTrack.current = null;
+      }
+      catch (failure) {
+        if (selection.current === requestId) setPlaybackError(failure.message);
+        return;
+      }
+      if (selection.current !== requestId) return;
+    }
     if (!track || track.kind) return;
+
+    if (track.provider === 'spotify') {
+      const next = { id: track.sourceId, deviceId:output?.id, lastPosition: 0, duration: 0, seen: false };
+      spotifyTrack.current = next;
+      setLoading(true);
+      try {
+        const position = pendingSeek.current * 1000;
+        await commandSpotify('play', {
+          id: track.sourceId, position, deviceId: next.deviceId,
+          playlistId: playlistId?.startsWith('spotify:') ? playlistId.slice(8) : undefined,
+        });
+        if (selection.current === requestId) next.started = true;
+      } catch (failure) {
+        if (selection.current === requestId) {
+          spotifyTrack.current = null;
+          setPlaybackError(failure.message);
+        }
+      } finally {
+        if (selection.current === requestId) setLoading(false);
+      }
+      return;
+    }
 
     if (track.cachedUrl || !track.provider) {
       if(!track.cachedUrl&&!track.url){setPlaybackError('这是一张音乐资料卡，请先补充本地音频。');return;}
@@ -298,7 +343,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
     if (musicEditor?.type !== 'playlist' || musicEditor.cover) return;
     const id=musicEditor.id;
     const provider=musicEditor.provider||id.split(':')[0];
-    if (!['qq','netease'].includes(provider)) return;
+    if (!['qq','netease','spotify'].includes(provider)) return;
     let active=true;
     musicRequest(provider,'playlists').then(({playlists: lists})=>{
       const sourceId=musicEditor.sourceId||id.slice(provider.length+1);
@@ -320,6 +365,11 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   };
 
   const beginImport = (provider, list, imported) => {
+    if (provider === 'spotify') {
+      savePlaylist(provider, list, imported);
+      setPlaylistFilter(`spotify:${list.id}`);
+      return;
+    }
     if (activeImport.current) throw new Error('正在缓存另一张歌单，请稍后再导入。');
     activeImport.current = true;
     savePlaylist(provider,list,[]);
@@ -393,14 +443,16 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   const playNext = () => {
     const track = nextTrack(true);
     if (track?.id === currentId && audioRef.current.readyState) audioRef.current.currentTime = 0;
-    if (track) selectTrack(track);
+    if (track) selectTrack(track, songPlaylist || activeFilter, { restart: true });
   };
 
   const togglePlayback = () => {
     const audio = audioRef.current;
     const track = current?.kind ? null : current ?? queue[0];
     if (!track || loading) return;
-    if (!audio.hasAttribute('src') || audio.error) selectTrack(track);
+    if (track.provider === 'spotify' && spotifyTrack.current?.id === track.sourceId) {
+      commandSpotify(playing ? 'pause' : 'resume', {deviceId:spotifyTrack.current.deviceId}).catch(error => setPlaybackError(error.message));
+    } else if (!audio.hasAttribute('src') || audio.error) selectTrack(track);
     else if (audio.paused) play();
     else audio.pause();
   };
@@ -424,7 +476,89 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
 
+  const spotifyObservedTrack = useRef(null);
+  spotifyObservedTrack.current = sourceId => {
+    const track = queue.find(candidate => candidate.provider === 'spotify' && candidate.sourceId === sourceId);
+    if (!track) return false;
+    setCurrentId(track.id);
+    return true;
+  };
+  const spotifyEnded = useRef(null);
+  spotifyEnded.current = () => {
+    const next = playbackMode === 'repeat' ? current : nextTrack();
+    if (next) selectTrack(next, songPlaylist, { restart:true });
+  };
+  useEffect(() => {
+    if (current?.provider !== 'spotify') return;
+    let active = true;
+    let timer;
+    const poll = async () => {
+      const tracked = spotifyTrack.current;
+      try {
+        if (!tracked?.started) return;
+        const status = await musicRequest('spotify', 'playback-status', {deviceId:tracked.deviceId});
+        if (!active || spotifyTrack.current !== tracked) return;
+        if (!status.connected) {
+          spotifyTrack.current = null;
+          setPlaying(false);
+          setPlaybackError('Spotify 已断开，请重新连接。');
+        } else if (status.stopped && tracked.seen && tracked.lastPosition + 2000 >= tracked.duration) {
+          spotifyTrack.current = null;
+          setPlaying(false);
+          spotifyEnded.current();
+        } else if (status.id === tracked.id && !status.stopped) {
+          tracked.seen = true;
+          tracked.lastPosition = status.position;
+          tracked.duration = status.duration;
+          setElapsed(status.position / 1000);
+          setDuration(status.duration / 1000);
+          setPlaying(status.playing);
+        } else if (tracked.deviceId && status.id && spotifyObservedTrack.current(status.id)) {
+          Object.assign(tracked, { id:status.id, lastPosition:status.position, duration:status.duration, seen:true });
+          setElapsed(status.position / 1000);
+          setDuration(status.duration / 1000);
+          setPlaying(status.playing);
+        } else if (tracked.seen) {
+          spotifyTrack.current = null;
+          setPlaying(false);
+        }
+      } catch (failure) {
+        if (active && spotifyTrack.current === tracked) {
+          setPlaying(false);
+          setPlaybackError(failure.message);
+        }
+      } finally {
+        if (active) timer = setTimeout(poll, 650);
+      }
+    };
+    void poll();
+    return () => { active = false; clearTimeout(timer); };
+  }, [current?.id, current?.provider]);
+
   const showPause = playing || Boolean(current && audioRef.current && !audioRef.current.paused);
+  const findSpotifyDevices = async () => {
+    setSpotifyDevicesBusy(true);
+    try {
+      const { devices } = await musicRequest('spotify', 'devices');
+      setSpotifyDevices(devices);
+    } catch (failure) { setPlaybackError(failure.message); }
+    finally { setSpotifyDevicesBusy(false); }
+  };
+  const spotifyControls = current?.provider === 'spotify' && (playbackError || spotifyOutput) && (
+    <div className="stack-form">
+      {spotifyOutput && <p className="card-meta">Spotify 出声设备 · {spotifyOutput.name}</p>}
+      <button type="button" disabled={spotifyDevicesBusy} onClick={findSpotifyDevices}>{spotifyDevicesBusy ? '正在查找…' : '选择 Spotify Connect 设备'}</button>
+      {spotifyDevices?.map(device => <button key={device.id} type="button" onClick={() => {
+        setSpotifyOutput(device);
+        setSpotifyDevices(null);
+        void selectTrack(current, songPlaylist, {output:device});
+      }}>在 {device.name} 播放</button>)}
+      {spotifyDevices?.length === 0 && <>
+        <p>请在 Spotify 客户端或网页播放器登录同一账号，打开后再查找设备。</p>
+        <button type="button" onClick={() => musicRequest('spotify', 'open-web-player').catch(error=>setPlaybackError(error.message))}>打开 Spotify 网页播放器</button>
+      </>}
+    </div>
+  );
   return (
     <>
       <audio
@@ -475,7 +609,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
                 setMusicEditor(null);
               }} />}
       {open && (
-        <FeaturePanel hasMenu title="唱片机" kicker="Music Deck" description="播放在线歌单或本地音频。返回书房后可以继续听。" onClose={onClose}>
+        <FeaturePanel hasMenu title="唱片机" scrollContext={musicView} kicker="Music Deck" description="播放在线歌单或本地音频。返回书房后可以继续听。" onClose={onClose}>
           <nav className="globe-mode-switch" aria-label="唱片机视图">
             {[['player','播放'],['playlists','歌单']].map(([id,label]) => <button key={id} aria-pressed={musicView===id} onClick={()=>{setMusicView(id);setPlayerEditor(false);setMusicEditor(null);}}>{label}</button>)}
           </nav>
@@ -513,20 +647,22 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
                     <button type="button" disabled={queueIndex < 0} onClick={playNext} aria-label="下一首"
                       title={shortcuts.nextTrack.join(' / ') || '下一首'}><span aria-hidden="true">⏭</span></button>
                   </div>
-                  {current?.url && !current.local && <a href={current.url} target="_blank" rel="noreferrer">打开来源</a>}
+                  {(current?.spotifyUrl || current?.url) && !current.local && <a href={current.spotifyUrl || current.url} target="_blank" rel="noreferrer">打开来源</a>}
                   {current && !current.kind && (
                     <div className="record-progress">
                       <input type="range" aria-label="播放进度" min="0" max={duration} step="0.1"
                         value={Math.min(elapsed, duration)} disabled={!duration}
                         onChange={(event) => {
                           const time = Number(event.target.value);
-                          audioRef.current.currentTime = time;
+                          if (current.provider === 'spotify') commandSpotify('seek', { position: time * 1000, deviceId:spotifyTrack.current?.deviceId }).catch(error => setPlaybackError(error.message));
+                          else audioRef.current.currentTime = time;
                           setElapsed(time);
                         }} />
                       <span>{formatTime(elapsed)} / {duration ? formatTime(duration) : '--:--'}</span>
                     </div>
                   )}
                   {playbackError && <p role="alert">{playbackError}</p>}
+                  {musicView==='player' && spotifyControls}
                 </div>
               </div>
               {musicView !== 'player' && <ActionWorkspace label="新建" title="新建音乐内容"><div className="music-create-fields">
@@ -539,6 +675,11 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
               </div></ActionWorkspace>}
             </section>
             <section hidden={musicView==='player'} className="admin-list music-track-list">
+              {musicView!=='player' && current?.provider==='spotify' && (loading || playbackError || spotifyOutput) && <div>
+                {loading && <p role="status">正在加载 Spotify 音源…</p>}
+                {playbackError && <p role="alert">{playbackError}</p>}
+                {spotifyControls}
+              </div>}
               <div className="music-library-columns"><RecordShelf records={orderType([...filteredLists.values()].map(list=>list.record),'playlist',order)}
                 selectedId={browserFilter} onSelect={setPlaylistFilter} title={filteredLists.get(browserFilter)?.title} count={displayedTracks.length}>
                 {(record, distance, opened, activate) => {
@@ -546,7 +687,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
                   const cover = record.cover || tracksInPlaylist(id).find(track => track.cover)?.cover;
                   const stored=savedPlaylists.find(p=>p.id===id);
                   const member=tracks.find(t=>t.playlists?.some(p=>p.id===id));
-                  const entry=stored?{...stored,provider:stored.provider||(['qq','netease'].includes(id.split(':')[0])?id.split(':')[0]:null)}:{...record,id,title:member?.playlists?.find(p=>p.id===id)?.title??title,provider:member?.provider};
+                  const entry=stored?{...stored,provider:stored.provider||(['qq','netease','spotify'].includes(id.split(':')[0])?id.split(':')[0]:null)}:{...record,id,title:member?.playlists?.find(p=>p.id===id)?.title??title,provider:member?.provider};
                   return <article className="music-playlist-item" data-edit-item key={id} data-centered={distance === 0} data-open={opened}
                     inert={Math.abs(distance) > 4 || undefined}
                     style={{'--offset': distance, '--side': Math.sign(distance), '--depth': Math.min(Math.abs(distance), 5),
@@ -560,7 +701,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
                     </button>
                   </article>;
                 }}
-              </RecordShelf><div key={browserFilter} className="music-song-column" aria-label="歌曲列表" tabIndex={0}><SearchStatus id="music" label="歌曲"/>
+              </RecordShelf><div key={browserFilter} className="music-song-column" data-scroll-memory={`songs-${browserFilter}`} aria-label="歌曲列表" tabIndex={0}><SearchStatus id="music" label="歌曲"/>
               {displayedTracks.length === 0 ? <></> : displayedTracks.map((track) => (
                 <article data-edit-select className={`admin-card ${track.id === currentId ? 'selected' : ''}`} key={track.id}>
                   <SongListing track={track} onPlay={()=>playListedTrack(track)} />
@@ -583,7 +724,7 @@ function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, s
   );
 }
 
-const movieDraft = { title: '', url: '', status: '想看', poster: '', douban: '', score: '', region: '', genres: '', tags: '' };
+const movieDraft = { title: '', url: '', status: '想看', poster: '', douban: '', score: '', region: '', genres: '', tags: '', personalScore: '', review: '', watchedOn: '' };
 
 const movieFilterGroups = [
   { key: 'region', label: '国家／地区', values: (movie) => splitMovieRegions(movie.region) },
@@ -625,7 +766,6 @@ function MovieCollection({ onClose, editItem }) {
   const [choosingPoster, setChoosingPoster] = useState(false);
   const formBusy = fetchingDouban || choosingPoster;
   const [localPosters, setLocalPosters] = useState({});
-  const movieForm = useRef(null);
   const titleInput = useRef(null);
   const posterInput = useRef(null);
   const posterRequests = useRef(new Set());
@@ -703,6 +843,9 @@ function MovieCollection({ onClose, editItem }) {
       setDraft((current) => ({
         ...current,
         ...details,
+        personalScore: current.personalScore,
+        review: current.review,
+        watchedOn: current.watchedOn,
         douban: `https://movie.douban.com/subject/${subjectId}/`
       }));
       setDoubanMessage('已填入可获取的豆瓣资料，可以修改后保存。');
@@ -739,9 +882,22 @@ function MovieCollection({ onClose, editItem }) {
       setError('请输入 0–10 之间的豆瓣评分。');
       return;
     }
+    const personalScore = String(draft.personalScore ?? '').trim();
+    if (personalScore && (!/^\d{1,2}(?:\.\d)?$/.test(personalScore) || Number(personalScore) > 10)) {
+      setError('个人评分请输入 0–10 分，最多保留一位小数。');
+      return;
+    }
+    const watchedOn = draft.watchedOn || '';
+    if (watchedOn && (!/^\d{4}-\d{2}-\d{2}$/.test(watchedOn)
+        || !Number.isFinite(Date.parse(watchedOn))
+        || new Date(watchedOn).toISOString().slice(0, 10) !== watchedOn)) {
+      setError('请选择有效的观影日期。');
+      return;
+    }
     const record = {
       ...draft, title: draft.title.trim(), url: url?.href ?? '', poster: localPosters[draft.poster] || poster?.href || '', douban: douban?.href ?? '',
-      score, region: splitMovieRegions(draft.region), genres: splitMovieLabels(draft.genres), tags: splitMovieLabels(draft.tags).slice(0, 5)
+      score, personalScore, review: draft.review ?? '', watchedOn,
+      region: splitMovieRegions(draft.region), genres: splitMovieLabels(draft.genres), tags: splitMovieLabels(draft.tags).slice(0, 5)
     };
     const next = editing ? movies.map((movie) => movie.id === editing ? { ...movie, ...record } : movie)
       : [{ ...record, id: createId('movie'), createdAt: new Date().toISOString() }, ...movies];
@@ -754,7 +910,6 @@ function MovieCollection({ onClose, editItem }) {
     setDraft(movieFields(movie));
     setError('');
     setDoubanMessage('');
-    movieForm.current?.scrollIntoView({ block: 'nearest' });
     titleInput.current?.focus({ preventScroll: true });
   };
   const cancelEdit = () => {
@@ -776,7 +931,7 @@ function MovieCollection({ onClose, editItem }) {
 
   useMapSource({priority:10,entities:mapEntities('movie',visibleMovies)});
   useSearchCount('movie',visibleMovies.length);
-  const editor = (<ActionWorkspace disabled={formBusy} onCreate={() => { if (editing) cancelEdit(); }} label="新建影片" title={editing ? '编辑影片' : '新建影片'} open={editorOpen} onOpenChange={setEditorOpen}><form ref={movieForm} className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
+  const editor = (<ActionWorkspace disabled={formBusy} onCreate={() => { if (editing) cancelEdit(); }} label="新建影片" title={editing ? '编辑影片' : '新建影片'} open={editorOpen} onOpenChange={setEditorOpen}><form className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
       <label>链接<input {...field('url')} placeholder="B 站或其他来源链接（可稍后补充）" /></label>
       <input ref={titleInput} {...field('title')} placeholder="影片名称（可稍后补充）" />
       <div className="movie-poster-field">
@@ -799,6 +954,9 @@ function MovieCollection({ onClose, editItem }) {
         <label>标签<input {...field('tags')} placeholder="自定义标签，逗号分隔" /></label>
         <select {...field('status')} aria-label="观看状态"><option>想看</option><option>在看</option><option>看过</option></select>
       </div>
+      <label>个人评分<input {...field('personalScore')} type="number" min="0" max="10" step="0.1" placeholder="选填，0–10 分" /></label>
+      <label>观影日期<input {...field('watchedOn')} type="date" /></label>
+      <label>影评<textarea {...field('review')} rows={6} placeholder="选填，写下你的观影感想" /></label>
       <WorkspaceActions>
         <button type="submit" disabled={formBusy}>{editing ? '保存' : '加入影架'}</button>
         {editing && <ContentEditButton label="删除" disabled={formBusy} run={deleteMovie} />}
@@ -812,7 +970,7 @@ function MovieCollection({ onClose, editItem }) {
     <div className="movie-collection" data-editor-open={editorOpen}>
       <SearchStatus id="movie" label="影片"/>
 
-      <div className="movie-posters" ref={filmStrip}>
+      <div className="movie-posters" data-scroll-memory="film-strip" ref={filmStrip}>
         {visibleMovies.map((movie) => {
           const title = movie.title || '待补充片名';
           const destination = httpUrl(movie.url || '')?.href;
@@ -876,9 +1034,9 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache}) {
       {entity.type==='playlist'?field('description','简介'):<>{field('artist','歌手')}{field('note','备注')}</>}
       <label>显示来源前缀<input type="checkbox" checked={draft.showSource} onChange={e=>setDraft(d=>({...d,showSource:e.target.checked}))}/></label>
       <label>来源<span>{musicPlatformNames[entity.provider]||'本地收藏'}</span></label>
-      {entity.type==='music'&&<><label>缓存状态<span>{entity.cachedUrl?'已缓存':entity.local?'本次打开可播放':'未缓存'}</span></label>
+      {entity.type==='music'&&<><label>缓存状态<span>{entity.provider==='spotify'?'在线播放':entity.cachedUrl?'已缓存':entity.local?'本次打开可播放':'未缓存'}</span></label>
         {entity.durationSeconds>0&&<label>时长<span>{formatTime(entity.durationSeconds)}</span></label>}
-        {!entity.cachedUrl&&entity.provider&&entity.sourceId&&<button type="button" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await onCache();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{busy?'正在缓存…':'重新缓存'}</button>}
+        {!entity.cachedUrl&&entity.provider&&entity.provider!=='spotify'&&entity.sourceId&&<button type="button" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await onCache();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{busy?'正在缓存…':'重新缓存'}</button>}
       </>}
       {error&&<p role="alert">{error}</p>}
       <WorkspaceActions><button disabled={busy||!draft.title.trim()}>保存</button><button type="button" disabled={busy} onClick={()=>{if(window.confirm(`确认删除${entity.title}？`))onDelete();}}>删除</button></WorkspaceActions>

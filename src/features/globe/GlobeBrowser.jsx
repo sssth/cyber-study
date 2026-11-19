@@ -38,7 +38,7 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
     setSelectedPoints(ids => [...new Set([...ids, ...journeyPoints(journey)])]);
   }, [journeyId, journeys, livePointIds]);
   const [rotating, setRotating] = useState(false), [reduced, setReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [command, setCommand] = useNavigationState(projection?'projection':'globe','command',null), [failed, setFailed] = useState(false), [ready, setReady] = useState(false), [retry, setRetry] = useState(0);
+  const [command, setCommand] = useNavigationState(projection?'projection':'globe','command',null,{ remember:false }), [failed, setFailed] = useState(false), [ready, setReady] = useState(false), [retry, setRetry] = useState(0);
   const search = useRef(), card = useRef(), returnTarget = useRef();
   const journey = journeys.find(j => j.id === journeyId);
   const stops = journey?.pointIds.map(id => photos.find(p => p.id === id && !p.deletedAt)).filter(Boolean) ?? [];
@@ -51,7 +51,15 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
   const highlighted = useMemo(() => new Set(visiblePhotos.filter(p => selectedPoints.includes(p.id)).map(p => p.id)), [visiblePhotos, selectedPoints]);
   const selected = places.find(place => place.id === selectedId);
   useSearchCount('geography', loading ? null : visiblePhotos.length);
-  useEffect(() => { onRememberView?.({position:cameraPosition.current,region:geography.region,city:geography.city,history:geography.history,selectedPoints,selectedJourneys}); });
+  const rememberBrowser = useRef(null);
+  rememberBrowser.current = () => onRememberView?.({
+    position: cameraPosition.current, region: geography.region, city: geography.city,
+    history: geography.history, selectedPoints, selectedJourneys,
+  });
+  useEffect(() => {
+    rememberBrowser.current();
+    return () => rememberBrowser.current();
+  }, []);
   const choose = useCallback((place, cameraView) => { if (onBrowsePlace) { setControlsOpen(false); onBrowsePlace(place, { ...cameraView, region:geography.region, city:geography.city, history:geography.history, selectedPoints, selectedJourneys }); return; } returnTarget.current = document.activeElement; setSelectedId(place.id); setPhotoIndex(0); issue({ type: 'place', place }); }, [issue, onBrowsePlace, geography.region, geography.city, geography.history, selectedPoints, selectedJourneys]);
   const closeCard = useCallback(() => { setSelectedId(null); returnTarget.current?.focus?.(); }, []);
   const readyScene = useCallback(() => setReady(true), []), failScene = useCallback(() => { setFailed(true); setReady(false); }, []), stopRotation = useCallback(() => setRotating(false), []);
@@ -94,7 +102,7 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
       </div>
 
     </div>
-    <ActionWorkspace portalHost={workspaceHost} title="编辑地球" open={controlsOpen} onOpenChange={setControlsOpen} command={false} showTrigger={false}>
+    <ActionWorkspace portalHost={workspaceHost} scrollMemoryKey={projection ? "projection.globe.options" : "globe.options"} title="编辑地球" open={controlsOpen} onOpenChange={setControlsOpen} command={false} showTrigger={false}>
       <div className="globe-control-workspace">
     <nav className="atlas-breadcrumbs" aria-label="地理层级"><button onClick={()=>{setSelectedId(null);geography.navigate(null);}}>世界</button>{geography.region?.parent_id && <><span>／</span><button onClick={()=>geography.navigate(nodeById.get(geography.region.parent_id))}>{nodeById.get(geography.region.parent_id)?.name}</button></>}{geography.region&&<><span>／</span><button onClick={()=>geography.navigate(geography.region)}>{geography.region.name}</button></>}{geography.city&&<span>／{geography.city.name}</span>}</nav>        <div className="atlas-controls" aria-label="地球控制">
           <button disabled={failed} onClick={() => issue({ type: 'zoom', factor: .8 })} aria-label="放大地球">＋</button><button disabled={failed} onClick={() => issue({ type: 'zoom', factor: 1.25 })} aria-label="缩小地球">−</button>
@@ -105,13 +113,13 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
         <div className="globe-selector-sections">
           <fieldset className="music-create-song-picker"><legend>地区</legend>
             {geography.error && <p role="alert">{geography.error}<button onClick={geography.retry}>重试</button></p>}
-            <div className="music-create-song-options globe-region-options">{geography.results.map(n => <button key={n.id} type="button" aria-pressed={(geography.city?.id || geography.region?.id) === n.id} onClick={() => { setSelectedId(null); n.resultType === 'city' ? geography.chooseCity(n) : geography.navigate(n); }}>{n.name}</button>)}</div>
+            <div data-scroll-memory={`regions-${geography.region?.id ?? 'world'}`} className="music-create-song-options globe-region-options">{geography.results.map(n => <button key={n.id} type="button" aria-pressed={(geography.city?.id || geography.region?.id) === n.id} onClick={() => { setSelectedId(null); n.resultType === 'city' ? geography.chooseCity(n) : geography.navigate(n); }}>{n.name}</button>)}</div>
           </fieldset>
           <fieldset className="music-create-song-picker"><legend>记忆点</legend>
-            <div className="music-create-song-options">{visiblePhotos.map(p => <label key={p.id}><input type="checkbox" checked={selectedPoints.includes(p.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); setSelectedPoints(ids => checked ? [...ids,p.id] : ids.filter(id => id !== p.id)); }} /><span>{p.title || p.location || '未命名记忆'}{p.title && p.location ? ` · ${p.location}` : ''}</span></label>)}</div>
+            <div data-scroll-memory="points" className="music-create-song-options">{visiblePhotos.map(p => <label key={p.id}><input type="checkbox" checked={selectedPoints.includes(p.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); setSelectedPoints(ids => checked ? [...ids,p.id] : ids.filter(id => id !== p.id)); }} /><span>{p.title || p.location || '未命名记忆'}{p.title && p.location ? ` · ${p.location}` : ''}</span></label>)}</div>
           </fieldset>
           <fieldset className="music-create-song-picker"><legend>旅途</legend>
-            <div className="music-create-song-options">{visibleJourneys.map(j => <label key={j.id}><input type="checkbox" checked={selectedJourneys.includes(j.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); if(journeyId === j.id) setJourneyId(''); const points = journeyPoints(j); setSelectedPoints(ids => checked ? [...new Set([...ids, ...points])] : ids.filter(id => !points.includes(id))); }} /><span>{j.title}</span></label>)}</div>
+            <div data-scroll-memory="journeys" className="music-create-song-options">{visibleJourneys.map(j => <label key={j.id}><input type="checkbox" checked={selectedJourneys.includes(j.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); if(journeyId === j.id) setJourneyId(''); const points = journeyPoints(j); setSelectedPoints(ids => checked ? [...new Set([...ids, ...points])] : ids.filter(id => !points.includes(id))); }} /><span>{j.title}</span></label>)}</div>
           </fieldset>
         </div>
       </div>

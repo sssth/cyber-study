@@ -86,7 +86,7 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
     </form></ActionWorkspace>);
   if (editJourney) return editor;
   return <div className="globe-library-layout journey-library-layout">
-    <section className="journey-card-grid">
+    <section className="journey-card-grid" data-scroll-memory="journeys">
 
       {orderType(journeys,'journey',order).filter(j=>matchesItem('journey',j,searchState)).map(j => <article key={j.id} className="admin-card journey-summary-card" onClick={event => { if (journeyEditorOpen && !busy && !event.target.closest('button')) { setRemove(false); setJourney(j); } }}>
         <ContentActions orderItem={j} type="journey" id={j.id} title={j.title} preview={false}/><div className="journey-summary-content"><div className="journey-summary-heading"><h3>{j.title}</h3><span>{j.pointIds.length} 个记忆点</span></div>

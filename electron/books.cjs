@@ -9,7 +9,7 @@ const { atomicWrite, backup, readBook, publishBook, renameBook } = require('./bo
 const { retiredBookIds } = require('./defaultSamples.cjs');
 
 const run = promisify(execFile);
-const extensions = new Set(['.md', '.markdown', '.txt', '.pdf']);
+const extensions = new Set(['.md', '.markdown', '.txt', '.pdf', '.epub']);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const library = () => path.join(app.getPath('userData'), 'books');
 const bookDirectory = (id) => path.join(library(), hash(id));
@@ -49,6 +49,25 @@ async function convertPdf(original) {
   throw new Error(error.code === 2 && error.stderr?.trim() ? error.stderr.trim() : '无法提取 PDF 正文，请检查文件。');
 }
 
+
+async function convertEpub(original) {
+  const dependencies = path.join(app.getPath('userData'), 'pdf-text-deps');
+  for (const python of await pythonCandidates(dependencies)) {
+    try {
+      const { stdout } = await run(python, [path.join(__dirname, 'book_epub.py'), original], {
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONNOUSERSITE: '1' },
+        maxBuffer: 128 * 1024 * 1024,
+        timeout: 120000
+      });
+      return JSON.parse(stdout);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      if (error.killed) throw new Error('EPUB 转换超过 2 分钟。');
+      throw new Error(error.code === 2 && error.stderr?.trim() ? error.stderr.trim() : '无法转换 EPUB，请检查文件。');
+    }
+  }
+  throw new Error('EPUB 转换需要 Python 3，请安装后重试。');
+}
 
 function decodeText(bytes) {
   if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);
@@ -118,11 +137,13 @@ async function importBook(filename, source) {
   const original = path.join(directory, `original${extension}`);
   await atomicWrite(original, bytes);
   const name = path.basename(filename, path.extname(filename)).replace(/[\r\n]/g, ' ');
-  const content = await toMarkdown(bytes, original, extension, name);
+  const epub = extension === '.epub' ? await convertEpub(original) : null;
+  const content = epub ? `# ${epub.title || name}\n\n${epub.content}` : await toMarkdown(bytes, original, extension, name);
+  if (epub?.cover) await atomicWrite(path.join(directory, 'cover-data.txt'), epub.cover);
   const metadata = {
     id, source,
     title: content.match(/^# (.+)$/m)?.[1].trim() || name,
-    author: content.match(/^作者：(.+)$/m)?.[1].trim() || ''
+    author: epub?.author ?? (content.match(/^作者：(.+)$/m)?.[1].trim() || '')
   };
   await publishBook(directory, metadata, content);
   return { status: 'imported', source };
@@ -144,7 +165,7 @@ async function chooseBooks(window, folder, update) {
   const issues = [];
   const files = root ? walk(root, (dir) => issues.push({ source: sourceFor(dir), error: '无法读取此文件夹。' })) : picked.filePaths;
   const candidates = [];
-  const counts = { markdown: 0, txt: 0, pdf: 0 };
+  const counts = { markdown: 0, txt: 0, pdf: 0, epub: 0 };
   let skipped = 0;
   for await (const file of files) {
     const extension = path.extname(file).toLowerCase();
@@ -152,7 +173,7 @@ async function chooseBooks(window, folder, update) {
       skipped++;
       continue;
     }
-    const type = extension === '.txt' ? 'txt' : extension === '.pdf' ? 'pdf' : 'markdown';
+    const type = ['.md', '.markdown'].includes(extension) ? 'markdown' : extension.slice(1);
     counts[type]++;
     candidates.push({ file, source: sourceFor(file) });
   }

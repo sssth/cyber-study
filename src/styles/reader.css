@@ -595,3 +595,114 @@
 
 .reader-topbar .reader-search-slot .unified-search-filters {top:calc(100% + 6px);left:auto;right:0;max-width:calc(100vw - 32px);}
 
+
+.reader-inline-note [aria-label="选文操作"] {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.reader-inline-note [aria-label="选文操作"] button {
+  padding-inline: 0;
+  white-space: nowrap;
+}
+.excerpt-type-setting { display: flex; align-items: center; gap: 8px; }
+:is(.reader-content, .knowledge-original) mark[data-excerpt-type]:not(.reader-search-hit) {
+  color: inherit;
+  background: transparent;
+}
+:is(.reader-content, .knowledge-original) mark[data-excerpt-type="excerpt"]:not(.reader-search-hit) {
+  background: color-mix(in srgb, var(--excerpt-color) 19%, transparent);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--excerpt-color) 56%, transparent);
+  box-decoration-break: clone;
+}
+:is(.reader-content, .knowledge-original) mark[data-excerpt-type="highlight"]:not(.reader-search-hit) {
+  background: color-mix(in srgb, var(--excerpt-color) 52%, transparent);
+}
+:is(.reader-content, .knowledge-original) mark[data-excerpt-type="underline"] {
+  text-decoration: underline 2px var(--excerpt-color);
+  text-underline-offset: 3px;
+}
+:is(.reader-content, .knowledge-original) mark[data-excerpt-type="bookmark"]:not(.reader-search-hit) {
+  background: color-mix(in srgb, var(--excerpt-color) 12%, transparent);
+}
+mark[data-bookmark-start]::before {
+  content: '';
+  display: inline-block;
+  width: .55em;
+  height: .85em;
+  margin-inline-end: .25em;
+  background: var(--excerpt-color);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+}
+
+.excerpt-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.reader-color-palette button {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--swatch-color);
+}
+.reader-color-palette button[aria-pressed="true"] {
+  border-color: #101a23;
+  outline: 1px solid var(--swatch-color);
+  outline-offset: 1px;
+}
+
+.reader-shell[data-reader-theme="day"] {
+  --reader-page: #f7f4ed;
+  --reader-ink: #252d33;
+  --reader-heading: #344d52;
+  --reader-rule: #d4ccbd;
+  --reader-selection: #c9e5dd;
+}
+.reader-shell[data-reader-theme="day"][data-reader-eye-comfort] {
+  --reader-page: #ede4ce;
+  --reader-ink: #393326;
+  --reader-heading: #514638;
+  --reader-rule: #cec0a1;
+  --reader-selection: #dfcea4;
+}
+.reader-shell[data-reader-theme="night"][data-reader-eye-comfort] {
+  --reader-page: #25221e;
+  --reader-ink: #dfd1b8;
+  --reader-heading: #e5c995;
+  --reader-rule: #514536;
+  --reader-selection: #594936;
+}
+.reader-shell:is([data-reader-theme="day"], [data-reader-eye-comfort]) .reader-content {
+  background: var(--reader-page);
+  color: var(--reader-ink);
+  column-rule-color: var(--reader-rule);
+  scrollbar-color: var(--reader-heading) var(--reader-page);
+}
+.reader-shell:is([data-reader-theme="day"], [data-reader-eye-comfort]) .reader-content h3 {
+  background: var(--reader-page);
+  color: var(--reader-heading);
+  border-color: var(--reader-rule);
+}
+.reader-shell:is([data-reader-theme="day"], [data-reader-eye-comfort]) .reader-content p::first-letter {
+  background: transparent;
+  border-color: var(--reader-rule);
+}
+.reader-shell:is([data-reader-theme="day"], [data-reader-eye-comfort]) .reader-content ::selection {
+  color: var(--reader-ink);
+  background: var(--reader-selection);
+}
+.reader-eye-comfort[aria-pressed="true"] {
+  border-color: #83cbd1;
+  background: #163b45;
+}
+
+.reader-shell[data-reader-theme="day"] .reader-content p::first-letter {
+  color: #245465;
+}

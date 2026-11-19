@@ -73,9 +73,9 @@ function DiaryPanel({ onClose, navigationItem, editItem }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const editFromBook = useRef(false);
 
-  const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write');
+  const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write', { preferInitial:navigationItem?.type === 'diary' });
   const search=useSearchScope({id:'diary',label:'日记',priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:'心情',options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
-  const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null);
+  const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);
   useEffect(() => {
     if (editItem) return;
@@ -247,7 +247,7 @@ function DiaryPanel({ onClose, navigationItem, editItem }) {
       </div>);
   if (editItem) return <ActionWorkspace command={false} showTrigger={false} title="编辑日记" open onOpenChange={open => { if (!open) onClose(); }}>{fields}{error && <p role="alert">{error}</p>}</ActionWorkspace>;
   return (
-    <FeaturePanel hasMenu title="日记本" kicker="Private Diary"  onClose={closeDiary} onBack={backDiary}>
+    <FeaturePanel hasMenu title="日记本" scrollContext={mode} kicker="Private Diary"  onClose={closeDiary} onBack={backDiary}>
       {mode === 'write' && <ContentCommand kind="cancel-create" label="切换阅读模式" run={readDiary} />}
       <ContentCommand kind="create" label="书写今日日记" run={writeToday} />
       <DisplayViewMenu label="日记模式" options={[[ 'write', '今日日记'], ['read', '阅读模式']]} value={mode} onChange={value => value === 'write' ? writeToday() : readDiary()} />
@@ -420,7 +420,7 @@ function MemoBoard({ onClose, shortcuts, editItem }) {
       </ActionWorkspace>);
   if (editItem) return editor;
   return (
-    <FeaturePanel hasMenu wide title="Memo 板" kicker="Wall & Tasks" description="To-do、便签与图片固定在同一块板上，可拖拽排列，全部本地保存。" onClose={onClose}>
+    <FeaturePanel hasMenu wide title="Memo 板" scrollContext={view} kicker="Wall & Tasks" description="To-do、便签与图片固定在同一块板上，可拖拽排列，全部本地保存。" onClose={onClose}>
       <nav className="globe-mode-switch" aria-label="Memo 视图">
         <button aria-pressed={view === 'board'} onClick={() => setView('board')}>Memo 板</button>
         <button aria-pressed={view === 'memo'} onClick={() => setView('memo')}>便签</button>
@@ -452,12 +452,12 @@ function MemoBoard({ onClose, shortcuts, editItem }) {
       <SearchStatus id="memo" label="便签与待办"/>
       {items.length>0&&!items.some(item=>matchesItem(item.type==='todo'?'todo':'memo',item,search))&&<></>}
       {editor}
-      <div className={view === 'board' ? "memo-board" : `memo-all-list memo-collection ${view === 'todo' ? 'memo-todo-collection' : 'memo-note-collection'}`} ref={boardRef} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
+      <div className={view === 'board' ? "memo-board" : `memo-all-list memo-collection ${view === 'todo' ? 'memo-todo-collection' : 'memo-note-collection'}`} data-scroll-memory={view === 'board' ? 'memo-canvas' : undefined} ref={boardRef} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
         {(view === 'board' ? visibleItems : orderType(visibleItems, view === 'todo' ? 'todo' : 'memo', order)).map((item) => (
           <div key={item.id} className={`memo-item ${item.photo ? 'image' : item.type} ${item.done ? 'done' : ''}`} data-tone={item.tone}
             style={view !== 'board' ? { position: 'relative', left: 'auto', top: 'auto', width: '100%' } : { left: `clamp(0px, ${item.x}px, calc(100% - ${memoSize(item).width}px))`, top: `clamp(0px, ${item.y}px, calc(100% - ${memoSize(item).height}px))`, width: memoSize(item).width, height: memoSize(item).height, zIndex: layers.findIndex(entry => entry.id === item.id) + 1 }}>
             {view === 'board' && <span className="memo-magnet" title="拖动位置" onPointerDown={(event) => onPointerDown(event, item)} />}
-            <button type="button" data-item-open className="memo-content-open" aria-label={item.type === 'todo' ? (item.done ? (view === 'board' ? '从板上收起：' : '标为未完成：') : '标为完成：') + item.text : item.text || '图片便签'} onClick={() => activateMemo(item)}>
+            <button type="button" data-item-open data-scroll-memory={`memo-${view}-${item.id}`} className="memo-content-open" aria-label={item.type === 'todo' ? (item.done ? (view === 'board' ? '从板上收起：' : '标为未完成：') : '标为完成：') + item.text : item.text || '图片便签'} onClick={() => activateMemo(item)}>
               {item.photo ? <img src={item.photo} alt="便签板图片" draggable="false" /> : <span className="memo-card-content">{item.type === 'todo' && <span className="memo-check" aria-hidden="true">{item.done ? '✓' : ''}</span>}<span className="memo-card-text">{item.text}</span></span>}
             </button>
             <ContentActions orderItem={item} sortable={view !== 'board'} type={item.type==='todo'?'todo':'memo'} id={item.id} title={item.text}/><ContentCommand label={`删除 · ${item.text || item.photo?.name || '图片便签'}`} confirm run={() => persist(items.filter((memo) => memo.id !== item.id))} />

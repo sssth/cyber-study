@@ -222,7 +222,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
       </ActionWorkspace>);
   if (editItem) return editor;
   return (
-    <FeaturePanel hasMenu title="打字机" kicker="Slow Writing" onClose={onClose}>
+    <FeaturePanel hasMenu title="打字机" scrollContext={showCompleted ? "completed" : "unfinished"} kicker="Slow Writing" onClose={onClose}>
       <div className="globe-mode-switch" aria-label="抄写作品库">{[[false,'未完成作品'],[true,'已完成作品']].map(([value,label])=><button key={String(value)} type="button" aria-pressed={showCompleted===value} onClick={()=>setShowCompleted(value)}>{label}</button>)}</div>
       {editor}
       <SearchStatus id="typewriter" label="抄写作品"/>

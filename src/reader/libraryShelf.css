@@ -14,9 +14,28 @@
 .cover-edition { font-size:9px; letter-spacing:2px; opacity:.65; }
 .cover-author { font-size:11px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.8; }
 .shelf-read:hover .shelf-cover { transform:translateY(-5px) rotate(-1deg); }
+.shelf-cover-caption {
+  position:absolute;
+  inset:auto 0 0;
+  display:grid;
+  gap:5px;
+  padding:24px 8px 8px;
+  background:linear-gradient(transparent,#080e16f5 24px);
+  color:#edf3f5;
+  font-size:11px;
+  text-align:left;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .18s ease;
+}
+.shelf-cover-reading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px 6px; }
+.shelf-cover:has(.shelf-cover-caption) .cover-author { visibility:hidden; }
+.shelf-cover-caption-author { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shelf-read:is(:hover,:focus-visible) .shelf-cover-caption { opacity:1; }
+@media(prefers-reduced-motion:reduce) {
+  .shelf-cover-caption { transition:none; }
+}
 .shelf-book-title { font-size:14px; color:#dbe6e7; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.shelf-book-meta { display:flex; align-items:center; justify-content:center; gap:12px; color:#91a9b0; font-size:11px; min-height:32px; }
-.shelf-book-meta button { font-size:11px; padding:2px 7px; border:0; background:transparent; color:#91a9b0; }
 .display-shelf-stage { height: min(65vh,650px); min-height:360px; background:radial-gradient(ellipse at center,#243c47 0,#08151e 75%); border:1px solid #66818a38; border-radius:12px; overflow:hidden; }
 .display-shelf-stage > p { padding:28px; }
 .display-shelf-caption { display:flex; justify-content:space-between; align-items:baseline; gap:20px; color:#b6c8cd; margin:15px 0; flex-wrap:wrap; }
@@ -113,3 +132,18 @@ button.shelf-book-row:hover {background:#ffffff06;}
 .shelf-match-text {font-size:13px;line-height:1.8;color:#dce5e7;white-space:pre-wrap;overflow-wrap:anywhere;}
 .shelf-match-empty {margin:14px 16px;color:#8da6ad;font-size:12px;line-height:1.7;}
 @media(max-width:700px){.book-card.shelf-search-book {column-gap:16px;padding-inline:8px;}.shelf-search-passages > button {padding:10px;}}
+
+.stack-form input[name="cover"][type="file"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.book-editor-cover {
+  display: block;
+  width: 106px;
+  margin-inline-start: calc(var(--workspace-label-width, 56px) + 14px);
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 3px;
+}

@@ -52,7 +52,7 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   useSearchCount(searchId, catalog ? results.length : null);
   useMapSource({ priority: 55, entities: results, loading: !catalog });
 
-  return <FeaturePanel hasMenu wide title="个人知识库" onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
+  return <FeaturePanel hasMenu wide title="个人知识库" scrollContext={view} onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
     <DisplayViewMenu label="知识库视图" options={[['list','全部实体'],['graph','实体关系图']]} value={view} onChange={setView}/>
     {createTypes.map(type => <ContentCommand key={type} kind="create" label={type === 'playlist' ? '歌单与歌曲' : contentTypes[type]} run={() => onCreate(type)} />)}
     {view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={results} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :

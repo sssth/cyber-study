@@ -1,3 +1,4 @@
+import { bookActivityTime, bookReadingStatus, loadReaderState, readingStatusLabels } from '../data/storage.js';
 import useContentOrder from '../ui/useContentOrder.js';
 import { orderType } from '../data/contentOrder.js';
 import useMapSource, {mapEntities} from '../ui/useMapSource.js';
@@ -30,12 +31,12 @@ export function useBookCover(book) {
     refresh(); window.addEventListener('cyber-content-changed', refresh);
     return () => { alive = false; if (current) URL.revokeObjectURL(current); window.removeEventListener('cyber-content-changed', refresh); };
   }, [book.id]);
-  return url;
+  return url || book.cover || null;
 }
 export function coverHue(book) { return [...book.id].reduce((n, c) => n + c.charCodeAt(0), 0) % 100 + 160; }
-export function Cover({ book }) {
+export function Cover({ book, children }) {
   const url = useBookCover(book);
-  return <span className="shelf-cover" style={{ '--cover-hue': coverHue(book) }}>{url ? <img src={url} alt=""/> : <><span className="cover-edition">赛 博 书 房</span><strong>{book.title}</strong><span className="cover-author">{book.author === '本地导入' ? '' : book.author}</span></>}</span>;
+  return <span className="shelf-cover" style={{ '--cover-hue': coverHue(book) }}>{url ? <img src={url} alt=""/> : <><span className="cover-edition">赛 博 书 房</span><strong>{book.title}</strong><span className="cover-author">{book.author === '本地导入' ? '' : book.author}</span></>}{children}</span>;
 }
 export const shelfViews = [[ 'all', '全部书籍'], ['0', '展示书架一'], ['1', '展示书架二'], ['excerpts', '摘录与批注']];
 
@@ -53,6 +54,8 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
   useEffect(()=>{if(!selection)return;const key=e=>{if(e.target.closest?.('input,textarea,select,[contenteditable]'))return;if(['ArrowLeft','ArrowRight','Enter','Escape'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();if(e.key==='Enter')placeSelection();else if(e.key==='Escape'){setView(String(selection.shelf));setSelection(null);}else{const modes=['flat','spine','cover'];setSelection(s=>({...s,orientation:modes[(modes.indexOf(s.orientation)+(e.key==='ArrowRight'?1:2))%3]}));}}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[selection]);
   const order = useContentOrder();
   const shownBooks = orderType(selection ? visibleBooks.filter(book=>!selection.used.includes(book.id)) : visibleBooks, 'book', order);
+  if (!selection) shownBooks.sort((a, b) =>
+    bookActivityTime(b, readerState.books[b.id]) - bookActivityTime(a, readerState.books[a.id]));
   useMapSource({priority:30,enabled:view==='all',entities:mapEntities('book',shownBooks)});
   const [editing, setEditing] = useState(null);
   const editBook = book => <ContentCommand label={`编辑《${book.title}》`} disabled={busy} run={() => setEditing(book)} />;
@@ -65,7 +68,16 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
     </ActionWorkspace>
     {selection&&<ContentCommand kind="cancel-create" label="取消选书" run={()=>{setView(String(selection.shelf));setSelection(null);}}/>}
     {view === 'all' ? <div className={`cover-shelves${searchActive?' shelf-search-results':''}`}>{shownBooks.map(book => <article data-edit-item={selection?undefined:true} className={`book-card shelf-book${searchActive?' shelf-search-book':''}`} key={book.id}>
-      <button data-item-open={selection?undefined:true} data-instant-selection={selection?true:undefined} className="shelf-read" aria-pressed={selection?selection.ids.includes(book.id):undefined} disabled={selection&&(selection.used.includes(book.id)||(!selection.ids.includes(book.id)&&selection.ids.length>=10))} onClick={() => selection?selectBook(book):openBook(book)} aria-label={`阅读《${book.title}》`}><Cover book={book}/><span className="shelf-book-title">{book.title}</span></button>
+      <button data-item-open={selection?undefined:true} data-instant-selection={selection?true:undefined} className="shelf-read" aria-pressed={selection?selection.ids.includes(book.id):undefined} disabled={selection&&(selection.used.includes(book.id)||(!selection.ids.includes(book.id)&&selection.ids.length>=10))} onClick={() => selection?selectBook(book):openBook(book)} aria-label={`阅读《${book.title}》`}><Cover book={book}>
+          {!selection && <span className="shelf-cover-caption">
+            <span className="shelf-cover-reading">
+              <span>{readingStatusLabels[bookReadingStatus(readerState.books[book.id])]}</span>
+              <span>{Math.round((readerState.books[book.id]?.progress ?? 0) * 100)}%</span>
+            </span>
+            <span className="shelf-cover-caption-author">{book.author || '作者未知'}</span>
+          </span>}
+        </Cover><span className="shelf-book-title">{book.title}</span>
+      </button>
       {searchActive&&<section className="shelf-search-passages" aria-label={`《${book.title}》的匹配段落`} tabIndex={0}>
         {(matchesByBook.get(book.id)||[]).map(block=><button key={block.id} type="button" data-item-open={!selection?true:undefined} data-instant-selection={selection?true:undefined}
           onClick={()=>selection?selectBook(book):openBook(book,0,block.id)}>
@@ -74,25 +86,25 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
         </button>)}
 
       </section>}
-      {!selection&&<ContentActions orderItem={book} type="book" id={book.id} title={book.title} preview={false}/>}
-      <div className="shelf-book-meta"><span>{readerState.books?.[book.id]?.progress > 0 ? `已读 ${Math.round(readerState.books[book.id].progress * 100)}%` : '未开始'}</span></div>
+      {!selection&&<ContentActions sortable={false} orderItem={book} type="book" id={book.id} title={book.title} preview={false}/>}
       {!selection&&editBook(book)}
     </article>)}</div> : <DisplayShelf key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
 
-    {editing && <BookEditor editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
+    {editing && <BookEditor readingRecord={readerState.books[editing.id]} editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
   </section>;
 }
 
 
-export function BookEditor({editing, renameBook, removeBook, canDelete, busy, onClose}) {
+export function BookEditor({editing, readingRecord = loadReaderState().books[editing.id], renameBook, removeBook, canDelete, busy, onClose}) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const cover = useBookCover(editing);
   return <ActionWorkspace title="编辑书籍" command={false} showTrigger={false} open onOpenChange={open => { if (!open && !saving) onClose(); }}>
     <form key={editing.id} className="stack-form" onSubmit={async event => {
         event.preventDefault(); const form = event.currentTarget; const values = new FormData(form);
         setSaving(true); setError('');
         try {
-          await renameBook(editing, {title: String(values.get('title')).trim(), author: String(values.get('author')).trim()});
+          await renameBook(editing, {title: String(values.get('title')).trim(), author: String(values.get('author')).trim(), readingStatus: values.get('readingStatus')});
           const file = form.elements.cover.files[0];
           if (file) { await assets.add(`book:${editing.id}`, [file]); window.dispatchEvent(new Event('cyber-content-changed')); }
           onClose();
@@ -100,7 +112,15 @@ export function BookEditor({editing, renameBook, removeBook, canDelete, busy, on
       }}>
         <label>书名<input name="title" required maxLength={500} defaultValue={editing.title}/></label>
         <label>作者<input name="author" maxLength={500} defaultValue={editing.author === '本地导入' ? '' : editing.author || ''} /></label>
-        <label>封面<input name="cover" type="file" accept="image/*"/></label>
+        <label>阅读状态<select name="readingStatus" defaultValue={readingRecord?.readingStatus || ''}>
+          <option value="">自动（{readingStatusLabels[bookReadingStatus(readingRecord)]}）</option>
+          {Object.entries(readingStatusLabels).map(([status, label]) => <option key={status} value={status}>{label}</option>)}
+        </select></label>
+        <label>
+          封面
+          <input name="cover" type="file" accept="image/*" aria-label="选择新封面" />
+        </label>
+        {cover && <img className="book-editor-cover" src={cover} alt="当前封面" />}
         {error && <p role="alert">{error}</p>}
         <WorkspaceActions><button disabled={saving || busy}>保存</button>
         {canDelete && !editing.id.startsWith('sample:') && <button type="button" disabled={saving || busy} onClick={async () => { setSaving(true); setError(''); try { if (await removeBook(editing)) { onClose(); } else setError('删除未完成，请重试。'); } catch (failure) { setError(failure.message); } finally { setSaving(false); } }}>删除</button>}</WorkspaceActions>

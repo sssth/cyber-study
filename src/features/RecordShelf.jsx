@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
+import { useNavigationState } from '../ui/useNavigationState.js';
 
 export default function RecordShelf({ records, selectedId, onSelect, title, count, children }) {
   const shelf = useRef(null);
   const touchStart = useRef(null);
   const suppressClick = useRef(false);
   const wheelUntil = useRef(0);
-  const [opened, setOpened] = useState(null);
+  const [opened, setOpened] = useNavigationState('music','openRecord',null);
   const index = records.findIndex(record => record.id === selectedId);
-  useEffect(() => { setOpened(null); }, [selectedId]);
   function move(direction) {
     const next = records[index + direction];
-    if (next) onSelect(next.id);
+    if (next) { setOpened(null); onSelect(next.id); }
   }
   function wheel(event) {
     if (event.ctrlKey || !records.length) return;
@@ -35,13 +35,13 @@ export default function RecordShelf({ records, selectedId, onSelect, title, coun
       onKeyDown={event => {
         if (!['ArrowLeft','ArrowRight'].includes(event.key)) return;
         event.preventDefault();
-        shelf.current.focus();
+        shelf.current.focus({ preventScroll: true });
         move(event.key === 'ArrowRight' ? 1 : -1);
       }} tabIndex={0} aria-label="左右翻唱片">
       {records.map((record, position) => {
         const distance = position - index;
-        return children(record, distance, opened === record.id, () => {
-          if (distance) onSelect(record.id);
+        return children(record, distance, !distance && opened === record.id, () => {
+          if (distance) { setOpened(null); onSelect(record.id); }
           else setOpened(opened === record.id ? null : record.id);
         });
       })}

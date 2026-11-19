@@ -40,6 +40,10 @@ function available(kind, target) {
     panel.contains(node) && (!node.closest('dialog') || node.closest('dialog').open) &&
     !node.closest('[inert]') && (kind === 'create' || node.parentElement?.checkVisibility()) && read().kind === kind
   );
+  if (kind === 'create' || kind === 'cancel-create') {
+    const localCreate = panel.querySelector('[data-local-create]');
+    if (localCreate) return options.filter(([node]) => localCreate.contains(node));
+  }
   const item = editTarget(target);
   const local = item && options.filter(([node]) => item.contains(node));
   return local?.length ? local : options;
@@ -112,7 +116,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
     else setItemEditing(true);
     dialog.current.show();
     requestAnimationFrame(() => {
-      dialog.current?.querySelector('input[type="search"], .stack-form > button:not(:disabled)')?.focus();
+      dialog.current?.querySelector('input[type="search"], .stack-form > button:not(:disabled)')?.focus({ preventScroll: true });
     });
   };
   const open = useRef(launch);
@@ -199,7 +203,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
     };
     const doubleClick = event => {
       // The shared globe stage owns its reversible edit toggle in every host.
-      if(event.target.closest('[data-instant-selection], .display-shelf-stage, .atlas-stage'))return;
+      if(event.target.closest('[data-instant-selection], .display-shelf-stage, .atlas-stage, .reader-content'))return;
       if (document.body.hasAttribute('data-item-editing') && !event.target.closest('input,textarea,select,[contenteditable], .edit-sidebar, dialog')) {
         cancelClick(); event.preventDefault(); event.stopImmediatePropagation();
         window.dispatchEvent(new Event('cyber-exit-item-edit')); close(); return;
@@ -241,7 +245,8 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
       }
       cancelClick();
       const entries = available('create', event.target);
-      if (document.body.hasAttribute('data-item-editing')) {
+      const localCreation = entries.some(([node]) => node.closest('[data-local-create]'));
+      if (document.body.hasAttribute('data-item-editing') && !localCreation) {
         window.dispatchEvent(new Event('cyber-exit-item-edit'));
         close();
         requestAnimationFrame(() => open.current('create', entries));

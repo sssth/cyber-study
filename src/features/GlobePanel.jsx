@@ -5,6 +5,7 @@ import {requestGlobeBack} from '../data/globeBack.js';
 import { memoryPlaces } from './globe/geo.js';
 import useMapSource, {mapEntities} from '../ui/useMapSource.js';
 import { getSearch, setSearch } from '../search/searchStore.js';
+import { rememberView, rememberedView } from '../data/viewNavigation.js';
 import { useNavigationState } from '../ui/useNavigationState.js';
 import { setItemEditing } from '../data/contentOrder.js';
 import { ContentCommand } from './ContentCommands.jsx';
@@ -26,10 +27,11 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const [initialPoint, setInitialPoint] = useState(null);
   const createReturnMode = useRef(null);
   const tripReturn = useRef(null);
-  const globeReturnView = useRef(initialView || null);
+  const browserViewKey = scopeId('globe.browserView');
+  const globeReturnView = useRef(initialView || rememberedView(browserViewKey, null));
   const [journeyId, setJourneyId] = useNavigationState(scopeId('globe'),'journeyId','');
-  const [mode, setMode] = useNavigationState(scopeId('globe'),'mode',searchTarget?.type==='journey'?'journey':searchTarget?'point':'browse');
-  const [viewerPhotos, setViewerPhotos] = useNavigationState(scopeId('globe'),'viewerPhotos',null);
+  const [mode, setMode] = useNavigationState(scopeId('globe'),'mode',searchTarget?.type==='journey'?'journey':searchTarget?'point':'browse', { preferInitial:Boolean(searchTarget) });
+  const [viewerPhotos, setViewerPhotos] = useNavigationState(scopeId('globe'),'viewerPhotos',null, { remember:false });
   const [busy, setBusy] = useState(!initialData);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -37,7 +39,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const [progress, setProgress] = useState(null);
   const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?'旅途':'记忆点',priority:projection?1010:10,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:[...dateFilters,...(mode==='journey'?[]:[{key:'placeId',label:'地点',options:memoryPlaces(photos).map(p=>[p.id,p.name])},{key:'journeyId',label:'旅程',options:journeys.map(j=>[j.id,j.title])},{key:'status',label:'足迹状态',options:[['visited','去过'],['wish','想去']]}])]});
   const query=search.query;
-  const [viewId, setViewId] = useNavigationState(scopeId('globe'),'viewId',null);
+  const [viewId, setViewId] = useNavigationState(scopeId('globe'),'viewId',null, { remember:false });
   const closeViewer = useRef(null), returnFocus = useRef(null), initialized = useRef(false);
   useEffect(() => { if (initialPlace) { setSearch(scopeId('globe'), {query:'', filters:{placeId:initialPlace.id}}); setMode('point'); return; } const current = getSearch(scopeId('globe')); if ((current.filters?.journeyId || current.filters?.placeId)) setSearch(scopeId('globe'), { ...current, filters: { ...current.filters, journeyId: '', placeId:'' } }); }, []);
   const desktop = Boolean(window.cyberStudy?.globe);
@@ -66,7 +68,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const viewerSequence = (viewerPhotos || photos).filter(p => !p.deletedAt);
   const viewIndex = viewerSequence.findIndex(p => p.id === viewId), viewed = viewerSequence[viewIndex];
   useMapSource({priority:projection?1020:20,projection,detail:Boolean(viewed),pointNames:new Map(photos.map(photo=>[photo.id,photo.title || photo.location || photo.filename])),loading:busy,blocked:mode==='browse'&&!viewed,entities:viewed?mapEntities('memory_point',[viewed]):mode==='journey'?mapEntities('journey',journeys.filter(j=>matchesItem('journey',j,search))):mapEntities('memory_point',filtered)});
-  const dismiss = () => { setViewId(null); setViewerPhotos(null); returnFocus.current?.focus(); };
+  const dismiss = () => { setViewId(null); setViewerPhotos(null); returnFocus.current?.focus({ preventScroll:true }); };
   useImperativeHandle(backRef, () => () => {
     if (viewed) { dismiss(); return true; }
     if (initialPoint) { setInitialPoint(null); return true; }
@@ -129,7 +131,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
     setItemEditing(true);
     return () => setItemEditing(false);
   }, [initialPoint?.id]);
-  return <FeaturePanel hasMenu wide title="地球仪" kicker="Memory Globe" description="用照片或文字记录记忆，添加地点后即可在地球上查看。" onClose={() => { if (!busy) onClose(); }}>
+  return <FeaturePanel hasMenu wide title="地球仪" scrollContext={mode} kicker="Memory Globe" description="用照片或文字记录记忆，添加地点后即可在地球上查看。" onClose={() => { if (!busy) onClose(); }}>
     {!desktop ? <EmptyState>请通过桌面应用打开地球仪。本地照片导入需要桌面文件访问能力。</EmptyState> : <>
       <div className="globe-mode-switch" aria-label="地球仪模式">{[['browse', '3D 浏览'], ['point', '记忆点'], ['journey', '旅程']].map(([value, title]) => <button key={value} disabled={busy} aria-pressed={mode === value} onClick={() => { if (value !== mode) { setInitialPoint(null); tripReturn.current = null; const current = getSearch(scopeId('globe')); setSearch(scopeId('globe'), {...current, filters:{...current.filters, journeyId:'',placeId:''}}); setMode(value); } }}>{title}</button>)}</div>
       {mode === 'point' && initialPoint && !initialPoint.id && <ContentCommand kind="cancel-create" label="取消新建记忆点" disabled={busy} run={() => {
@@ -141,7 +143,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && mode !== 'journey' && <p role="status" className="globe-caption">{message}</p>}
       {mode === 'journey' && <MemoryEditor workspaceHost={workspaceHost} initialPoint={initialPoint} key={mode} mode={mode} photos={photos} journeys={journeys} searchState={search} busy={busy} request={request} onBrowsePoints={id => { tripReturn.current = {mode, search:getSearch(scopeId('globe'))}; setSearch(scopeId('globe'), {query:'', filters:{journeyId:id}}); setInitialPoint(null); setMode('point'); }} />}
-      {mode === 'browse' && <GlobeBrowser projection={projection} workspaceHost={workspaceHost} onRememberView={snapshot => { globeReturnView.current = snapshot; }} initialView={globeReturnView.current} onBrowsePlace={(place, snapshot) => { globeReturnView.current = snapshot; tripReturn.current = {mode, search:getSearch(scopeId('globe'))}; setSearch(scopeId('globe'), {query:'', filters:{placeId:place.id}}); setInitialPoint(null); setMode('point'); }} journeys={journeys} journeyId={journeyId} setJourneyId={setJourneyId} photos={photos} loading={busy} onOrganize={photo => { setInitialPoint(photo || null); setMode('point'); }} onOpenPhoto={(photo, sequence) => { returnFocus.current = document.activeElement; setViewerPhotos(sequence); setViewId(photo.id); }} />}
+      {mode === 'browse' && <GlobeBrowser projection={projection} workspaceHost={workspaceHost} onRememberView={snapshot => { globeReturnView.current = snapshot; rememberView(browserViewKey, snapshot); }} initialView={globeReturnView.current} onBrowsePlace={(place, snapshot) => { globeReturnView.current = snapshot; tripReturn.current = {mode, search:getSearch(scopeId('globe'))}; setSearch(scopeId('globe'), {query:'', filters:{placeId:place.id}}); setInitialPoint(null); setMode('point'); }} journeys={journeys} journeyId={journeyId} setJourneyId={setJourneyId} photos={photos} loading={busy} onOrganize={photo => { setInitialPoint(photo || null); setMode('point'); }} onOpenPhoto={(photo, sequence) => { returnFocus.current = document.activeElement; setViewerPhotos(sequence); setViewId(photo.id); }} />}
       {mode === 'point' && <>
       {report.length > 0 && <details className="globe-import-report" open><summary>导入报告：{report.filter(r => r.status === '成功').length} 成功，{report.filter(r => r.status === '失败').length} 失败，{report.filter(r => !['成功', '失败'].includes(r.status)).length} 跳过</summary><ul>{report.map((r, i) => <li key={i}>{r.name} — {r.status}{r.reason ? `：${r.reason}` : ''}</li>)}</ul></details>}
       <div className="globe-library-layout memory-library-layout">
@@ -150,7 +152,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
             const records = filtered.filter(p => (p.visitStatus === 'wish' ? 'wish' : 'visited') === status);
             return <section className={`memory-status-column memory-status-${status}`} key={status} aria-label={heading}>
               <h3 className="memory-status-heading">{heading}</h3>
-              <div className={status === 'visited' ? 'memory-status-scroll globe-photo-grid' : 'memory-status-scroll memory-wish-list'}>
+              <div data-scroll-memory={`memory-${status}`} className={status === 'visited' ? 'memory-status-scroll globe-photo-grid' : 'memory-status-scroll memory-wish-list'}>
                 {records.map(p => <article className={`admin-card memory-point-card ${status === 'wish' ? 'memory-wish-row' : 'memory-visited-card'}`} key={p.id} onClick={event => { if (initialPoint?.id && !busy && !event.target.closest('button')) editPoint(p); }}>
                   <ContentCommand label={`编辑记忆点 · ${p.title || p.location || p.filename || '未命名记忆'}`} disabled={busy} run={() => editPoint(p)} />
                   <button type="button" data-item-open className="memory-card-edit" disabled={busy} aria-label={`查看记忆：${p.title || p.location || '未命名记忆'}`} onClick={event => { returnFocus.current = event.currentTarget; setViewerPhotos(null); setViewId(p.id); }} />
@@ -175,7 +177,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
     {viewed && <div className="globe-photo-viewer" role="dialog" aria-modal="true" aria-label="记忆详情">
       <ContentCommand label="编辑记忆点" run={() => { dismiss(); editPoint(viewed); }} /><ContentActions surface=".globe-photo-viewer" type="memory_point" id={viewed.id} title={viewed.location} preview={false}/>
       <button ref={closeViewer} className="memory-detail-close" aria-label="关闭记忆详情" onClick={dismiss}>×</button>
-      <div className={`memory-detail-layout ${viewed.visitStatus === 'wish' ? 'memory-detail-wish' : ''}`}>{viewed.visitStatus !== 'wish' && <div className="memory-detail-photo">{viewed.photo ? <img src={viewed.photo} alt={viewed.title || viewed.location || '记忆照片'} /> : <span>暂无照片</span>}</div>}
+      <div data-scroll-memory={`memory-detail-${viewed.id}`} className={`memory-detail-layout ${viewed.visitStatus === 'wish' ? 'memory-detail-wish' : ''}`}>{viewed.visitStatus !== 'wish' && <div className="memory-detail-photo">{viewed.photo ? <img src={viewed.photo} alt={viewed.title || viewed.location || '记忆照片'} /> : <span>暂无照片</span>}</div>}
       <section className="memory-detail-copy">{viewed.visitStatus !== 'wish' && <><h2>{viewed.title || viewed.location || '未命名记忆'}</h2><p>{viewed.city || viewed.location || '地点未填写'} · {viewed.date || '日期未知'} · {viewed.visitStatus === 'wish' ? '想去' : '去过'}</p></>}<p className="memory-detail-description">{viewed.caption || '暂无记忆描述'}</p></section></div>
     </div>}
   </FeaturePanel>;

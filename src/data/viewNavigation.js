@@ -1,6 +1,9 @@
 // One return snapshot, never a growing navigation stack.
 const views = new Map();
+const remembered = new Map();
 let restored = null;
+export function rememberView(key, value) { remembered.set(key, value); }
+export function rememberedView(key, fallback) { return remembered.has(key) ? remembered.get(key) : fallback; }
 export function registerView(key, read, apply) {
   const entry = { read, apply }; views.set(key, entry);
   return () => { if (views.get(key) === entry) views.delete(key); };

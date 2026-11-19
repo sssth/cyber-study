@@ -1,3 +1,5 @@
+import { excerptAppearance } from '../data/knowledgeStore.js';
+
 export function indexChapters(blocks) {
   const chapters = [{ id: '', text: '正文' }];
   const chapterByBlock = new Map();
@@ -16,6 +18,18 @@ export function indexChapters(blocks) {
   }
   if (blocks.length && chapterByBlock.get(blocks[0].id)) chapters.shift();
   return { chapters, chapterByBlock };
+}
+
+export function chapterMarkdown(content, blocks, chapters, chapterId) {
+  const index = chapters.findIndex(chapter => chapter.id === chapterId);
+  if (index < 0) return '';
+  const chapterStart = id => {
+    const block = blocks.find(item => item.id === id);
+    return block?.start > 0 ? content.lastIndexOf('\n', block.start - 1) + 1 : 0;
+  };
+  const start = chapterStart(chapterId);
+  const end = chapters[index + 1] ? chapterStart(chapters[index + 1].id) : content.length;
+  return content.slice(start, end).trim();
 }
 
 export function readerPosition(element, paged) {
@@ -41,7 +55,7 @@ export function goToReaderBlock(element, block, paged) {
   }
 }
 
-export function highlightRanges(blocks, groups) {
+export function highlightRanges(blocks, groups, { maskLegacyUnderlines = false } = {}) {
   const byBlock = new Map();
   const byId = new Map(blocks.map((block) => [block.id, block]));
   const append = (blockId, range) => {
@@ -49,14 +63,16 @@ export function highlightRanges(blocks, groups) {
     byBlock.get(blockId).push(range);
   };
   for (const [key, [note]] of groups) {
+    const appearance = excerptAppearance(note);
+    if (appearance.excerptType === 'hidden' && !(maskLegacyUnderlines && note.markdownUnderline)) continue;
     if (note.ranges?.length) {
-      for (const { blockId, start, end } of note.ranges) append(blockId, { key, start, end });
+      for (const { blockId, start, end } of note.ranges) append(blockId, { key, start, end, ...appearance });
       continue;
     }
     for (const block of note.blockId ? [byId.get(note.blockId)] : blocks) {
       if (!block || !note.quote) continue;
       const start = block.text.indexOf(note.quote);
-      if (start >= 0) append(block.id, { key, start, end: start + note.quote.length });
+      if (start >= 0) append(block.id, { key, start, end: start + note.quote.length, ...appearance });
     }
   }
   return byBlock;

@@ -1,10 +1,11 @@
-const { app, ipcMain, safeStorage } = require('electron');
+const { app, ipcMain, safeStorage, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { cacheTrack } = require('./cache.cjs');
 
-const providers = new Set(['qq', 'netease']);
+const { createSpotify } = require('./spotify.cjs');
+const providers = new Set(['qq', 'netease', 'spotify']);
 const sessions = new Map();
 const pending = new Map();
 const cookiePath = provider => path.join(app.getPath('userData'), `music-${provider}.enc`);
@@ -92,9 +93,19 @@ function httpsUrl(value) {
 const qrImage = value => typeof value === 'string' && /^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(value) ? value : '';
 
 function registerMusic(getWindow) {
+  let spotify;
+  app.on('before-quit', () => { void spotify?.stop(); });
   ipcMain.handle('music:request', async (event, provider, action, input = {}) => {
     if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame || !providers.has(provider)) {
       return { error: '音乐请求来源无效。' };
+    }
+    if (provider === 'spotify') {
+      try {
+        spotify ??= createSpotify({ dataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, openExternal: shell.openExternal });
+        return await spotify.handle(action, input);
+      } catch (error) {
+        return { error: error?.message || 'Spotify 请求失败，请稍后重试。' };
+      }
     }
     if (action === 'cache-status') return { supported: true };
     try {

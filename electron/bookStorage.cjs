@@ -30,7 +30,7 @@ async function backup(directory, name, data) {
 async function describeFiles(directory) {
   const files = [];
   for (const name of await fs.readdir(directory)) {
-    if (name !== 'book.md' && !/^original\.(md|markdown|txt|pdf)$/i.test(name)) continue;
+    if (name !== 'book.md' && !/^original\.(md|markdown|txt|pdf|epub)$/i.test(name)) continue;
     const bytes = await fs.readFile(path.join(directory, name));
     const stat = await fs.stat(path.join(directory, name));
     files.push({
@@ -51,7 +51,7 @@ async function publishBook(directory, metadata, content) {
     files: await describeFiles(directory)
   };
   await atomicWrite(path.join(directory, 'book.json'), JSON.stringify(record, null, 2));
-  return { ...record.book, ...conversionFields(record.files,record.book.id), content, markdownFile: true };
+  return readBook(directory);
 }
 
 async function readBook(directory) {
@@ -60,7 +60,13 @@ async function readBook(directory) {
   const metadata = JSON.parse(raw);
   if (metadata.schemaVersion && metadata.schemaVersion !== 2) throw new Error('书库数据版本不受支持。');
   const content = await fs.readFile(path.join(directory, 'book.md'), 'utf8');
-  if (metadata.schemaVersion === 2) return { ...metadata.book, createdAt: metadata.book.createdAt ?? metadata.book.importedAt ?? (await fs.stat(directory)).birthtime.toISOString(), ...conversionFields(metadata.files,metadata.book.id), content, markdownFile: true };
+  if (metadata.schemaVersion === 2) {
+    const cover = await fs.readFile(path.join(directory, 'cover-data.txt'), 'utf8').catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+      return null;
+    });
+    return { ...metadata.book, cover, createdAt: metadata.book.createdAt ?? metadata.book.importedAt ?? (await fs.stat(directory)).birthtime.toISOString(), ...conversionFields(metadata.files,metadata.book.id), content, markdownFile: true };
+  }
   await backup(directory, 'book.json', raw);
   await backup(directory, 'book.md', content);
   const record = {
