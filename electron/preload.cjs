@@ -4,6 +4,10 @@ let streamId = 0;
 
 contextBridge.exposeInMainWorld('cyberStudy', {
   name: '赛博书房',
+  defaultSamples: {
+    read: options => ipcRenderer.invoke('default-samples:read', options),
+    finish: () => ipcRenderer.invoke('default-samples:finish')
+  },
   snapshots: {
     save: input=>ipcRenderer.invoke('snapshots:save',input),
     list: ()=>ipcRenderer.invoke('snapshots:list'),

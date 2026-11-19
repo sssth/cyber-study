@@ -10,7 +10,6 @@ import ContentActions from './ContentActions.jsx';
 import { createPortal } from 'react-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '../../shared/contentSchema.js';
-import { sampleBooks } from '../reader/sampleBooks.js';
 import { parseMarkdownContent } from '../reader/markdownReader.js';
 import { indexChapters } from '../reader/readerPosition.js';
 import { memoPosition } from './memoLayout.js';
@@ -18,6 +17,19 @@ import { ActionWorkspace, FeaturePanel } from './ui.jsx';
 import { createId, loadSpaceData, saveSpaceData } from '../data/spaceStorage.js';
 
 const font = 'KaiTi, STKaiti, "Kaiti SC", serif';
+
+function SourceOptions({ label, name, options, value, onChange }) {
+  return <fieldset className="music-create-song-picker">
+    <legend>{label}</legend>
+    <div className="music-create-song-options music-player-options">
+      {options.map(option => <label key={option.id}>
+        <input type="radio" name={name} checked={option.id === value} onChange={() => onChange(option.id)} />
+        <span>{option.title}</span>
+      </label>)}
+      {!options.length && <p className="card-meta">没有匹配的选项</p>}
+    </div>
+  </fieldset>;
+}
 
 const typewriterTexts = [
   { id: 'xinjing', title: '心经', text: '观自在菩萨，行深般若波罗蜜多时，照见五蕴皆空，度一切苦厄。' },
@@ -49,11 +61,15 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   const [writing, setWriting] = useState(false);
   const writingSearch=useSearchScope({id:'typewriter-original',label:'当前抄写原文',priority:30,enabled:writing,filters:[]});
   const [editorOpen, setOpen] = useState(Boolean(initialSource || editItem));
+  const sourceSearch = useSearchScope({
+    id: 'typewriter-source', label: '来源书籍', priority: 25,
+    enabled: editorOpen && !writing, filters: [],
+  });
   const setEditorOpen = open => { setOpen(open); if (!open && editItem) onClose(); };
   const order = useContentOrder();
   const [works, setWorks] = useState(() => loadSpaceData('typewriter', []));
   useSearchCount('typewriter',works.filter(item=>matchesItem('typing_work',item,search)).length);
-  const books = useMemo(()=>[...sampleBooks,...importedBooks], [importedBooks]);
+  const books = importedBooks;
   const [bookId,setBookId]=useState(editItem?.bookId || initialSource?.bookId || books[0]?.id || '');
   const [chapterId,setChapterId]=useState('whole');
   const [source,setSource]=useState(editItem ? {...editItem} : initialSource);
@@ -68,6 +84,17 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   const book=books.find(b=>b.id===bookId);
   const blocks=useMemo(()=>parseMarkdownContent(book?.content||''),[book?.content]);
   const {chapters,chapterByBlock}=useMemo(()=>indexChapters(blocks),[blocks]);
+  const bookOptions = book || !source?.bookTitle ? books : [...books, { id: bookId, title: source.bookTitle }];
+  const savedChapter = source?.chapterTitle;
+  const chapterOptions = [{ id: 'whole', title: '整本书' }, ...chapters.map(chapter => ({ id: chapter.id, title: chapter.text }))];
+  const matchingChapter = chapters.find(chapter => chapter.text === savedChapter);
+  let selectedChapterId = chapterId;
+  if (source) {
+    selectedChapterId = matchingChapter?.id ?? (savedChapter === '全文' || savedChapter === '整本书' ? 'whole' : 'saved-source');
+    if (selectedChapterId === 'saved-source') chapterOptions.push({ id: 'saved-source', title: savedChapter || '已选原文' });
+  }
+  const visibleBooks = bookOptions.filter(option => textMatches([option.title, option.author], sourceSearch.query));
+  useSearchCount('typewriter-source', visibleBooks.length);
   const selected=source||{bookId,bookTitle:book?.title||'',chapterTitle:chapterId==='whole'?'全文':chapters.find(c=>c.id===chapterId)?.text||'',text:blocks.filter(b=>chapterId==='whole'||chapterByBlock.get(b.id)===chapterId).map(b=>b.text).join('\n')};
   selected.title ||= `${selected.bookTitle} · ${selected.chapterTitle}`;
   const originalParts=useMemo(()=>{
@@ -140,6 +167,8 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     draftRef.current = null;
     setDraftId(null);
     setSource(null);
+    setChapterId('whole');
+    if (!book) setBookId(books[0]?.id || '');
     setMessage('');
   };
   const openWork = (item, immersive) => {
@@ -171,8 +200,12 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     {message?.includes('失败') && <div role="alert">{message}</div>}</main>
   </section>,document.body);
   const editor = (<ActionWorkspace onCreate={startNew} label="新建抄写" title={draftId ? "编辑作品" : "新建作品 · 选择原文"} open={editorOpen} onOpenChange={setEditorOpen}><div className="stack-form">
-        <label>来源书籍<select aria-label="抄写书籍" value={bookId} onChange={e=>{setBookId(e.target.value);setChapterId('whole');setSource(null);setTyped('');}}>{books.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></label>
-        <label>来源章节<select aria-label="抄写章节" value={chapterId} onChange={e=>{setChapterId(e.target.value);setSource(null);setTyped('');}}><option value="whole">整本书</option>{chapters.map(c=><option key={c.id} value={c.id}>{c.text}</option>)}</select></label>
+        <SourceOptions label="来源书籍" name="copy-source-book" options={visibleBooks} value={bookId} onChange={id => {
+          setBookId(id); setChapterId('whole'); setSource(null); setTyped('');
+        }} />
+        <SourceOptions label="来源章节" name="copy-source-chapter" options={chapterOptions} value={selectedChapterId} onChange={id => {
+          setChapterId(id); setSource(null); setTyped('');
+        }} />
         <p>{selected.title}{source ? ' · 已选原文' : ''}</p>
         <label>原文<textarea rows="8" aria-label="抄写原文" value={selected.text} onChange={event=>{setSource({...selected,text:event.target.value});setTyped('');}} /></label>
         {draftId && complete && <>{!editItem && <button type="button" onClick={()=>{setWork(works.find(item=>item.id===draftId));setHeading(selected.title);setEditorOpen(false);}}>制作图片</button>}<button type="button" onClick={()=>{setTyped('');setSource({...selected});}}>重新抄写（保存后生效）</button></>}

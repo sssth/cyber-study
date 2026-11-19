@@ -7,5 +7,5 @@ export function toggleEditor(setOpen, event, ignoreWithin) {
 // Use the same activation event for registered items and local editing surfaces.
 export const editActivationEvent = 'dblclick';
 export function editActivationProps(edit) {
-  return { onDoubleClick: edit };
+  return { onDoubleClick: edit, 'data-edit-gesture': '' };
 }

@@ -6,6 +6,7 @@ const path = require('node:path');
 const { promisify, TextDecoder } = require('node:util');
 
 const { atomicWrite, backup, readBook, publishBook, renameBook } = require('./bookStorage.cjs');
+const { retiredBookIds } = require('./defaultSamples.cjs');
 
 const run = promisify(execFile);
 const extensions = new Set(['.md', '.markdown', '.txt', '.pdf']);
@@ -77,7 +78,8 @@ async function listBooks() {
   for (const folder of folders) {
     if (!folder.isDirectory() || !/^[a-f0-9]{64}$/.test(folder.name)) continue;
     try {
-      books.push(await readBook(path.join(library(), folder.name)));
+      const book = await readBook(path.join(library(), folder.name));
+      if (!retiredBookIds.has(book.id)) books.push(book);
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }

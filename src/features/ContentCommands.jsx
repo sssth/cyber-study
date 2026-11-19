@@ -2,10 +2,12 @@ import { editActivationEvent } from '../ui/editGesture.js';
 import EditSurface from '../ui/EditSurface.jsx';
 import { WorkspaceActions } from './ui.jsx';
 import { setItemEditing } from '../data/contentOrder.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { contentAt } from '../data/contentRelations.js';
 import { matchesShortcut } from '../data/shortcuts.js';
+import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
+import { currentScope } from '../search/searchStore.js';
 
 const commands = new Map();
 const itemSelector = '[data-edit-item], .reader-annotation-card, [data-content-target]';
@@ -17,16 +19,16 @@ export function ContentEditButton({ label, run, disabled, confirm }) {
   }}>{label}</button>;
 }
 
-export function ContentCommand({ kind = 'edit', label, run, disabled = false, confirm = false, value }) {
+export function ContentCommand({ kind = 'edit', label, run, disabled = false, confirm = false, value, createActive = kind === 'cancel-create' }) {
   const marker = useRef(null);
   const latest = useRef(null);
   latest.current = { kind, label, run, disabled, confirm, value };
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = marker.current;
     commands.set(node, () => latest.current);
     return () => commands.delete(node);
   }, []);
-  return <span ref={marker} hidden aria-hidden="true" />;
+  return <span ref={marker} hidden aria-hidden="true" data-create-active={createActive || undefined} />;
 }
 
 function available(kind, target) {
@@ -41,6 +43,12 @@ function available(kind, target) {
   const item = editTarget(target);
   const local = item && options.filter(([node]) => item.contains(node));
   return local?.length ? local : options;
+}
+
+export function isCreating() {
+  return Boolean(document.querySelector('dialog[data-create-workspace][open]') ||
+    available('cancel-create').length ||
+    available('create').some(([node]) => node.hasAttribute('data-create-active')));
 }
 
 function editTarget(target) {
@@ -62,7 +70,7 @@ function itemEntries(item) {
 
 }
 
-export default function ContentCommands({ shortcuts, disabled, viewKey, pending, onPendingHandled }) {
+export default function ContentCommands({ shortcuts, disabled, viewKey, targetView = viewKey, pending, onPendingHandled }) {
   const dialog = useRef(null);
   const latest = useRef(null);
   const [selection, setSelection] = useState(null);
@@ -75,6 +83,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
   const close = () => {
     setItemEditing(false);
     dialog.current?.close();
+    dialog.current?.removeAttribute('data-create-workspace');
     setSelection(null);
     setTextEdit(null);
     setQuery('');
@@ -90,7 +99,6 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       return;
     }
     if (kind === 'edit') {
-      setItemEditing(true);
       const editable = enabled.filter(([, read]) => !/删除|移除|解除关联/.test(read().label));
       const primary = editable[0];
       if (primary) {
@@ -100,6 +108,8 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       }
     }
     setSelection({ kind, entries: enabled });
+    if (kind === 'create') dialog.current.setAttribute('data-create-workspace', '');
+    else setItemEditing(true);
     dialog.current.show();
     requestAnimationFrame(() => {
       dialog.current?.querySelector('input[type="search"], .stack-form > button:not(:disabled)')?.focus();
@@ -119,7 +129,36 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       if (!item || latest.current.disabled || dialog.current?.open) return;
       open.current('edit', itemEntries(item));
     };
+    const chooseTarget = event => {
+      const mode = commandTargetMode();
+      if (!mode || latest.current.disabled || event.button !== 0 ||
+          event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
+          event.target.closest('.command-toolbar, .edit-sidebar, .unified-search, [inert]')) return false;
+      const contextTarget = event.target.closest('[data-relation-gesture]');
+      const localEditor = event.target.closest('[data-edit-gesture]');
+      const item = editTarget(event.target);
+      const entries = item ? itemEntries(item) : [];
+      if (event.target.closest('input, textarea, select, [contenteditable]') &&
+          !contextTarget?.matches('.diary-paper')) return false;
+      if (mode === 'relate' ? !contextTarget && !contentAt(event.target) : !entries.length && !localEditor) return false;
+      if (localEditor?.matches('.display-shelf-stage') && mode === 'edit' && event.target.closest('canvas')) return false;
+      cancelClick();
+      setCommandTargetMode(null);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (mode === 'relate') {
+        event.target.dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true, cancelable: true, button: 2, clientX: event.clientX, clientY: event.clientY
+        }));
+      } else if (entries.length) {
+        openEdit(item);
+      } else {
+        event.target.dispatchEvent(new MouseEvent(editActivationEvent, { bubbles: true, cancelable: true, detail: 2 }));
+      }
+      return true;
+    };
     const click = event => {
+      if (chooseTarget(event)) return;
       if(event.target.closest('[data-instant-selection], .display-shelf-stage'))return;
       if (document.body.hasAttribute('data-item-editing') && !event.target.closest('dialog, .edit-sidebar')) {
         const item = editTarget(event.target);
@@ -175,11 +214,21 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       event.stopImmediatePropagation();
       openEdit(item);
     };
-    const keys = event => {
-      if (latest.current.disabled || event.isComposing || !matchesShortcut(event, latest.current.shortcuts.createContent)) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (event.repeat) return;
+    const toggleEdit = () => {
+      if (latest.current.disabled || latest.current.saving) return;
+      cancelClick();
+      const active = commandTargetMode() === 'edit';
+      const editing = document.body.hasAttribute('data-item-editing') ||
+        Boolean(document.querySelector('[data-edit-active]'));
+      setCommandTargetMode(active || editing ? null : 'edit');
+      if (editing) {
+        window.dispatchEvent(new Event('cyber-exit-item-edit'));
+        if (dialog.current?.open && latest.current.selection?.kind === 'edit') close();
+      }
+    };
+    const create = event => {
+      if (latest.current.disabled) return;
+      setCommandTargetMode(null);
       if (dialog.current?.open && latest.current.selection?.kind === 'create') {
         if (!latest.current.saving) close();
         return;
@@ -200,7 +249,20 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
       }
       const cancellation = available('cancel-create', event.target).find(([, read]) => !read().disabled);
       if (cancellation) { cancellation[1]().run(); return; }
-      open.current('create', available('create', event.target));
+      open.current('create', entries);
+    };
+    const keys = event => {
+      if (latest.current.disabled || event.isComposing) return;
+      if (event.key === 'Escape' && !event.defaultPrevented && commandTargetMode()) {
+        setCommandTargetMode(null);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!matchesShortcut(event, latest.current.shortcuts.createContent)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!event.repeat) create(event);
     };
     const editItem = event => {
       cancelClick();
@@ -208,6 +270,8 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
     };
     const editPresented = event => openEdit(event.detail?.item);
     window.addEventListener('cyber-edit-presented-item', editPresented);
+    window.addEventListener('cyber-toggle-create', create);
+    window.addEventListener('cyber-toggle-edit', toggleEdit);
     window.addEventListener('keydown', keys, true);
     window.addEventListener('click', click, true);
     window.addEventListener(editActivationEvent, doubleClick, true);
@@ -216,6 +280,8 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
     return () => {
       cancelClick();
       window.removeEventListener('cyber-edit-presented-item', editPresented);
+      window.removeEventListener('cyber-toggle-create', create);
+      window.removeEventListener('cyber-toggle-edit', toggleEdit);
       window.removeEventListener('keydown', keys, true);
       window.removeEventListener('click', click, true);
       window.removeEventListener(editActivationEvent, doubleClick, true);
@@ -225,6 +291,17 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, pending,
   }, []);
 
   useEffect(() => { close(); }, [viewKey, disabled]);
+  useEffect(() => {
+    setCommandTargetMode(null);
+    let scopeId = currentScope()?.id;
+    const resetTarget = () => {
+      const nextScopeId = currentScope()?.id;
+      if (scopeId !== nextScopeId) setCommandTargetMode(null);
+      scopeId = nextScopeId;
+    };
+    window.addEventListener('cyber-search-scope-changed', resetTarget);
+    return () => window.removeEventListener('cyber-search-scope-changed', resetTarget);
+  }, [targetView, disabled]);
   useEffect(() => {
     const failure = event => setError(event.detail);
     window.addEventListener('cyber-order-error', failure);

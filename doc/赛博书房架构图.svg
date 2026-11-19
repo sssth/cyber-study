@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1740" height="790" viewBox="0 0 1740 790" role="img" aria-labelledby="title desc">
+<title id="title">赛博书房｜系统架构</title><desc id="desc">场景包连接功能区，各功能区产生的实体汇入个人知识库。用户搜索和筛选实体后，可生成 AI 快照、查看地球仪和探索实体关联。场景包、功能区与实体、搜索与筛选和结果应用均可由用户自定义扩展。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#7790a0"/></marker><marker id="extension-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#557e73"/></marker></defs>
+<g font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<rect x="0" y="0" width="1740" height="790" rx="0" fill="#f7f9f9" stroke="none"/>
+<text x="44" y="73" font-size="42" fill="#1c3342" font-weight="700">赛博书房</text>
+<text x="44" y="115" font-size="20" fill="#4c6878" font-weight="400">系统架构</text>
+<text x="44" y="184" font-size="17" fill="#456271" font-weight="600">场景入口</text>
+<text x="278" y="184" font-size="17" fill="#456271" font-weight="600">功能区</text>
+<text x="447" y="184" font-size="17" fill="#456271" font-weight="600">实体类型</text>
+<text x="719" y="184" font-size="17" fill="#456271" font-weight="600">统一汇总</text>
+<text x="1105" y="184" font-size="17" fill="#456271" font-weight="600">筛选结果</text>
+<text x="1411" y="184" font-size="17" fill="#456271" font-weight="600">结果应用</text>
+<path d="M 44 202 H 1696" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="44" y="377" width="151" height="112" rx="14" fill="#e7eef2" stroke="#c8d7df"/>
+<text x="63" y="423" font-size="25" fill="#1c3342" font-weight="700">场景包</text>
+<text x="63" y="456" font-size="15" fill="#4c6878" font-weight="400">连接书房功能区</text>
+<rect x="258" y="228" width="386" height="410" rx="14" fill="#edf2f4" stroke="#d6e1e6"/>
+<path d="M195 433 H225 M225 269 V599" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<path d="M670 269 V599 M670 433 H719" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M225 269 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 269 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="246" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 269 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="246" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="276" font-size="17" fill="#1c3342" font-weight="600">书库</text>
+<text x="461" y="275" font-size="16" fill="#1c3342" font-weight="400">书籍 · 摘录 · 批注</text>
+<path d="M225 324 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 324 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="301" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 324 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="301" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="331" font-size="17" fill="#1c3342" font-weight="600">音乐</text>
+<text x="461" y="330" font-size="16" fill="#1c3342" font-weight="400">歌单 · 歌曲</text>
+<path d="M225 379 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 379 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="356" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 379 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="356" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="386" font-size="17" fill="#1c3342" font-weight="600">电影</text>
+<text x="461" y="385" font-size="16" fill="#1c3342" font-weight="400">影片</text>
+<path d="M225 434 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 434 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="411" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 434 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="411" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="441" font-size="17" fill="#1c3342" font-weight="600">日记</text>
+<text x="461" y="440" font-size="16" fill="#1c3342" font-weight="400">日记</text>
+<path d="M225 489 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 489 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="466" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 489 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="466" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="496" font-size="17" fill="#1c3342" font-weight="600">便签</text>
+<text x="461" y="495" font-size="16" fill="#1c3342" font-weight="400">便签 · 待办</text>
+<path d="M225 544 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 544 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="521" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 544 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="521" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="551" font-size="17" fill="#1c3342" font-weight="600">地球仪</text>
+<text x="461" y="550" font-size="16" fill="#1c3342" font-weight="400">旅途 · 记忆点</text>
+<path d="M225 599 H278" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M624 599 H670" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<rect x="278" y="576" width="124" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<path d="M402 599 H444" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="447" y="576" width="177" height="46" rx="8" fill="#ffffff" stroke="#dbe5e9"/>
+<text x="293" y="606" font-size="17" fill="#1c3342" font-weight="600">打字机</text>
+<text x="461" y="605" font-size="16" fill="#1c3342" font-weight="400">抄写作品</text>
+<rect x="719" y="280" width="242" height="300" rx="14" fill="#edf3f7" stroke="#c8d8e4"/>
+<text x="738" y="318" font-size="25" fill="#1c3342" font-weight="700">个人知识库</text>
+<text x="738" y="345" font-size="16" fill="#456271" font-weight="400">个人的全部实体</text>
+<line x1="754" y1="386" x2="800" y2="381" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="850" y1="392" x2="816" y2="418" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="800" y1="381" x2="862" y2="437" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="921" y1="409" x2="862" y2="437" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="771" y1="429" x2="835" y2="466" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="816" y1="418" x2="881" y2="480" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="903" y1="451" x2="835" y2="466" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="792" y1="475" x2="764" y2="515" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="792" y1="475" x2="851" y2="507" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="835" y1="466" x2="817" y2="520" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="928" y1="486" x2="904" y2="520" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="817" y1="520" x2="866" y2="552" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="851" y1="507" x2="926" y2="548" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="754" y1="386" x2="771" y2="429" stroke="#416577" stroke-width="1.6"/>
+<line x1="800" y1="381" x2="816" y2="418" stroke="#416577" stroke-width="1.6"/>
+<line x1="850" y1="392" x2="862" y2="437" stroke="#416577" stroke-width="1.6"/>
+<line x1="892" y1="379" x2="921" y2="409" stroke="#416577" stroke-width="1.6"/>
+<line x1="921" y1="409" x2="903" y2="451" stroke="#416577" stroke-width="1.6"/>
+<line x1="771" y1="429" x2="750" y2="472" stroke="#416577" stroke-width="1.6"/>
+<line x1="771" y1="429" x2="792" y2="475" stroke="#416577" stroke-width="1.6"/>
+<line x1="816" y1="418" x2="792" y2="475" stroke="#416577" stroke-width="1.6"/>
+<line x1="816" y1="418" x2="835" y2="466" stroke="#416577" stroke-width="1.6"/>
+<line x1="862" y1="437" x2="835" y2="466" stroke="#416577" stroke-width="1.6"/>
+<line x1="862" y1="437" x2="881" y2="480" stroke="#416577" stroke-width="1.6"/>
+<line x1="903" y1="451" x2="928" y2="486" stroke="#416577" stroke-width="1.6"/>
+<line x1="750" y1="472" x2="764" y2="515" stroke="#416577" stroke-width="1.6"/>
+<line x1="792" y1="475" x2="817" y2="520" stroke="#416577" stroke-width="1.6"/>
+<line x1="835" y1="466" x2="851" y2="507" stroke="#416577" stroke-width="1.6"/>
+<line x1="881" y1="480" x2="851" y2="507" stroke="#416577" stroke-width="1.6"/>
+<line x1="881" y1="480" x2="904" y2="520" stroke="#416577" stroke-width="1.6"/>
+<line x1="764" y1="515" x2="793" y2="549" stroke="#416577" stroke-width="1.6"/>
+<line x1="817" y1="520" x2="793" y2="549" stroke="#416577" stroke-width="1.6"/>
+<line x1="851" y1="507" x2="866" y2="552" stroke="#416577" stroke-width="1.6"/>
+<line x1="904" y1="520" x2="926" y2="548" stroke="#416577" stroke-width="1.6"/>
+<circle cx="754" cy="386" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="800" cy="381" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="850" cy="392" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="892" cy="379" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="921" cy="409" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="771" cy="429" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="816" cy="418" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="862" cy="437" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="903" cy="451" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="750" cy="472" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="792" cy="475" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="835" cy="466" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="881" cy="480" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="928" cy="486" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="764" cy="515" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="817" cy="520" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="851" cy="507" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="904" cy="520" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="793" cy="549" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="866" cy="552" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<circle cx="926" cy="548" r="5" fill="#5d7c91" stroke="#fff" stroke-width="1.4"/>
+<path d="M961 433 H1105" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="987" y="416" font-size="18" fill="#216b5d" font-weight="700">搜索与筛选</text>
+<rect x="1105" y="280" width="211" height="300" rx="14" fill="#e3f2ee" stroke="#a7cfc3"/>
+<text x="1123" y="318" font-size="25" fill="#164e42" font-weight="700">筛选后的实体</text>
+<line x1="1145" y1="464" x2="1247" y2="519" stroke="#788c9c" stroke-width="1.6" stroke-dasharray="4 4"/>
+<line x1="1149" y1="389" x2="1145" y2="464" stroke="#416577" stroke-width="1.6"/>
+<line x1="1149" y1="389" x2="1217" y2="452" stroke="#416577" stroke-width="1.6"/>
+<line x1="1266" y1="398" x2="1217" y2="452" stroke="#416577" stroke-width="1.6"/>
+<line x1="1217" y1="452" x2="1247" y2="519" stroke="#416577" stroke-width="1.6"/>
+<circle cx="1149" cy="389" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="1266" cy="398" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="1145" cy="464" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="1217" cy="452" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<circle cx="1247" cy="519" r="6.3" fill="#237b69" stroke="#fff" stroke-width="1.4"/>
+<rect x="1397" y="240" width="313" height="386" rx="16" fill="#edf2f4" stroke="#d6e1e6"/>
+<path d="M1316 433 H1360 M1360 306 V560" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round"/>
+<path d="M1360 306 H1411" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1411" y="254" width="285" height="104" rx="14" fill="#ffffff" stroke="#c9d9df"/>
+<text x="1431" y="293" font-size="22" fill="#1c3342" font-weight="700">快照</text>
+<text x="1431" y="326" font-size="16" fill="#456271" font-weight="400">将选中实体交给 AI 生成总结</text>
+<path d="M1360 433 H1411" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1411" y="381" width="285" height="104" rx="14" fill="#ffffff" stroke="#c9d9df"/>
+<text x="1431" y="420" font-size="22" fill="#1c3342" font-weight="700">地球仪</text>
+<text x="1431" y="453" font-size="16" fill="#456271" font-weight="400">在地图上呈现实体关联的地点</text>
+<path d="M1360 560 H1411" fill="none" stroke="#7790a0" stroke-width="1.7" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1411" y="508" width="285" height="104" rx="14" fill="#ffffff" stroke="#c9d9df"/>
+<text x="1431" y="547" font-size="22" fill="#1c3342" font-weight="700">关联查看</text>
+<text x="1431" y="580" font-size="16" fill="#456271" font-weight="400">探索实体之间的联系</text>
+<g fill="none" stroke="#557e73" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#extension-arrow)">
+  <path d="M120 489 V681 H709 Q720 681 720 692 V711"/>
+  <path d="M451 638 V655 H792 Q803 655 803 666 V711"/>
+  <path d="M1033 433 V655 H919 Q908 655 908 666 V711"/>
+  <path d="M1553 626 V681 H1031 Q1020 681 1020 692 V711"/>
+</g>
+<rect x="681" y="711" width="378" height="52" rx="13" fill="#e3f2ee" stroke="#a7cfc3"/>
+<text x="870" y="745" text-anchor="middle" font-size="23" fill="#164e42" font-weight="700">用户可自定义扩展</text>
+</g>
+</svg>

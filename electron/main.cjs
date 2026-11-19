@@ -5,6 +5,7 @@ const { serveMoviePosters, cacheMoviePoster, uploadMoviePoster } = require('./mo
 const { registerGlobe } = require('./globe/register.cjs');
 const { registerBooks } = require('./books.cjs');
 const { registerMusic } = require('./music/register.cjs');
+const { defaultSamples } = require('./defaultSamples.cjs');
 const { configureGpuSwitches, registerProfiler } = require('./profiler.cjs');
 
 configureGpuSwitches();
@@ -20,6 +21,15 @@ if (!app.isPackaged) {
 registerAudioScheme();
 
 let mainWindow = null;
+const samples = defaultSamples(app.getPath('userData'));
+for (const action of ['read', 'finish']) {
+  ipcMain.handle('default-samples:' + action, (event, options) => {
+    if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('请从书房主页访问内置样例。');
+    }
+    return samples[action](options);
+  });
+}
 const snapshots = require('./snapshots.cjs').snapshotStore(app.isPackaged ? app.getPath('userData') : path.resolve(__dirname,'..'));
 for (const action of ['list','read','save']) {
   ipcMain.handle('snapshots:'+action,(event,input)=>{
@@ -220,6 +230,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   aiSettings.initialize();
+  samples.start().catch(error => console.error('内置样例初始化失败', error));
   serveCachedAudio();
   serveMoviePosters();
   serveMemoryPhotos();

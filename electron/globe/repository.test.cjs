@@ -110,7 +110,9 @@ test('photo-free points and ordered journeys survive trash, backup and restore',
   assert.ok(data.photos.find(p => p.id === point.id).deletedAt);
   await restored.update([point.id], {deletedAt:null});
   await restored.saveJourney({id:data.journeys[0].id, remove:true});
-  assert.equal((await restored.load()).photos.length, 2);
+  const afterDeletion = await restored.load();
+  assert.deepEqual(afterDeletion.journeys, []);
+  assert.equal(afterDeletion.photos.length, 2);
 });
 
 test('memory titles persist independently of city and journey membership', async t => {

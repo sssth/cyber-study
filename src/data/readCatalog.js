@@ -1,6 +1,5 @@
 import { loadReaderState } from './storage.js';
 import { buildCatalog } from './contentRelations.js';
-import { sampleBooks } from '../reader/sampleBooks.js';
 
 export async function readCatalog(books) {
   // App owns the book collection and refreshes it after import, edit and delete.
@@ -13,7 +12,7 @@ export async function readCatalog(books) {
     console.warn('个人知识库读取地球仪失败', error);
   }
   const overrides = loadReaderState().books;
-  const library = [...sampleBooks, ...books].map(book => ({
+  const library = books.map(book => ({
     ...book, title: overrides[book.id]?.customTitle || book.title,
     author: overrides[book.id]?.customAuthor ?? book.author
   }));

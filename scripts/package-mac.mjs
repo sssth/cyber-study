@@ -168,7 +168,7 @@ async function main() {
   await copyTo(path.join(projectRoot, 'dist'), path.join(appPayloadDir, 'dist'));
   await copyTo(path.join(projectRoot, 'electron'), path.join(appPayloadDir, 'electron'));
   await copyMusicDependencies(projectRoot, appPayloadDir);
-  await copyTo(path.join(projectRoot, 'assets', 'books'), path.join(appPayloadDir, 'assets', 'books'));
+  await copyTo(path.join(projectRoot, 'assets', 'default-samples'), path.join(appPayloadDir, 'assets', 'default-samples'));
 
   // Electron 自带的示例应用在正式包中不需要。
   await fs.rm(path.join(resourcesDir, 'default_app.asar'), { force: true });

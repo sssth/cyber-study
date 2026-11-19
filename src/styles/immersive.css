@@ -432,3 +432,72 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body:has
   .song-credits { grid-template-columns:minmax(0,1fr); gap:2px; }
   .song-credits small { text-align:left; }
 }
+
+.command-toolbar {
+  position: fixed;
+  z-index: 10001;
+  inset: 50% 8px auto auto;
+  transform: translateY(-50%);
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #ffffff24;
+  border-radius: 9px;
+  background: #10171df2;
+  color: #d9e4e8;
+  box-shadow: 0 4px 18px #0005;
+}
+.command-toolbar > div:not([hidden]) {
+  display: grid;
+  gap: 3px;
+}
+.command-toolbar button {
+  min-width: 44px;
+  min-height: 34px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.command-toolbar button.command-toolbar-toggle {
+  min-height: 24px;
+  font-size: 19px;
+  line-height: 1;
+}
+.command-toolbar button:hover:not(:disabled),
+.command-toolbar button[aria-pressed="true"] {
+  border-color: #52858b;
+  background: #24434a;
+  color: #e0fafa;
+}
+.command-toolbar button:focus-visible {
+  outline: 2px solid #83cbd1;
+  outline-offset: -2px;
+}
+.command-toolbar button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.command-target-hint {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: #10171d;
+  white-space: nowrap;
+  font-size: 12px;
+  pointer-events: none;
+}
+@media (max-height: 320px) {
+  .command-toolbar {
+    max-height: calc(100dvh - 72px);
+    overflow-y: auto;
+  }
+  .command-target-hint { display: none; }
+}

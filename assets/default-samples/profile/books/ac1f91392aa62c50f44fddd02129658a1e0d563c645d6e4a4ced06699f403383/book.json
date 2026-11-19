@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "book": {
+    "createdAt": "2026-11-19T11:25:40.332Z",
+    "id": "file:a6eaeb6965de5493a67935d080762c57666f45367a7e0b5301c07411d797c934",
+    "title": "Oliver Twist",
+    "author": "Charles Dickens",
+    "source": "Oliver Twist.md"
+  },
+  "files": [
+    {
+      "id": "7b1df85659413d0ca06085ada58a440442b316745c868206f2a9adb16532639b",
+      "role": "reading",
+      "path": "book.md",
+      "format": "md",
+      "sha256": "5f5b1b7aa16cf126b0206ab9e139fce3f45ae54266d5895814b988f0c542bf86",
+      "size": 911743,
+      "modifiedAt": "2026-11-19T11:25:40.381Z"
+    },
+    {
+      "id": "349d6455b7236fd3f78a529e036ccb3638f90d643034e72ce92dada6dfda01c2",
+      "role": "original",
+      "path": "original.md",
+      "format": "md",
+      "sha256": "a6eaeb6965de5493a67935d080762c57666f45367a7e0b5301c07411d797c934",
+      "size": 919634,
+      "modifiedAt": "2026-11-19T11:25:40.338Z"
+    }
+  ]
+}

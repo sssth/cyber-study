@@ -1,3 +1,4 @@
+import useEditSession from '../ui/useEditSession.js';
 import useEscapeBack, { blocksPageBack } from '../ui/useEscapeBack.js';
 import KnowledgeWorkspace from '../features/KnowledgeWorkspace.jsx';
 import { DisplayMenuToggle, DisplayCloseButton } from '../ui/DisplayControls.jsx';
@@ -16,7 +17,6 @@ import ContentActions from '../features/ContentActions.jsx';
 import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { formatProgress, parseMarkdownContent, underlineMarkdown } from './markdownReader.js';
 import { goToReaderBlock, readingAnchor, goToReadingAnchor, highlightRanges, indexChapters, readerPosition } from './readerPosition.js';
-import { sampleBooks } from './sampleBooks.js';
 import { loadReaderState, saveReaderState } from '../data/storage.js';
 import ExcerptAnnotations from './ExcerptAnnotations.jsx';
 import { addKnowledgeNote, groupExcerpts, loadKnowledge } from '../data/knowledgeStore.js';
@@ -88,9 +88,7 @@ function ReaderOverlay({
   const restoredInitialBook = useRef(false);
 
   const allBooks = useMemo(() => {
-    const books = new Map(sampleBooks.map((book) => [book.id, book]));
-    importedBooks.forEach((book) => books.set(book.id, book));
-    return [...books.values()].map(book => ({ ...book, author: readerState.books?.[book.id]?.customAuthor ?? (book.author === '本地导入' ? '' : book.author), title: readerState.books?.[book.id]?.customTitle || book.title }));
+    return importedBooks.map(book => ({ ...book, author: readerState.books?.[book.id]?.customAuthor ?? (book.author === '本地导入' ? '' : book.author), title: readerState.books?.[book.id]?.customTitle || book.title }));
   }, [importedBooks, readerState.books]);
   const importing = ['selecting', 'scanning', 'processing'].includes(importState.phase);
   useEffect(() => {
@@ -275,6 +273,7 @@ function ReaderOverlay({
     setExcerptChoices([]);
     setNoteMessage(null);
   };
+  useEditSession(Boolean(selectedExcerpt), dismissNote, { editing: false });
 
   const changeReadingMode = (enabled) => {
     if (savingNote) return;
@@ -774,7 +773,7 @@ function ReaderOverlay({
           </>
         )}
       </div>
-      {(selectionQuote || selectedExcerpt) && noteAnchor && <div className="reader-inline-note"
+      {(selectionQuote || selectedExcerpt) && noteAnchor && <div className="reader-inline-note" data-edit-active={Boolean(selectedExcerpt) || undefined}
         style={{
           left: Math.max(12, Math.min(noteAnchor.left, (overlayRef.current?.clientWidth ?? 400) - 360)),
           top: Math.max(12, Math.min(noteAnchor.top + 8, (overlayRef.current?.clientHeight ?? 400) - 315))

@@ -1,3 +1,4 @@
+import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
 import ModelLoading from '../ui/ModelLoading.jsx';
 import { ShelfAreas, ShelfDragInput } from './ShelfDragLayer.jsx';
 import { bookSize, footprint } from './shelfArrangement.js';
@@ -39,6 +40,17 @@ export function Book({ book, position, orientation, onRead, onEdit, onRelate, or
     event.stopPropagation();
     cancelRead();
     if(onActivate){if(event.delta<=4)onActivate();return;}
+    const mode = commandTargetMode();
+    if (event.delta <= 4 && mode === 'relate' && onRelate) {
+      setCommandTargetMode(null);
+      relate(event);
+      return;
+    }
+    if (event.delta <= 4 && mode === 'edit' && onEdit && !organizing) {
+      setCommandTargetMode(null);
+      edit(event);
+      return;
+    }
     if(organizing)return;
     if (event.nativeEvent.detail <= 1) timer.current = setTimeout(() => onRead(book), itemClickDelay);
   };

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "book": {
+    "createdAt": "2026-11-19T11:25:40.436Z",
+    "id": "file:0a54658d8071962cb9f335dbd399b3ba0e449a2dbb1a31dc3450a282f0ee9d31",
+    "title": "The Prince",
+    "author": "Niccolò Machiavelli",
+    "source": "The Prince.md"
+  },
+  "files": [
+    {
+      "id": "7b1df85659413d0ca06085ada58a440442b316745c868206f2a9adb16532639b",
+      "role": "reading",
+      "path": "book.md",
+      "format": "md",
+      "sha256": "b8c0549e8a2bb93371e22a1198b942634a1044b9fa69b3052945f4affa55c057",
+      "size": 281231,
+      "modifiedAt": "2026-11-19T11:25:40.448Z"
+    },
+    {
+      "id": "349d6455b7236fd3f78a529e036ccb3638f90d643034e72ce92dada6dfda01c2",
+      "role": "original",
+      "path": "original.md",
+      "format": "md",
+      "sha256": "0a54658d8071962cb9f335dbd399b3ba0e449a2dbb1a31dc3450a282f0ee9d31",
+      "size": 282040,
+      "modifiedAt": "2026-11-19T11:25:40.440Z"
+    }
+  ]
+}

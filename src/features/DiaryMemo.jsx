@@ -84,6 +84,8 @@ function DiaryPanel({ onClose, navigationItem, editItem }) {
     }
   }, [draft, editing]);
   useEditSession(editorOpen, () => setEditorOpen(false));
+  const editingDiaryPage = mode === 'write' && editFromBook.current;
+  useEditSession(editingDiaryPage, () => { if (!editorOpen) readDiary(); }, { editing: false });
   const [prefs, setPrefs] = useState(() => ({...loadSpaceData('diary-prefs', { pen: '钢笔', sound: false, animation: true }), ...editItem?.format}));
   const soundRef = useRef(null);
 
@@ -250,7 +252,7 @@ function DiaryPanel({ onClose, navigationItem, editItem }) {
       <ContentCommand kind="create" label="书写今日日记" run={writeToday} />
       <DisplayViewMenu label="日记模式" options={[[ 'write', '今日日记'], ['read', '阅读模式']]} value={mode} onChange={value => value === 'write' ? writeToday() : readDiary()} />
       {error && <p role="alert" className="form-error">{error}</p>}
-      {mode === 'write' && <DiaryCanvas entry={draft} prefs={prefs} query={search.query} onContextMenu={event => showDiaryRelations(event, draft, true)} {...editActivationProps(() => toggleEditor(setEditorOpen))}
+      {mode === 'write' && <DiaryCanvas entry={draft} prefs={prefs} query={search.query} data-edit-active={editingDiaryPage || undefined} data-relation-gesture onContextMenu={event => showDiaryRelations(event, draft, true)} {...editActivationProps(() => toggleEditor(setEditorOpen))}
         onDragOver={event => { if (event.dataTransfer.types.includes('application/x-diary-photo')) event.preventDefault(); }}
         onDrop={event => {
           const raw = event.dataTransfer.getData('application/x-diary-photo');
@@ -278,7 +280,7 @@ function DiaryPanel({ onClose, navigationItem, editItem }) {
           <div className="diary-book-cover">
             <div key={currentPage.id} className="diary-book-page" data-turn={turnDirection} data-content-target={navigationItem?.catalogCommand ? `diary:${currentPage.id}` : undefined}>
               {navigationItem?.catalogCommand && <ContentCommand label="编辑日记" run={() => editPage(currentPage)} />}
-              <DiaryCanvas entry={currentPage} prefs={prefs} readOnly onContextMenu={event => showDiaryRelations(event, currentPage)} {...editActivationProps(() => editPage(currentPage))} />
+              <DiaryCanvas entry={currentPage} prefs={prefs} readOnly data-relation-gesture onContextMenu={event => showDiaryRelations(event, currentPage)} {...editActivationProps(() => editPage(currentPage))} />
             </div>
           </div>
           <nav className="diary-book-pagination" aria-label="日记翻页">

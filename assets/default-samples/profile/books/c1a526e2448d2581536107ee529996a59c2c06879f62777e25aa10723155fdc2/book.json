@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "book": {
+    "createdAt": "2026-11-19T11:25:40.481Z",
+    "id": "file:23b2f4c9c3d5cc26119714818ffdc505138b40df6b3e8d8c4f82b07e5f94dad4",
+    "title": "The Skeptical Chymist",
+    "author": "Robert Boyle",
+    "source": "The Skeptical Chymist.md"
+  },
+  "files": [
+    {
+      "id": "7b1df85659413d0ca06085ada58a440442b316745c868206f2a9adb16532639b",
+      "role": "reading",
+      "path": "book.md",
+      "format": "md",
+      "sha256": "78d8f9a088ba171c6c3f5db71b7c0246fdd73ff91450851bc0b084138d3766dc",
+      "size": 486237,
+      "modifiedAt": "2026-11-19T11:25:40.499Z"
+    },
+    {
+      "id": "349d6455b7236fd3f78a529e036ccb3638f90d643034e72ce92dada6dfda01c2",
+      "role": "original",
+      "path": "original.md",
+      "format": "md",
+      "sha256": "23b2f4c9c3d5cc26119714818ffdc505138b40df6b3e8d8c4f82b07e5f94dad4",
+      "size": 486958,
+      "modifiedAt": "2026-11-19T11:25:40.482Z"
+    }
+  ]
+}

@@ -1,0 +1,1748 @@
+{
+  "covers": [
+    {
+      "id": "file:c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b",
+      "name": "论语.webp",
+      "file": "fb4657e65935938a59a54ac4301408751130f74ea291e2679fafb0778e83b6e8.webp"
+    },
+    {
+      "id": "file:23e020cb1f854a71a79a5e416212ac851e768f574bc18518d7abe39de1d4ea86",
+      "name": "呼兰河传.webp",
+      "file": "c1d31dc2514b6d152551c7419c8f96ed70bde111cb1dd08f4d8382b2454374ad.webp"
+    },
+    {
+      "id": "file:23b2f4c9c3d5cc26119714818ffdc505138b40df6b3e8d8c4f82b07e5f94dad4",
+      "name": "The Sceptical Chymist.webp",
+      "file": "c1a526e2448d2581536107ee529996a59c2c06879f62777e25aa10723155fdc2.webp"
+    },
+    {
+      "id": "file:0a54658d8071962cb9f335dbd399b3ba0e449a2dbb1a31dc3450a282f0ee9d31",
+      "name": "The Prince.webp",
+      "file": "6e252f8d4ffdb728b60deabe3d4175f2cdcb4972daecd0e6bfc4048b0f7cd350.webp"
+    },
+    {
+      "id": "file:a6eaeb6965de5493a67935d080762c57666f45367a7e0b5301c07411d797c934",
+      "name": "Oliver Twist.webp",
+      "file": "ac1f91392aa62c50f44fddd02129658a1e0d563c645d6e4a4ced06699f403383.webp"
+    }
+  ],
+  "storage": {
+    "cyber-study.display-shelves.v2": {
+      "version": 2,
+      "shelves": [
+        [
+          {
+            "id": "12b54210-cea0-4e28-801e-574f7805f20e",
+            "bookId": "file:0a54658d8071962cb9f335dbd399b3ba0e449a2dbb1a31dc3450a282f0ee9d31",
+            "zone": 1,
+            "orientation": "cover",
+            "x": 0.9230032736946086,
+            "groupId": "group:c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78"
+          },
+          {
+            "id": "c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78",
+            "bookId": "file:c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b",
+            "zone": 2,
+            "orientation": "spine",
+            "x": -0.8444526273999463,
+            "groupId": "group:c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78"
+          },
+          {
+            "id": "906301cc-0ea4-4b30-ace4-929dcc11f945",
+            "bookId": "file:23b2f4c9c3d5cc26119714818ffdc505138b40df6b3e8d8c4f82b07e5f94dad4",
+            "zone": 2,
+            "orientation": "spine",
+            "x": -0.8104526273999463,
+            "groupId": "group:c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78"
+          },
+          {
+            "id": "e6f70a1c-86d2-4e59-aa92-9ef63b4edfbf",
+            "bookId": "file:a6eaeb6965de5493a67935d080762c57666f45367a7e0b5301c07411d797c934",
+            "zone": 2,
+            "orientation": "spine",
+            "x": -0.7764526273999462,
+            "groupId": "group:c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78"
+          },
+          {
+            "id": "b0282917-7060-4aab-8a6a-428619e63dd4",
+            "bookId": "file:23e020cb1f854a71a79a5e416212ac851e768f574bc18518d7abe39de1d4ea86",
+            "zone": 2,
+            "orientation": "spine",
+            "x": -0.7424526273999462,
+            "groupId": "group:c1f2d1e2-1e2b-49d2-be59-e711c9d8cf78"
+          }
+        ],
+        []
+      ]
+    },
+    "cyber-study-content-order-v1": {
+      "slots": {
+        "book": {
+          "book:file:a6eaeb6965de5493a67935d080762c57666f45367a7e0b5301c07411d797c934": [
+            9007199254740986,
+            "book:sample:雨夜信号.txt"
+          ],
+          "book:file:c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b": [
+            9007199254740991,
+            "book:sample:潮汐观测手记.txt"
+          ],
+          "book:file:23e020cb1f854a71a79a5e416212ac851e768f574bc18518d7abe39de1d4ea86": [
+            9007199254740990,
+            "book:sample:深度工作的十二个夜晚.txt"
+          ],
+          "book:file:23b2f4c9c3d5cc26119714818ffdc505138b40df6b3e8d8c4f82b07e5f94dad4": [
+            9007199254740989,
+            "book:sample:数字花园读书法.txt"
+          ],
+          "book:file:0a54658d8071962cb9f335dbd399b3ba0e449a2dbb1a31dc3450a282f0ee9d31": [
+            9007199254740988,
+            "book:file:c12680e1bcf5e75768da81ad05b27c112ab7e643f51202e21c5ec542db46ae4e"
+          ]
+        },
+        "movie": {
+          "movie:movie-mwkwjwre-lxr4xq": [
+            1795088418108,
+            "movie:movie-mwnhao1o-2tqapj"
+          ],
+          "movie:movie-mwnhao1o-2tqapj": [
+            9007199254740990,
+            "movie:movie-mwkwjwre-lxr4xq"
+          ],
+          "movie:movie-mwnhetni-0kxx2g": [
+            1795088611998,
+            "movie:movie-mwnhetni-0kxx2g"
+          ],
+          "movie:movie-mwnheox1-cdw0n0": [
+            1795088409056,
+            "movie:movie-mwnhah28-32mik6"
+          ],
+          "movie:movie-mwnhah28-32mik6": [
+            1795088605861,
+            "movie:movie-mwnheox1-cdw0n0"
+          ]
+        },
+        "playlist": {
+          "playlist:netease:13432605646": [
+            9007199254740991,
+            "playlist:netease:18427741212"
+          ],
+          "playlist:netease:8421869202": [
+            9007199254740990,
+            "playlist:netease:7092140734"
+          ]
+        },
+        "music": {},
+        "typing_work": {},
+        "memory_point": {
+          "memory_point:f54d2360-f274-4e37-a699-a4e6625dc7bb": [
+            9007199254740977,
+            "memory_point:86108a06-301c-43c0-a42a-0a255fb9e794"
+          ],
+          "memory_point:19d1b5ed-16f7-4b89-8b4c-792509a15f47": [
+            9007199254740979,
+            "memory_point:f54d2360-f274-4e37-a699-a4e6625dc7bb"
+          ],
+          "memory_point:86108a06-301c-43c0-a42a-0a255fb9e794": [
+            9007199254740978,
+            "memory_point:19d1b5ed-16f7-4b89-8b4c-792509a15f47"
+          ],
+          "memory_point:5b2b4b45-f5d1-403b-988d-6f054b3a0350": [
+            9007199254740988,
+            "memory_point:5b2b4b45-f5d1-403b-988d-6f054b3a0350"
+          ],
+          "memory_point:266c0df1-6bad-45bc-a4b2-376c6f601aea": [
+            9007199254740987,
+            "memory_point:266c0df1-6bad-45bc-a4b2-376c6f601aea"
+          ]
+        },
+        "journey": {
+          "journey:086d87cf-fc35-4d37-99d1-aaeef927f16f": [
+            9007199254740991,
+            "journey:086d87cf-fc35-4d37-99d1-aaeef927f16f"
+          ]
+        }
+      }
+    },
+    "cyber-study.space.v1.movies": [
+      {
+        "title": "泰坦尼克号 Titanic",
+        "url": "",
+        "status": "想看",
+        "poster": "study-poster://movie/d1db9db0b18b4cd04bcf053205555396bf4cd4f37db0ac5b228a7a3e8c44e6ae.jpg",
+        "douban": "https://movie.douban.com/subject/1292722/",
+        "score": "9.5",
+        "region": [
+          "美国"
+        ],
+        "genres": [
+          "剧情",
+          "爱情",
+          "灾难"
+        ],
+        "tags": [],
+        "id": "movie-mwnhao1o-2tqapj",
+        "createdAt": "2026-11-19T11:40:18.108Z"
+      },
+      {
+        "title": "疯狂动物城 Zootopia",
+        "url": "",
+        "status": "想看",
+        "poster": "study-poster://movie/6ab1489dfa279c1190913c81a4f9579e0087f3d753506e22307bad34c0139aac.jpg",
+        "douban": "https://movie.douban.com/subject/25662329/",
+        "score": "9.3",
+        "region": [
+          "美国"
+        ],
+        "genres": [
+          "喜剧",
+          "动画",
+          "冒险"
+        ],
+        "tags": [],
+        "id": "movie-mwnhetni-0kxx2g",
+        "createdAt": "2026-11-19T11:43:31.998Z"
+      },
+      {
+        "title": "肖申克的救赎 The Shawshank Redemption",
+        "url": "",
+        "status": "想看",
+        "poster": "study-poster://movie/42f0c86ebebe9a28cea0ae390ae4da95f299db6df6cdc3ead957baee6515e1a6.webp",
+        "douban": "https://movie.douban.com/subject/1292052/",
+        "score": "9.7",
+        "region": [
+          "美国"
+        ],
+        "genres": [
+          "剧情",
+          "犯罪"
+        ],
+        "tags": [],
+        "id": "movie-mwnhah28-32mik6",
+        "createdAt": "2026-11-19T11:40:09.056Z"
+      },
+      {
+        "title": "生化危机：爆发夜 Resident Evil",
+        "url": "",
+        "status": "想看",
+        "poster": "study-poster://movie/1709beb81e552f49c3d5bccd56bff195affb6074a8d5c41e8010b1cd8402b730.webp",
+        "douban": "https://movie.douban.com/subject/37068446/",
+        "score": "7.3",
+        "region": [
+          "德国",
+          "法国",
+          "美国"
+        ],
+        "genres": [
+          "科幻",
+          "惊悚",
+          "恐怖"
+        ],
+        "tags": [],
+        "id": "movie-mwkwjwre-lxr4xq",
+        "createdAt": "2026-11-17T16:24:05.018Z"
+      },
+      {
+        "title": "绿皮书 Green Book",
+        "url": "",
+        "status": "想看",
+        "poster": "study-poster://movie/46c66cd48d44fc09d7a1eeb16da24065cf2ef7f4def120b41c79aa67ffe75533.webp",
+        "douban": "https://movie.douban.com/subject/27060077/",
+        "score": "8.9",
+        "region": [
+          "美国",
+          "中国大陆"
+        ],
+        "genres": [
+          "剧情",
+          "喜剧",
+          "音乐",
+          "传记"
+        ],
+        "tags": [],
+        "id": "movie-mwnheox1-cdw0n0",
+        "createdAt": "2026-11-19T11:43:25.861Z"
+      }
+    ],
+    "cyber-study.space.v1.playlists": [
+      {
+        "id": "netease:13432605646",
+        "title": "心灵放松-华语",
+        "description": "",
+        "provider": "netease",
+        "sourceId": "13432605646",
+        "cover": "https://p1.music.126.net/niPtvlFgvMspdHWwQVwLMg==/109951171976590012.jpg?imageView=1&thumbnail=800y800&enlarge=1%7CimageView=1&watermark&type=1&image=b2JqL3c1bkRrTUtRd3JMRGpEekNtOE9tLzc4MDE5Mzc2NjE1LzQ3YzgvMjAyNjAyNjE3NDQwL3gxNjMxNzY5NDE4Mjc5OTc5LnBuZw==&dx=0&dy=0%7Cwatermark&type=1&image=b2JqL3dvbkRsc0tVd3JMQ2xHakNtOEt4LzI3NjEwNDk3MDYyL2VlOTMvOTIxYS82NjE4LzdhMDc5ZDg0NTYyMDAwZmVkZWJmMjVjYjE4NjhkOWEzLnBuZw==&dx=0&dy=0%7CimageView=1",
+        "createdAt": "2026-11-19T11:14:16.051Z",
+        "showSource": true
+      },
+      {
+        "id": "netease:8421869202",
+        "title": "居家-英语",
+        "description": "",
+        "provider": "netease",
+        "sourceId": "8421869202",
+        "cover": "https://p1.music.126.net/S9eE7bWK6H4q3BXc6rg3qA==/109951172873080574.jpg?imageView=1&thumbnail=800y800&enlarge=1%7CimageView=1&watermark&type=1&image=b2JqL3c1bkRrTUtRd3JMRGpEekNtOE9tLzc5ODc5OTA5NzU5L2JmMWUvMjAyNjMyODE3NzMwL3gzNjMxNzc3MzY3MjUwMjk1LnBuZw==&dx=0&dy=0%7Cwatermark&type=1&image=b2JqL3dvbkRsc0tVd3JMQ2xHakNtOEt4LzI3NjEwNDk3MDYyL2VlOTMvOTIxYS82NjE4LzdhMDc5ZDg0NTYyMDAwZmVkZWJmMjVjYjE4NjhkOWEzLnBuZw==&dx=0&dy=0%7CimageView=1",
+        "createdAt": "2026-11-19T11:16:13.607Z",
+        "showSource": true
+      }
+    ],
+    "cyber-study.space.v1.music": [
+      {
+        "provider": "netease",
+        "sourceId": "256470",
+        "title": "远走高飞",
+        "artist": "林忆莲",
+        "cover": "https://p4.music.126.net/DfnBpCXPY-JgoRAJxLoolw==/109951171530798085.jpg",
+        "cachedUrl": "study-audio://audio/44d993088b7d798275d0ed5a41b789591c8742e336716926b8e1c3eecc2bfe3d.mp3",
+        "id": "netease:256470",
+        "createdAt": "2026-11-19T11:15:03.121Z",
+        "audioAssetId": "study-audio://audio/44d993088b7d798275d0ed5a41b789591c8742e336716926b8e1c3eecc2bfe3d.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "64116",
+        "title": "Baby Song",
+        "artist": "陈奕迅",
+        "cover": "https://p3.music.126.net/Po0tJTtv4aBaYozWlnojHg==/18546562139313276.jpg",
+        "cachedUrl": "study-audio://audio/1210dcecedbd5b21f6fe8a9821d8f3d4b84312b9cb8d6974b486fae7d0198968.mp3",
+        "id": "netease:64116",
+        "createdAt": "2026-11-19T11:15:04.212Z",
+        "audioAssetId": "study-audio://audio/1210dcecedbd5b21f6fe8a9821d8f3d4b84312b9cb8d6974b486fae7d0198968.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 1
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "77115",
+        "title": "解脱",
+        "artist": "迪克牛仔",
+        "cover": "https://p4.music.126.net/TIQMdKKvWY0dDr-yKBaBeQ==/19000660439853455.jpg",
+        "cachedUrl": "study-audio://audio/5e6341b049f6fa4d51802df32748ab1b10dcff42d8a89726fb611fc67f9990c1.mp3",
+        "id": "netease:77115",
+        "createdAt": "2026-11-19T11:15:09.046Z",
+        "audioAssetId": "study-audio://audio/5e6341b049f6fa4d51802df32748ab1b10dcff42d8a89726fb611fc67f9990c1.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 2
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "5278661",
+        "title": "故乡的云",
+        "artist": "费翔",
+        "cover": "https://p3.music.126.net/eQNNh1C7kh0Vlf1HqFalMQ==/109951167981138535.jpg",
+        "cachedUrl": "study-audio://audio/7b814924035d06ae4b1eac89053c6c6003217c4b8e9b3445fd4b86168208d0b4.mp3",
+        "id": "netease:5278661",
+        "createdAt": "2026-11-19T11:15:10.518Z",
+        "audioAssetId": "study-audio://audio/7b814924035d06ae4b1eac89053c6c6003217c4b8e9b3445fd4b86168208d0b4.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 3
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2751314908",
+        "title": "夜泳 (We Dive)",
+        "artist": "莫非定律乐团",
+        "cover": "https://p3.music.126.net/nhHkIQFgCNCYmPmyCw62wA==/109951173775559133.jpg",
+        "cachedUrl": "study-audio://audio/c0e8de07cd6a67b1ff3abc1f461bb59ab1371bbc9ca388008772b28392fcda4f.mp3",
+        "id": "netease:2751314908",
+        "createdAt": "2026-11-19T11:15:11.597Z",
+        "audioAssetId": "study-audio://audio/c0e8de07cd6a67b1ff3abc1f461bb59ab1371bbc9ca388008772b28392fcda4f.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 4
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "284245",
+        "title": "走过咖啡屋",
+        "artist": "千百惠",
+        "cover": "https://p3.music.126.net/o7O_gp1rdiXriAV46LSJoQ==/19000660439853453.jpg",
+        "cachedUrl": "study-audio://audio/15669aedc52fcec582ff5b28e3a2049e3fa13c61e744b4e70c8ae60364c1bf3a.mp3",
+        "id": "netease:284245",
+        "createdAt": "2026-11-19T11:15:14.795Z",
+        "audioAssetId": "study-audio://audio/15669aedc52fcec582ff5b28e3a2049e3fa13c61e744b4e70c8ae60364c1bf3a.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 5
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "27965451",
+        "title": "雨水一盒",
+        "artist": "陈绮贞",
+        "cover": "https://p3.music.126.net/uXxV1FqCCQz61vsOX0JXdA==/5779033115676966.jpg",
+        "cachedUrl": "study-audio://audio/55ac414e48115eb4532a6142d9d6c1e4830a5e3b74a692cea800e90d78f5b713.mp3",
+        "id": "netease:27965451",
+        "createdAt": "2026-11-19T11:15:15.936Z",
+        "audioAssetId": "study-audio://audio/55ac414e48115eb4532a6142d9d6c1e4830a5e3b74a692cea800e90d78f5b713.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 6
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2698807244",
+        "title": "安然无恙",
+        "artist": "梁博",
+        "cover": "https://p4.music.126.net/21b5gCKyLrxGNJ6jifCemg==/109951171015962680.jpg",
+        "cachedUrl": "study-audio://audio/0e2053afd6313e1fc259b6a108b43b386c4f56e6e81040baa53747a696d343fd.mp3",
+        "id": "netease:2698807244",
+        "createdAt": "2026-11-19T11:15:22.116Z",
+        "audioAssetId": "study-audio://audio/0e2053afd6313e1fc259b6a108b43b386c4f56e6e81040baa53747a696d343fd.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 7
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "254833",
+        "title": "胆小鬼",
+        "artist": "梁咏琪",
+        "cover": "https://p3.music.126.net/C9fMQv8FFH-nR7eVC670ow==/109951163067352532.jpg",
+        "cachedUrl": "study-audio://audio/a1a380c8368f3757d4158086a00a7aaf3ec7d30153a22414dc64a58564c2d36b.mp3",
+        "id": "netease:254833",
+        "createdAt": "2026-11-19T11:15:26.176Z",
+        "audioAssetId": "study-audio://audio/a1a380c8368f3757d4158086a00a7aaf3ec7d30153a22414dc64a58564c2d36b.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 8
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2666095018",
+        "title": "日落",
+        "artist": "孙燕姿",
+        "cover": "https://p4.music.126.net/Z6rUwSkXwS_cn8AB7KqBaw==/109951170378435887.jpg",
+        "cachedUrl": "study-audio://audio/55d5c47c199c70b1e7cc0cecf3b1d993fae40ce8bfdb8976fb32f0ea7087e12e.mp3",
+        "id": "netease:2666095018",
+        "createdAt": "2026-11-19T11:15:28.128Z",
+        "audioAssetId": "study-audio://audio/55d5c47c199c70b1e7cc0cecf3b1d993fae40ce8bfdb8976fb32f0ea7087e12e.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 9
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "229779",
+        "title": "小城故事",
+        "artist": "邓丽君",
+        "cover": "https://p3.music.126.net/BJksZeIBiqHtIY6Tgvi1Cw==/109951169245235679.jpg",
+        "cachedUrl": "study-audio://audio/bf9d02d215aadb8105ee48399a367cf2fe0b210f94a856b5a726f0c6e7fdb28f.mp3",
+        "id": "netease:229779",
+        "createdAt": "2026-11-19T11:15:29.316Z",
+        "audioAssetId": "study-audio://audio/bf9d02d215aadb8105ee48399a367cf2fe0b210f94a856b5a726f0c6e7fdb28f.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 10
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "27937429",
+        "title": "盛夏的果实",
+        "artist": "莫文蔚",
+        "cover": "https://p4.music.126.net/lAn76HMjRiiWJawCZ0kCNA==/109951165884867482.jpg",
+        "cachedUrl": "study-audio://audio/8b153a61776fa9c2e1c1f08e268c8f79bfe99f5b5c5cf632cda1aa4381f63b43.mp3",
+        "id": "netease:27937429",
+        "createdAt": "2026-11-19T11:15:32.407Z",
+        "audioAssetId": "study-audio://audio/8b153a61776fa9c2e1c1f08e268c8f79bfe99f5b5c5cf632cda1aa4381f63b43.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 11
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "301947",
+        "title": "祈祷",
+        "artist": "王韵婵 / 王杰",
+        "cover": "https://p4.music.126.net/Cxe8i6l2TePK9Fb4rrsC_A==/109951163611525216.jpg",
+        "cachedUrl": "study-audio://audio/7e95b0a9fdae2159732300d0b352554e92364ae7dc6f4951bbe25185d31775c5.mp3",
+        "id": "netease:301947",
+        "createdAt": "2026-11-19T11:15:36.326Z",
+        "audioAssetId": "study-audio://audio/7e95b0a9fdae2159732300d0b352554e92364ae7dc6f4951bbe25185d31775c5.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 12
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1996824967",
+        "title": "红心番石榴",
+        "artist": "回春丹",
+        "cover": "https://p4.music.126.net/8wOPkcliyaj4bXS9V8GBnQ==/109951174112122803.jpg",
+        "cachedUrl": "study-audio://audio/db2736f9ad6834babc0909f49db08fe2da74d27d233818cd30dc739a95184e2d.mp3",
+        "id": "netease:1996824967",
+        "createdAt": "2026-11-19T11:15:38.105Z",
+        "audioAssetId": "study-audio://audio/db2736f9ad6834babc0909f49db08fe2da74d27d233818cd30dc739a95184e2d.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 13
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "4875637",
+        "title": "倒带",
+        "artist": "蔡依林",
+        "cover": "https://p4.music.126.net/BB-vZbt7EN22vaVDHI60fg==/131941395350068.jpg",
+        "cachedUrl": "study-audio://audio/779e243fb1dc6c589ca379d7143b97222504a57c3dbb8f9eb361d8bca8b978fc.mp3",
+        "id": "netease:4875637",
+        "createdAt": "2026-11-19T11:15:40.748Z",
+        "audioAssetId": "study-audio://audio/779e243fb1dc6c589ca379d7143b97222504a57c3dbb8f9eb361d8bca8b978fc.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 14
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2749424397",
+        "title": "自然环境",
+        "artist": "陈粒",
+        "cover": "https://p3.music.126.net/d2H0OYy8yuphfVj06KBfkg==/109951172059151771.jpg",
+        "cachedUrl": "study-audio://audio/b794f53e58c588649c6b6e6baad3be23cdaa2a19cd2bfe1770c0e2646ed6c8dd.mp3",
+        "id": "netease:2749424397",
+        "createdAt": "2026-11-19T11:15:42.450Z",
+        "audioAssetId": "study-audio://audio/b794f53e58c588649c6b6e6baad3be23cdaa2a19cd2bfe1770c0e2646ed6c8dd.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 15
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1909424934",
+        "title": "我的悲伤是水做的",
+        "artist": "ChiliChill乐团",
+        "cover": "https://p4.music.126.net/Sdp6DpCQF5q-dDIiNOuBjQ==/109951166891913184.jpg",
+        "cachedUrl": "study-audio://audio/8c6c30ea1f80c839fb4c1a934e725e48e1afbdf366d26cc93759ffe711624865.mp3",
+        "id": "netease:1909424934",
+        "createdAt": "2026-11-19T11:15:44.319Z",
+        "audioAssetId": "study-audio://audio/8c6c30ea1f80c839fb4c1a934e725e48e1afbdf366d26cc93759ffe711624865.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 16
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1399533630",
+        "title": "与火星的孩子对话",
+        "artist": "华晨宇",
+        "cover": "https://p3.music.126.net/zzmIyNZouayOK6jJwYoiBg==/109951169832199759.jpg",
+        "cachedUrl": "study-audio://audio/d0299e6c4192878a83f5d9b52800917d3bfd51ed689b81167e416f62bf9743d7.mp3",
+        "id": "netease:1399533630",
+        "createdAt": "2026-11-19T11:15:45.541Z",
+        "audioAssetId": "study-audio://audio/d0299e6c4192878a83f5d9b52800917d3bfd51ed689b81167e416f62bf9743d7.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 17
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1806516122",
+        "title": "我的孤独认出你的孤独",
+        "artist": "陈婧霏",
+        "cover": "https://p4.music.126.net/SA0TBtBTYdP3WCLXN_0smQ==/109951165580090356.jpg",
+        "cachedUrl": "study-audio://audio/f75f22c75639a5334ceee62cb2486b74822a22c4ba18d400de7cd40e5c714fbb.mp3",
+        "id": "netease:1806516122",
+        "createdAt": "2026-11-19T11:15:46.393Z",
+        "audioAssetId": "study-audio://audio/f75f22c75639a5334ceee62cb2486b74822a22c4ba18d400de7cd40e5c714fbb.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 18
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1345872140",
+        "title": "勾指起誓",
+        "artist": "洛天依Official / ilem",
+        "cover": "https://p4.music.126.net/ZKVM7N458RJtG_EO6EB62w==/109951171391306381.jpg",
+        "cachedUrl": "study-audio://audio/0ba10a994261a7b3f5cdaa92e716bde9314bdc23c60d2a3ef0a29006cab8be78.mp3",
+        "id": "netease:1345872140",
+        "createdAt": "2026-11-19T11:15:46.953Z",
+        "audioAssetId": "study-audio://audio/0ba10a994261a7b3f5cdaa92e716bde9314bdc23c60d2a3ef0a29006cab8be78.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 19
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1989506149",
+        "title": "最好的时光",
+        "artist": "安溥",
+        "cover": "https://p4.music.126.net/FATA8q3P9PfO5wDoWjTHUg==/109951167966156160.jpg",
+        "cachedUrl": "study-audio://audio/b328a702f5b66e3fc6898e59c9439504f9d9e3add1ebf9e1368e74ce1b997304.mp3",
+        "id": "netease:1989506149",
+        "createdAt": "2026-11-19T11:15:48.177Z",
+        "audioAssetId": "study-audio://audio/b328a702f5b66e3fc6898e59c9439504f9d9e3add1ebf9e1368e74ce1b997304.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 20
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "25703004",
+        "title": "如果有来生",
+        "artist": "谭维维",
+        "cover": "https://p4.music.126.net/1C1hVHEsIhT0lumGtKySbA==/109951163067297063.jpg",
+        "cachedUrl": "study-audio://audio/04f1a859fc35624cf75ca78563c14040fab5f737312b27704378d47169f6edba.mp3",
+        "id": "netease:25703004",
+        "createdAt": "2026-11-19T11:15:50.534Z",
+        "audioAssetId": "study-audio://audio/04f1a859fc35624cf75ca78563c14040fab5f737312b27704378d47169f6edba.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 21
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "350815",
+        "title": "那年夏天",
+        "artist": "许飞",
+        "cover": "https://p3.music.126.net/_cXEPgKQegfdgMey_gSrxg==/93458488373139.jpg",
+        "cachedUrl": "study-audio://audio/a0d1c13b3a96520a6dbdf337be169149e0061a031d8b1ebd3ae3c541c03e02dd.mp3",
+        "id": "netease:350815",
+        "createdAt": "2026-11-19T11:15:51.299Z",
+        "audioAssetId": "study-audio://audio/a0d1c13b3a96520a6dbdf337be169149e0061a031d8b1ebd3ae3c541c03e02dd.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 22
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2130054123",
+        "title": "和月亮谈的夜晚",
+        "artist": "邹念慈",
+        "cover": "https://p3.music.126.net/yqOPjAJt7JOe9gGxF4-vIg==/109951167978196738.jpg",
+        "cachedUrl": "study-audio://audio/6af5043d7f708530867422402fce20bd347a2ed9ec906f2d22329a2c53b4ba73.mp3",
+        "id": "netease:2130054123",
+        "createdAt": "2026-11-19T11:15:52.198Z",
+        "audioAssetId": "study-audio://audio/6af5043d7f708530867422402fce20bd347a2ed9ec906f2d22329a2c53b4ba73.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 23
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "109734",
+        "title": "凤凰花开的路口",
+        "artist": "林志炫",
+        "cover": "https://p4.music.126.net/hguM0SlUfEnvSLw9t8EK5Q==/109951167366624491.jpg",
+        "cachedUrl": "study-audio://audio/0713a0adc074d60ee4a184ae82a97ce760142206a848b58391ebfc5af9a1e993.mp3",
+        "id": "netease:109734",
+        "createdAt": "2026-11-19T11:15:52.848Z",
+        "audioAssetId": "study-audio://audio/0713a0adc074d60ee4a184ae82a97ce760142206a848b58391ebfc5af9a1e993.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 24
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1412958458",
+        "title": "相见恨晚",
+        "artist": "彭佳慧",
+        "cover": "https://p3.music.126.net/1phFyG_bsTjrxxk1wc2ogg==/109951165958720192.jpg",
+        "cachedUrl": "study-audio://audio/dcfd6d4c1820cfc69a6bb9d6b0a99d21fe090b1b3c7493c86307d094a4808869.mp3",
+        "id": "netease:1412958458",
+        "createdAt": "2026-11-19T11:15:54.065Z",
+        "audioAssetId": "study-audio://audio/dcfd6d4c1820cfc69a6bb9d6b0a99d21fe090b1b3c7493c86307d094a4808869.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 25
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "4875626",
+        "title": "情非得已",
+        "artist": "庾澄庆",
+        "cover": "https://p4.music.126.net/1RsBLk9bkA6dL2ag9uaS4w==/36283883732396.jpg",
+        "cachedUrl": "study-audio://audio/7c40c7af208ef02faa2083384a9025f6eb77ad75ddfad52606d93177c15d33f3.mp3",
+        "id": "netease:4875626",
+        "createdAt": "2026-11-19T11:15:55.381Z",
+        "audioAssetId": "study-audio://audio/7c40c7af208ef02faa2083384a9025f6eb77ad75ddfad52606d93177c15d33f3.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 26
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "5233024",
+        "title": "雨爱",
+        "artist": "杨丞琳",
+        "cover": "https://p3.music.126.net/dJI3s8q-V-13JcjbSmpXGw==/109951165641458451.jpg",
+        "cachedUrl": "study-audio://audio/35d7366a3d43918c2c01aea5527dee2500dec3688625ee908e59b17726eb85f3.mp3",
+        "id": "netease:5233024",
+        "createdAt": "2026-11-19T11:15:57.208Z",
+        "audioAssetId": "study-audio://audio/35d7366a3d43918c2c01aea5527dee2500dec3688625ee908e59b17726eb85f3.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 27
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "390887",
+        "title": "最美",
+        "artist": "羽·泉",
+        "cover": "https://p4.music.126.net/fgPxxpvAtq5J35Ey5Zvo4A==/109951167280984367.jpg",
+        "cachedUrl": "study-audio://audio/5f308455c73b74d5881ff6bada1ef66a9cd4f56f10d6409f5454b6fff0569c7f.mp3",
+        "id": "netease:390887",
+        "createdAt": "2026-11-19T11:15:59.458Z",
+        "audioAssetId": "study-audio://audio/5f308455c73b74d5881ff6bada1ef66a9cd4f56f10d6409f5454b6fff0569c7f.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 28
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2750046268",
+        "title": "月上伊甸 月のエデン",
+        "artist": "江上青山JasonYama",
+        "cover": "https://p4.music.126.net/4BUO7vEIt68_hxs9lpyWYA==/109951172144876178.jpg",
+        "cachedUrl": "study-audio://audio/ab46e648dae5027db1e1c09daebb90d92d059370238c464370c340eeb8fa07d5.mp3",
+        "id": "netease:2750046268",
+        "createdAt": "2026-11-19T11:16:07.128Z",
+        "audioAssetId": "study-audio://audio/ab46e648dae5027db1e1c09daebb90d92d059370238c464370c340eeb8fa07d5.mp3",
+        "playlists": [
+          {
+            "id": "netease:13432605646",
+            "title": "心灵放松-华语",
+            "position": 29
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1872023134",
+        "title": "Love Music",
+        "artist": "Lil Yachty",
+        "cover": "https://p3.music.126.net/2JN_M1HGBkv6zh1RJncoYw==/109951166312635268.jpg",
+        "cachedUrl": "study-audio://audio/b57268a08e259b791ad44b85edbd19ba51a8d6f490ffccf9c99606b2cb7f9b63.mp3",
+        "id": "netease:1872023134",
+        "createdAt": "2026-11-19T11:16:14.930Z",
+        "audioAssetId": "study-audio://audio/b57268a08e259b791ad44b85edbd19ba51a8d6f490ffccf9c99606b2cb7f9b63.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1838898773",
+        "title": "Zero",
+        "artist": "Mahmood",
+        "cover": "https://p4.music.126.net/NaB8CK0yzCWYFjDDvhE9WQ==/109951165908916398.jpg",
+        "cachedUrl": "study-audio://audio/319e3a4532db3b6d09f09ded1f358d52b5af167627b635a59aa5e82cfd0eb0b9.mp3",
+        "id": "netease:1838898773",
+        "createdAt": "2026-11-19T11:16:16.053Z",
+        "audioAssetId": "study-audio://audio/319e3a4532db3b6d09f09ded1f358d52b5af167627b635a59aa5e82cfd0eb0b9.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 1
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2021343439",
+        "title": "If We Ever Broke Up",
+        "artist": "Mae Stephens",
+        "cover": "https://p3.music.126.net/Pji_rp9PheG87zAJ0VeMrA==/109951168298911512.jpg",
+        "cachedUrl": "study-audio://audio/cf5a813c5f2f635af8c4f67a17b4dacb808189a9b69c0893c8a46b0d7b0398d9.mp3",
+        "id": "netease:2021343439",
+        "createdAt": "2026-11-19T11:16:16.542Z",
+        "audioAssetId": "study-audio://audio/cf5a813c5f2f635af8c4f67a17b4dacb808189a9b69c0893c8a46b0d7b0398d9.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 2
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2031034486",
+        "title": "We Are Never Ever Getting Back Together (Taylor's Version)",
+        "artist": "Taylor Swift",
+        "cover": "https://p3.music.126.net/wZCw1Ajv9jQk8MTDQ5zk9A==/109951168475337642.jpg",
+        "cachedUrl": "study-audio://audio/cc2cc91d448f6a5c563cacb7d8041e5d262f60306272c8f05fb5cdc16f3dbac4.mp3",
+        "id": "netease:2031034486",
+        "createdAt": "2026-11-19T11:16:17.860Z",
+        "audioAssetId": "study-audio://audio/cc2cc91d448f6a5c563cacb7d8041e5d262f60306272c8f05fb5cdc16f3dbac4.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 3
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1951113325",
+        "title": "Cardboard Box",
+        "artist": "FLO",
+        "cover": "https://p3.music.126.net/6XPfqryxSDaSZiD1HQyz_g==/109951167481205821.jpg",
+        "cachedUrl": "study-audio://audio/ef0fc00f1ad17e03d2733e8592ea7f415cbf13b243f9d4295bcbcefae5a25ce9.mp3",
+        "id": "netease:1951113325",
+        "createdAt": "2026-11-19T11:16:19.668Z",
+        "audioAssetId": "study-audio://audio/ef0fc00f1ad17e03d2733e8592ea7f415cbf13b243f9d4295bcbcefae5a25ce9.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 4
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "473121036",
+        "title": "Thought Of You",
+        "artist": "Justin Bieber",
+        "cover": "https://p3.music.126.net/p0877shgYhdRKpgosXZpQQ==/109951173480279220.jpg",
+        "cachedUrl": "study-audio://audio/7cd2ea15217e724884b662799ef0456b8f391761da0e2b5e093533c803967bec.mp3",
+        "id": "netease:473121036",
+        "createdAt": "2026-11-19T11:16:20.589Z",
+        "audioAssetId": "study-audio://audio/7cd2ea15217e724884b662799ef0456b8f391761da0e2b5e093533c803967bec.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 5
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1370202558",
+        "title": "Hesitate",
+        "artist": "Jonas Brothers",
+        "cover": "https://p4.music.126.net/V-eeQs1D894w0APW9aIITg==/109951165233212253.jpg",
+        "cachedUrl": "study-audio://audio/9e759e58fad014a2ff74a398454ba277e406c33ef0659153092392a0df804fb0.mp3",
+        "id": "netease:1370202558",
+        "createdAt": "2026-11-19T11:16:22.984Z",
+        "audioAssetId": "study-audio://audio/9e759e58fad014a2ff74a398454ba277e406c33ef0659153092392a0df804fb0.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 6
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2017396035",
+        "title": "Close To You",
+        "artist": "Rihanna",
+        "cover": "https://p4.music.126.net/mwvbJoP8iBqLxPe7W3TmWw==/109951170962146414.jpg",
+        "cachedUrl": "study-audio://audio/6883a9618a76083c7e2f01e6ac7e907186bd3207e969dffc59809bc9699c6154.mp3",
+        "id": "netease:2017396035",
+        "createdAt": "2026-11-19T11:16:24.846Z",
+        "audioAssetId": "study-audio://audio/6883a9618a76083c7e2f01e6ac7e907186bd3207e969dffc59809bc9699c6154.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 7
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1389015614",
+        "title": "Hollywood's Bleeding",
+        "artist": "Post Malone",
+        "cover": "https://p4.music.126.net/xvdif3PmS5IfAv4JcMwpwQ==/109951169303063336.jpg",
+        "cachedUrl": "study-audio://audio/eaeec5ad20341ab5d361c25ee0bca8add841ee88301572ed7c900a14fd7c8ffc.mp3",
+        "id": "netease:1389015614",
+        "createdAt": "2026-11-19T11:16:25.398Z",
+        "audioAssetId": "study-audio://audio/eaeec5ad20341ab5d361c25ee0bca8add841ee88301572ed7c900a14fd7c8ffc.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 8
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1948459136",
+        "title": "Tempo",
+        "artist": "Matteo Bocelli",
+        "cover": "https://p4.music.126.net/kIW29KM6TBsr2rhYL3iWlw==/109951167435105785.jpg",
+        "cachedUrl": "study-audio://audio/266858f63706fa39399d4c4a84ca514c016e1c005f9aa85e91ccf448fb0ee903.mp3",
+        "id": "netease:1948459136",
+        "createdAt": "2026-11-19T11:16:27.049Z",
+        "audioAssetId": "study-audio://audio/266858f63706fa39399d4c4a84ca514c016e1c005f9aa85e91ccf448fb0ee903.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 9
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1841161645",
+        "title": "Pessimist",
+        "artist": "Julia Michaels",
+        "cover": "https://p4.music.126.net/SvAdh9RHiVLD2tB0-EoyvA==/109951165933196301.jpg",
+        "cachedUrl": "study-audio://audio/8011271c71930e8941e414be150d8d21490fc4685d7cf54a921b9e6b1dae60cf.mp3",
+        "id": "netease:1841161645",
+        "createdAt": "2026-11-19T11:16:29.285Z",
+        "audioAssetId": "study-audio://audio/8011271c71930e8941e414be150d8d21490fc4685d7cf54a921b9e6b1dae60cf.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 10
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1863299557",
+        "title": "Hopeless Romantics",
+        "artist": "James TW",
+        "cover": "https://p4.music.126.net/XYIs05n-_vK09ysa8eIZRA==/109951166204077849.jpg",
+        "cachedUrl": "study-audio://audio/9e95ee7e450bf6f2fcef4a85e2708f4097aebfe89f93612fdcd5582804a3c9bd.mp3",
+        "id": "netease:1863299557",
+        "createdAt": "2026-11-19T11:16:30.588Z",
+        "audioAssetId": "study-audio://audio/9e95ee7e450bf6f2fcef4a85e2708f4097aebfe89f93612fdcd5582804a3c9bd.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 11
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "480648259",
+        "title": "2 Cigarettes",
+        "artist": "Jack & Jack",
+        "cover": "https://p4.music.126.net/hmLcLudo4EoLCMJOJ3rYHQ==/17697739161106134.jpg",
+        "cachedUrl": "study-audio://audio/62993e84df5792623cc869cccd920db4b7d7a34f58c1374ecee65df8a855e4df.mp3",
+        "id": "netease:480648259",
+        "createdAt": "2026-11-19T11:16:31.919Z",
+        "audioAssetId": "study-audio://audio/62993e84df5792623cc869cccd920db4b7d7a34f58c1374ecee65df8a855e4df.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 12
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1913746044",
+        "title": "fallin'",
+        "artist": "iann dior",
+        "cover": "https://p3.music.126.net/AE9NtOkhgwEoU42EZKsVNw==/109951169270417763.jpg",
+        "cachedUrl": "study-audio://audio/2c0888669fd4ed53633d55001ef8f8b3f113946fe41bf504865425c4194b93b1.mp3",
+        "id": "netease:1913746044",
+        "createdAt": "2026-11-19T11:16:33.096Z",
+        "audioAssetId": "study-audio://audio/2c0888669fd4ed53633d55001ef8f8b3f113946fe41bf504865425c4194b93b1.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 13
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1417057277",
+        "title": "3am",
+        "artist": "Halsey",
+        "cover": "https://p3.music.126.net/5llz16py1wEefL8Udi3pGg==/109951173334883603.jpg",
+        "cachedUrl": "study-audio://audio/8edde9c97d3468f67e213eafea1e785343e042a67454c03f310537f60806bc8c.mp3",
+        "id": "netease:1417057277",
+        "createdAt": "2026-11-19T11:16:34.719Z",
+        "audioAssetId": "study-audio://audio/8edde9c97d3468f67e213eafea1e785343e042a67454c03f310537f60806bc8c.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 14
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1985009163",
+        "title": "three wheels and it still drives!",
+        "artist": "Glaive",
+        "cover": "https://p3.music.126.net/I_-XI3ftcSUgBwZLMO1dsg==/109951167914240112.jpg",
+        "cachedUrl": "study-audio://audio/99457fb7ba8f7a6596f3a4762d9479927df5ff5a5522f120d2608c804a36157f.mp3",
+        "id": "netease:1985009163",
+        "createdAt": "2026-11-19T11:16:35.491Z",
+        "audioAssetId": "study-audio://audio/99457fb7ba8f7a6596f3a4762d9479927df5ff5a5522f120d2608c804a36157f.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 15
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1999525675",
+        "title": "Venting to Strangers",
+        "artist": "EMELINE",
+        "cover": "https://p3.music.126.net/w-CZxcJpJyea6ff7oIYWTg==/109951168069800438.jpg",
+        "cachedUrl": "study-audio://audio/419de16e9aa96e7bbfc6f5922b75c7787ab7fc1976c868b1478a5cf41a9d79a0.mp3",
+        "id": "netease:1999525675",
+        "createdAt": "2026-11-19T11:16:36.677Z",
+        "audioAssetId": "study-audio://audio/419de16e9aa96e7bbfc6f5922b75c7787ab7fc1976c868b1478a5cf41a9d79a0.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 16
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2021332950",
+        "title": "Ok. Respira",
+        "artist": "Elodie",
+        "cover": "https://p3.music.126.net/5EXv2ZlaZ-VHct7xu9kRsQ==/109951168298854074.jpg",
+        "cachedUrl": "study-audio://audio/9aa8aaaca6c689aeeccfff6d75246a8c275d8ce1e2964e144c2560082aca0f59.mp3",
+        "id": "netease:2021332950",
+        "createdAt": "2026-11-19T11:16:38.017Z",
+        "audioAssetId": "study-audio://audio/9aa8aaaca6c689aeeccfff6d75246a8c275d8ce1e2964e144c2560082aca0f59.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 17
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1805273839",
+        "title": "Clarity",
+        "artist": "Zedd / Foxes",
+        "cover": "https://p3.music.126.net/mSlAz5XWpv2_sJGF7a4S9A==/109951168146155628.jpg",
+        "cachedUrl": "study-audio://audio/31b949ebb3bb8d0aeb9ee7c178ebae205984029e3094d5d1163b826d9001e8fe.mp3",
+        "id": "netease:1805273839",
+        "createdAt": "2026-11-19T11:16:38.804Z",
+        "audioAssetId": "study-audio://audio/31b949ebb3bb8d0aeb9ee7c178ebae205984029e3094d5d1163b826d9001e8fe.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 18
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "32619489",
+        "title": "Traveling Song",
+        "artist": "Ryn Weaver",
+        "cover": "https://p3.music.126.net/vtjfinpSYh215D0TA9RH-g==/109951166220116455.jpg",
+        "cachedUrl": "study-audio://audio/9ff76d017a9ff327d13262d697a4f3b69f442adbd7bd0fbbbd68b602cadcda31.mp3",
+        "id": "netease:32619489",
+        "createdAt": "2026-11-19T11:16:39.680Z",
+        "audioAssetId": "study-audio://audio/9ff76d017a9ff327d13262d697a4f3b69f442adbd7bd0fbbbd68b602cadcda31.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 19
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1875169005",
+        "title": "So Far Away",
+        "artist": "Surfaces",
+        "cover": "https://p3.music.126.net/HWTF-9BlHu3rjAG2IrcQuQ==/109951169145565635.jpg",
+        "cachedUrl": "study-audio://audio/0d4bef2d4b15fdffa64972325c30ab6b5a0248d489e78466f993ab9c63b8f23c.mp3",
+        "id": "netease:1875169005",
+        "createdAt": "2026-11-19T11:16:41.000Z",
+        "audioAssetId": "study-audio://audio/0d4bef2d4b15fdffa64972325c30ab6b5a0248d489e78466f993ab9c63b8f23c.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 20
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1911809122",
+        "title": "this is how you fall in love",
+        "artist": "Jeremy Zucker / Chelsea Cutler",
+        "cover": "https://p3.music.126.net/hVsTBRgNTUvler0dkPsp2w==/109951167896380120.jpg",
+        "cachedUrl": "study-audio://audio/05a684b1886dbd86c992809347bc888c9eb6fda290260614e777f97267398fa7.mp3",
+        "id": "netease:1911809122",
+        "createdAt": "2026-11-19T11:16:41.728Z",
+        "audioAssetId": "study-audio://audio/05a684b1886dbd86c992809347bc888c9eb6fda290260614e777f97267398fa7.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 21
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1936180811",
+        "title": "neverletyougo",
+        "artist": "ROLE MODEL",
+        "cover": "https://p3.music.126.net/4y-38SprHSt9_X9_ZcjAVw==/109951167261102865.jpg",
+        "cachedUrl": "study-audio://audio/b75a0ea8940ac56b638a9e61b9e5f6642012ecbae5c25c0f91ad942aa67981e2.mp3",
+        "id": "netease:1936180811",
+        "createdAt": "2026-11-19T11:16:43.150Z",
+        "audioAssetId": "study-audio://audio/b75a0ea8940ac56b638a9e61b9e5f6642012ecbae5c25c0f91ad942aa67981e2.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 22
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1958608692",
+        "title": "Fleur oubliée",
+        "artist": "La Zarra",
+        "cover": "https://p4.music.126.net/Qq3WBNG6D0RXlD36cVdkUw==/109951167583856951.jpg",
+        "cachedUrl": "study-audio://audio/93532b2839db628c60f3bfeae319537f3bac8f0ed9bbfa2ff62db4c347a25fc8.mp3",
+        "id": "netease:1958608692",
+        "createdAt": "2026-11-19T11:16:44.361Z",
+        "audioAssetId": "study-audio://audio/93532b2839db628c60f3bfeae319537f3bac8f0ed9bbfa2ff62db4c347a25fc8.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 23
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "21702054",
+        "title": "Nah! (Red Version)",
+        "artist": "Shania Twain",
+        "cover": "https://p4.music.126.net/lvnPoYypo-4v-f-uCwMvBg==/109951166537944204.jpg",
+        "cachedUrl": "study-audio://audio/5b9c5d5f6aaae42ec0f3e4f54356317c32de80c33e3fa427befd31dc40d0b9f1.mp3",
+        "id": "netease:21702054",
+        "createdAt": "2026-11-19T11:16:45.903Z",
+        "audioAssetId": "study-audio://audio/5b9c5d5f6aaae42ec0f3e4f54356317c32de80c33e3fa427befd31dc40d0b9f1.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 24
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1343445279",
+        "title": "Sola (English Version)",
+        "artist": "Luis Fonsi",
+        "cover": "https://p3.music.126.net/5vCDXvo2cYXOwhsCWHNiQg==/109951166921317061.jpg",
+        "cachedUrl": "study-audio://audio/aad697ebe3b9e4bba1f818383db5b518c193c362ee58f4835cf3132af8b3f3c1.mp3",
+        "id": "netease:1343445279",
+        "createdAt": "2026-11-19T11:16:47.524Z",
+        "audioAssetId": "study-audio://audio/aad697ebe3b9e4bba1f818383db5b518c193c362ee58f4835cf3132af8b3f3c1.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 25
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2031003569",
+        "title": "Bad for Business",
+        "artist": "Sabrina Carpenter",
+        "cover": "https://p4.music.126.net/Sit0Pt76CzwbU-79FIrmwQ==/109951171960925193.jpg",
+        "cachedUrl": "study-audio://audio/aa4cc2951b64a54b1fd68f19930745b663ba84f3af911b5e1d01e2a3a8329043.mp3",
+        "id": "netease:2031003569",
+        "createdAt": "2026-11-19T11:16:51.247Z",
+        "audioAssetId": "study-audio://audio/aa4cc2951b64a54b1fd68f19930745b663ba84f3af911b5e1d01e2a3a8329043.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 26
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1482101371",
+        "title": "Find an Island",
+        "artist": "BENEE",
+        "cover": "https://p3.music.126.net/9Fe8dVfRIqMOsyNuUZvg7Q==/109951168143611688.jpg",
+        "cachedUrl": "study-audio://audio/8dc148df7380818223a435bc935284df32bfebf55c3dd3533c9f003b3f829d49.mp3",
+        "id": "netease:1482101371",
+        "createdAt": "2026-11-19T11:16:56.470Z",
+        "audioAssetId": "study-audio://audio/8dc148df7380818223a435bc935284df32bfebf55c3dd3533c9f003b3f829d49.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 27
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1937846145",
+        "title": "Remedy",
+        "artist": "Leony",
+        "cover": "https://p4.music.126.net/EAb_gDbjpfcBSZ28Elf1cw==/109951167858835647.jpg",
+        "cachedUrl": "study-audio://audio/4f33f004bfa41fd536d55ca7c0779ac48b7f628617331737eae7a6c33e351f40.mp3",
+        "id": "netease:1937846145",
+        "createdAt": "2026-11-19T11:17:02.044Z",
+        "audioAssetId": "study-audio://audio/4f33f004bfa41fd536d55ca7c0779ac48b7f628617331737eae7a6c33e351f40.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 28
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1923386280",
+        "title": "Love You Like That",
+        "artist": "Arctic Lake",
+        "cover": "https://p3.music.126.net/m27SUQdQ7CtkFAQ7lrl2Bw==/109951167089789819.jpg",
+        "cachedUrl": "study-audio://audio/dd9cc656319b760af45991b5c7084a1bb6353d64886f45c4e66c25f541ee5207.mp3",
+        "id": "netease:1923386280",
+        "createdAt": "2026-11-19T11:17:06.899Z",
+        "audioAssetId": "study-audio://audio/dd9cc656319b760af45991b5c7084a1bb6353d64886f45c4e66c25f541ee5207.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 29
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2017646271",
+        "title": "Too Late",
+        "artist": "Quinn XCII / AJR",
+        "cover": "https://p3.music.126.net/jA_hxMupXzY1ufOfpvDPxw==/109951168264065043.jpg",
+        "cachedUrl": "study-audio://audio/ebb1ecb0f196d08af48933347809407515c0cb43d384da2b8993f020b7e79ab4.mp3",
+        "id": "netease:2017646271",
+        "createdAt": "2026-11-19T11:17:08.996Z",
+        "audioAssetId": "study-audio://audio/ebb1ecb0f196d08af48933347809407515c0cb43d384da2b8993f020b7e79ab4.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 30
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "492176132",
+        "title": "Overachiever",
+        "artist": "Vera Blue",
+        "cover": "https://p3.music.126.net/_xBPacr3XksXwb1Yyx1qAg==/109951166380269291.jpg",
+        "cachedUrl": "study-audio://audio/32e8444c9a9f37d543be4425524f448d858415003e9e053556e5dc227d62fa9e.mp3",
+        "id": "netease:492176132",
+        "createdAt": "2026-11-19T11:17:14.419Z",
+        "audioAssetId": "study-audio://audio/32e8444c9a9f37d543be4425524f448d858415003e9e053556e5dc227d62fa9e.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 31
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1834271191",
+        "title": "Met Him Last Night",
+        "artist": "Demi Lovato / Ariana Grande",
+        "cover": "https://p3.music.126.net/zsQRw-Zlj2BszfSJV6MWbg==/109951165854212425.jpg",
+        "cachedUrl": "study-audio://audio/a159081629e65f4275ae589d0ede334f52694dce73599fdacf451cd84830f9ab.mp3",
+        "id": "netease:1834271191",
+        "createdAt": "2026-11-19T11:17:20.978Z",
+        "audioAssetId": "study-audio://audio/a159081629e65f4275ae589d0ede334f52694dce73599fdacf451cd84830f9ab.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 32
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2014214039",
+        "title": "Over Tonight",
+        "artist": "Stacey Ryan",
+        "cover": "https://p4.music.126.net/vYkGjcrP9FFVoWkf9JGqqg==/109951168231603148.jpg",
+        "cachedUrl": "study-audio://audio/d1665f8d27e4d878d9b593cf866b8602ae354b08564dba4a581dd3e9e01f1ab7.mp3",
+        "id": "netease:2014214039",
+        "createdAt": "2026-11-19T11:17:23.622Z",
+        "audioAssetId": "study-audio://audio/d1665f8d27e4d878d9b593cf866b8602ae354b08564dba4a581dd3e9e01f1ab7.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 33
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "2009325315",
+        "title": "Le bateau coule",
+        "artist": "Louane",
+        "cover": "https://p3.music.126.net/86e4SIyxtXWD4QLV9T4xWg==/109951168175589747.jpg",
+        "cachedUrl": "study-audio://audio/7813e6f0848ee4bb692c901a20b1bd17e8df91ad46eebf8a339c4bd5ca9ce001.mp3",
+        "id": "netease:2009325315",
+        "createdAt": "2026-11-19T11:17:29.864Z",
+        "audioAssetId": "study-audio://audio/7813e6f0848ee4bb692c901a20b1bd17e8df91ad46eebf8a339c4bd5ca9ce001.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 34
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1805313524",
+        "title": "Every Girl I Ever Loved",
+        "artist": "Noah Schnacky",
+        "cover": "https://p4.music.126.net/hx4oSJI2qx2soJjrrSnB5Q==/109951165549428781.jpg",
+        "cachedUrl": "study-audio://audio/73c0e372c60668fc29f1d25b3b2b6ff744de184dd47d64b9e64d0b0bce103979.mp3",
+        "id": "netease:1805313524",
+        "createdAt": "2026-11-19T11:17:32.406Z",
+        "audioAssetId": "study-audio://audio/73c0e372c60668fc29f1d25b3b2b6ff744de184dd47d64b9e64d0b0bce103979.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 35
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1477975279",
+        "title": "Silence",
+        "artist": "FLETCHER",
+        "cover": "https://p4.music.126.net/Qh8JoXh4SumTDQO1bHjc3g==/109951165306405165.jpg",
+        "cachedUrl": "study-audio://audio/017a604b696e21b10721ffaa8a3f2fb056174f7484913f180d730b6ec96c0ee0.mp3",
+        "id": "netease:1477975279",
+        "createdAt": "2026-11-19T11:17:33.457Z",
+        "audioAssetId": "study-audio://audio/017a604b696e21b10721ffaa8a3f2fb056174f7484913f180d730b6ec96c0ee0.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 36
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1882281577",
+        "title": "predictable",
+        "artist": "aldn",
+        "cover": "https://p3.music.126.net/fKH_JYW4lfP3xVedvnSVeA==/109951166465538968.jpg",
+        "cachedUrl": "study-audio://audio/58d79b04a0ab04492ebffae14a3f96597706549ec63c584a1575be7d768df7b4.mp3",
+        "id": "netease:1882281577",
+        "createdAt": "2026-11-19T11:17:34.273Z",
+        "audioAssetId": "study-audio://audio/58d79b04a0ab04492ebffae14a3f96597706549ec63c584a1575be7d768df7b4.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 37
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1852207239",
+        "title": "Memories",
+        "artist": "Maroon 5",
+        "cover": "https://p3.music.126.net/_9NB2FuIKk4L9DCY38Ey-Q==/109951168162148612.jpg",
+        "cachedUrl": "study-audio://audio/a4854ccd5957d3ee3458de72d5735f8586e5cc60233fe85e98050df468280386.mp3",
+        "id": "netease:1852207239",
+        "createdAt": "2026-11-19T11:17:34.916Z",
+        "audioAssetId": "study-audio://audio/a4854ccd5957d3ee3458de72d5735f8586e5cc60233fe85e98050df468280386.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 38
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1372684094",
+        "title": "Icy",
+        "artist": "Kim Petras",
+        "cover": "https://p3.music.126.net/w09QmsF27flzaTyjWEqPZQ==/109951167996718468.jpg",
+        "cachedUrl": "study-audio://audio/8184ceb04bf02a4ec9fd4c5e90c6fe1e2f824036b30164b2a2580f7b1b2eb0fd.mp3",
+        "id": "netease:1372684094",
+        "createdAt": "2026-11-19T11:17:36.232Z",
+        "audioAssetId": "study-audio://audio/8184ceb04bf02a4ec9fd4c5e90c6fe1e2f824036b30164b2a2580f7b1b2eb0fd.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 39
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1430420983",
+        "title": "Everywhere",
+        "artist": "Niall Horan",
+        "cover": "https://p4.music.126.net/XcH9KbzjvQq50XvRG1oPQw==/109951170691214771.jpg",
+        "cachedUrl": "study-audio://audio/8dae2c07c1b99792d4cb45a8b325879962182e063f0cc365a07c912421654143.mp3",
+        "id": "netease:1430420983",
+        "createdAt": "2026-11-19T11:17:37.365Z",
+        "audioAssetId": "study-audio://audio/8dae2c07c1b99792d4cb45a8b325879962182e063f0cc365a07c912421654143.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 40
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1969727987",
+        "title": "Beach House",
+        "artist": "Carly Rae Jepsen",
+        "cover": "https://p3.music.126.net/fwNCOKLJgAqr5ACO3trtEg==/109951173375211321.jpg",
+        "cachedUrl": "study-audio://audio/5084954ee945b824c9422069a6b468571695f93cc8e1da83a62540b93fc348d6.mp3",
+        "id": "netease:1969727987",
+        "createdAt": "2026-11-19T11:17:39.355Z",
+        "audioAssetId": "study-audio://audio/5084954ee945b824c9422069a6b468571695f93cc8e1da83a62540b93fc348d6.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 41
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1432381384",
+        "title": "Checkmate",
+        "artist": "Conan Gray",
+        "cover": "https://p4.music.126.net/hydi5ghREh3PsHElkS4vTA==/109951165993720563.jpg",
+        "cachedUrl": "study-audio://audio/2b1b875a3c627de79b20432e9c67eba5adcc658a6d49e9aaf53b7b58f816234e.mp3",
+        "id": "netease:1432381384",
+        "createdAt": "2026-11-19T11:17:40.529Z",
+        "audioAssetId": "study-audio://audio/2b1b875a3c627de79b20432e9c67eba5adcc658a6d49e9aaf53b7b58f816234e.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 42
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "5209372",
+        "title": "I'm Like a Bird",
+        "artist": "Nelly Furtado",
+        "cover": "https://p4.music.126.net/145ILf27-MELnZfM6EUh8Q==/732274744144156.jpg",
+        "cachedUrl": "study-audio://audio/8399de71d94a55aac61c9be1a9cc57e2ee269696d06d7540261daa6e54ff8c9a.mp3",
+        "id": "netease:5209372",
+        "createdAt": "2026-11-19T11:17:42.570Z",
+        "audioAssetId": "study-audio://audio/8399de71d94a55aac61c9be1a9cc57e2ee269696d06d7540261daa6e54ff8c9a.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 43
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1878814288",
+        "title": "YOUTH",
+        "artist": "Troye Sivan",
+        "cover": "https://p4.music.126.net/_qD_3bTaEqFTBcLGP7j8_A==/109951170290003673.jpg",
+        "cachedUrl": "study-audio://audio/c2cf16700e4b6f8d93167659eabd60d3e1922b31bf67baa910cefb21dfed4856.mp3",
+        "id": "netease:1878814288",
+        "createdAt": "2026-11-19T11:17:43.236Z",
+        "audioAssetId": "study-audio://audio/c2cf16700e4b6f8d93167659eabd60d3e1922b31bf67baa910cefb21dfed4856.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 44
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1859879634",
+        "title": "Boy In A Billion",
+        "artist": "Claire Rosinkranz",
+        "cover": "https://p4.music.126.net/0asPJUh0_na_iBVr8HVMKA==/109951166162061385.jpg",
+        "cachedUrl": "study-audio://audio/6f9d8fba6b3bccc2ea3d112514aa58fa0a851a01e14e6eaabce28842c664a561.mp3",
+        "id": "netease:1859879634",
+        "createdAt": "2026-11-19T11:17:47.859Z",
+        "audioAssetId": "study-audio://audio/6f9d8fba6b3bccc2ea3d112514aa58fa0a851a01e14e6eaabce28842c664a561.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 45
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1836029158",
+        "title": "You Are The Reason (Duet Version)",
+        "artist": "Calum Scott / Leona Lewis",
+        "cover": "https://p3.music.126.net/aGoIv4lUvFexulVOlKmE9w==/109951168146267030.jpg",
+        "cachedUrl": "study-audio://audio/cf3bdb13379b66afbdc6dd3c8e71b155b906ca48ad1001500e3f4cdf84017fe8.mp3",
+        "id": "netease:1836029158",
+        "createdAt": "2026-11-19T11:17:51.490Z",
+        "audioAssetId": "study-audio://audio/cf3bdb13379b66afbdc6dd3c8e71b155b906ca48ad1001500e3f4cdf84017fe8.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 46
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "18801867",
+        "title": "Everybody's Girl",
+        "artist": "Jennifer Lopez",
+        "cover": "https://p4.music.126.net/F9TrQXcJQYSDeK68zdC0fg==/109951173258660267.jpg",
+        "cachedUrl": "study-audio://audio/de04b11f14babc191b4db43cdcd0a50041404a70bb48032356826b88ada19ec5.mp3",
+        "id": "netease:18801867",
+        "createdAt": "2026-11-19T11:17:53.629Z",
+        "audioAssetId": "study-audio://audio/de04b11f14babc191b4db43cdcd0a50041404a70bb48032356826b88ada19ec5.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 47
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1887217070",
+        "title": "Liquor Store",
+        "artist": "Remi Wolf",
+        "cover": "https://p4.music.126.net/lHCPG3TQ8zA8eJkjSsvK-A==/109951166521022671.jpg",
+        "cachedUrl": "study-audio://audio/0269d59b3c2d41c01c39ba4991e493e48dca6b1988409e3a734fa12ffe271b9c.mp3",
+        "id": "netease:1887217070",
+        "createdAt": "2026-11-19T11:17:56.833Z",
+        "audioAssetId": "study-audio://audio/0269d59b3c2d41c01c39ba4991e493e48dca6b1988409e3a734fa12ffe271b9c.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 48
+          }
+        ]
+      },
+      {
+        "provider": "netease",
+        "sourceId": "1938238890",
+        "title": "Off Day",
+        "artist": "Lyn Lapid",
+        "cover": "https://p4.music.126.net/1uVSVYbRyExgblMDqlSxxg==/109951167293705788.jpg",
+        "cachedUrl": "study-audio://audio/1e7925f3a80cb600c2d81ab00b54357f165bc51ff84fd9fb00b965224aa9116d.mp3",
+        "id": "netease:1938238890",
+        "createdAt": "2026-11-19T11:18:00.765Z",
+        "audioAssetId": "study-audio://audio/1e7925f3a80cb600c2d81ab00b54357f165bc51ff84fd9fb00b965224aa9116d.mp3",
+        "playlists": [
+          {
+            "id": "netease:8421869202",
+            "title": "居家-英语",
+            "position": 49
+          }
+        ]
+      }
+    ],
+    "cyber-study.space.v1.typewriter": [
+      {
+        "id": "work-mwnhj640-e8u3ve",
+        "bookTitle": "论语",
+        "bookId": "file:c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b",
+        "chapterTitle": "学而篇",
+        "title": "论语 · 学而篇",
+        "text": "子曰：“学而时习之，不亦说乎？有朋自远方来，不亦乐乎？人不知而不愠，不亦君子乎？”\n有子曰：“其为人也孝弟，而好犯上者，鲜矣；不好犯上而好作乱者，未之有也。君子务本，本立而道生。孝弟也者，其为仁之本与！”\n子曰：“巧言令色，鲜矣仁！”\n曾子曰：“吾日三省吾身：为人谋而不忠乎？与朋友交而不信乎？传不习乎？”\n子曰：“道千乘之国，敬事而信，节用而爱人，使民以时。”\n子曰：“弟子入则孝，出则弟，谨而信，泛爱众，而亲仁，行有余力，则以学文。”\n子夏曰：“贤贤易色；事父母，能竭其力；事君，能致其身；与朋友交，言而有信。虽曰未学，吾必谓之学矣。”\n子曰：“君子不重则不威，学则不固。主忠信，无友不如己者，过，则勿惮改。”\n曾子曰：“慎终追远，民德归厚矣。”\n子禽问于子贡曰：“夫子至于是邦也，必闻其政，求之与，抑与之与？”子贡曰：“夫子温、良、恭、俭、让以得之。夫子之求之也，其诸异乎人之求之与？”\n子曰：“父在，观其志；父没，观其行；三年无改于父之道，可谓孝矣。”\n有子曰：“礼之用，和为贵。先王之道，斯为美，小大由之。有所不行，知和而和，不以礼节之，亦不可行也。”\n有子曰：“信近于义，言可复也。恭近于礼，远耻辱也。因不失其亲，亦可宗也。”\n子曰：“君子食无求饱，居无求安，敏于事而慎于言，就有道而正焉。可谓好学也已。”\n子贡曰：“贫而无谄，富而无骄，何如？”子曰：“可也。未若贫而乐，富而好礼者也。”子贡曰：“《诗》云：‘如切如磋，如琢如磨’，其斯之谓与？”子曰：“赐也，始可与言《诗》已矣，告诸往而知来者。”\n子曰：“不患人之不己知，患不知人也。”",
+        "typedText": "",
+        "cursor": 0,
+        "status": "not_started",
+        "completedAt": null,
+        "complete": false,
+        "createdAt": "2026-11-19T11:46:54.770Z",
+        "updatedAt": "2026-11-19T11:47:04.187Z"
+      }
+    ]
+  }
+}

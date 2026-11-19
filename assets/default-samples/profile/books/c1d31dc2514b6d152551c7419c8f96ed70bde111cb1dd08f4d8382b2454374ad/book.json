@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "book": {
+    "createdAt": "2026-11-19T11:25:40.516Z",
+    "id": "file:23e020cb1f854a71a79a5e416212ac851e768f574bc18518d7abe39de1d4ea86",
+    "title": "呼兰河传",
+    "author": "萧红",
+    "source": "呼兰河传.md"
+  },
+  "files": [
+    {
+      "id": "7b1df85659413d0ca06085ada58a440442b316745c868206f2a9adb16532639b",
+      "role": "reading",
+      "path": "book.md",
+      "format": "md",
+      "sha256": "f5a07052243a30ce221bdaf554f53c0b909dfdd12c57b97a7a64188e3d455ed0",
+      "size": 64277,
+      "modifiedAt": "2026-11-19T11:25:40.517Z"
+    },
+    {
+      "id": "349d6455b7236fd3f78a529e036ccb3638f90d643034e72ce92dada6dfda01c2",
+      "role": "original",
+      "path": "original.md",
+      "format": "md",
+      "sha256": "23e020cb1f854a71a79a5e416212ac851e768f574bc18518d7abe39de1d4ea86",
+      "size": 64783,
+      "modifiedAt": "2026-11-19T11:25:40.516Z"
+    }
+  ]
+}

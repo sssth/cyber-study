@@ -3,6 +3,7 @@ import CrystalChat from './features/CrystalChat.jsx';
 import {requestGlobeBack} from './data/globeBack.js';
 import MapProjection from './features/MapProjection.jsx';
 import SnapshotCommand from './features/SnapshotCommand.jsx';
+import CommandToolbar from './features/CommandToolbar.jsx';
 import { captureViews, restoreViews, clearRestoredViews, createReturnPoint } from './data/viewNavigation.js';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
@@ -465,6 +466,10 @@ function App() {
   };
 
   const commandView = `${readerOpen}:${activeFeature}`;
+  const searchView = `${commandView}:${readerEntry}:${sceneTheme}:${navigation.revision}`;
+  const contentCommandsDisabled = manualOpen || activeFeature === 'crystal' || mapOpen || settingsOpen || calibration;
+  const showCommandToolbar = !menuOpen && !manualOpen && !settingsOpen && !graphicsOpen && !calibration &&
+    (mapOpen || readerOpen || (activeFeature && activeFeature !== 'crystal'));
   const commandDestinations = [
     ['shelf', '书库'], ['music', '音乐播放器'], ['movie', '影架'], ['diary', '日记'],
     ['memo', 'Memo 板'], ['typewriter', '抄写'], ['globe', '地球仪']
@@ -597,11 +602,12 @@ function App() {
       )}
 
       <CrystalChat open={activeFeature === 'crystal'} onClose={closeFeature} />
-      <ContentCommands viewKey={commandView} shortcuts={shortcuts} disabled={manualOpen || activeFeature === 'crystal' || mapOpen || settingsOpen || calibration}
+      <ContentCommands viewKey={commandView} targetView={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}
         pending={pendingCommand} onPendingHandled={clearPendingCommand} />
       <MapProjection shortcuts={shortcuts} disabled={manualOpen || settingsOpen || graphicsOpen || calibration} onOpen={() => relationReturn.current.clear()} onActiveChange={setMapOpen}/>
       <SnapshotCommand shortcuts={shortcuts} disabled={manualOpen || settingsOpen || graphicsOpen || calibration} projection={mapOpen}/>
-      <UnifiedSearch viewKey={`${readerOpen}:${activeFeature}:${readerEntry}:${sceneTheme}:${navigation.revision}`} shortcuts={shortcuts} disabled={manualOpen || activeFeature === 'crystal' || mapOpen || settingsOpen || calibration}/>
+      <UnifiedSearch viewKey={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}/>
+      {showCommandToolbar && <CommandToolbar shortcuts={shortcuts} />}
       <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!menuOpen&&!calibration} onOpen={item => {
         relationReturn.current.clear();
         openContent(item);

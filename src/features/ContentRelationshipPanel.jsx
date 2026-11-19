@@ -4,10 +4,10 @@ import {useSearchCount,useSearchScope} from '../search/useSearchScope.jsx';
 import {matchesCatalogItem} from '../search/searchCore.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { sampleBooks } from '../reader/sampleBooks.js';
 import { contentAt, contentTypes, canRelate, relationExists, addRelation, removeRelation, buildCatalog } from '../data/contentRelations.js';
 import { createId, loadSpaceData, saveSpaceData } from '../data/spaceStorage.js';
 import { memoPosition } from './memoLayout.js';
+import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
 const emptyBooks=[];
 const destinations = [['diary', '今日日记（已有则追加）'], ['memo', 'Memo 便签'], ['todo', '待办']];
 const relatedPreview = item => item?.annotation || item?.quote || item?.text || item?.caption || item?.note || item?.description;
@@ -25,7 +25,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   const globe=results[1].status==='fulfilled'?results[1].value:{};
   if(results[0].status==='rejected')errors.push('书库读取失败');
   if(results[1].status==='rejected'||globe?.error)errors.push('地球仪内容读取失败');
-  const items=buildCatalog({books:[...sampleBooks,...books,...(Array.isArray(storedBooks)?storedBooks:[])],globe:globe?.error?{}:globe});
+  const items=buildCatalog({books:[...books,...(Array.isArray(storedBooks)?storedBooks:[])],globe:globe?.error?{}:globe});
   setCatalog(items);setLinks(loadSpaceData('content-relations',[]));
 
   setError(errors.length?errors.join('；')+'。其他类型仍可使用，可点击重试。':'');setLoading(false);
@@ -34,10 +34,11 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   const show = (current, item, canEdit) => {
     if (dialog.current?.open || !current?.id) return;
     window.dispatchEvent(new Event('cyber-close-search'));
+    setCommandTargetMode(null);
     returnFocus.current = current.element;
     editItem.current = canEdit ? item : null;
     setSource(current);
-    setCatalog(buildCatalog({ books: [...sampleBooks, ...books] }));
+    setCatalog(buildCatalog({ books }));
     setLinks(loadSpaceData('content-relations', []));
     setCategory('');
     setTab('view');
@@ -62,11 +63,17 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
     event.stopImmediatePropagation();
   };
   const showRequested = event => show(event.detail?.source);
+  const toggle = () => {
+    if (dialog.current?.open) close();
+    else setCommandTargetMode(commandTargetMode() === 'relate' ? null : 'relate');
+  };
+  window.addEventListener('cyber-toggle-relate', toggle);
   window.addEventListener('cyber-show-relations', showRequested);
   document.addEventListener('contextmenu', handler, true);
   document.addEventListener('keydown', key);
   return () => {
     window.removeEventListener('cyber-show-relations', showRequested);
+    window.removeEventListener('cyber-toggle-relate', toggle);
     document.removeEventListener('contextmenu', handler, true);
     document.removeEventListener('keydown', key);
     requestId.current++;
@@ -127,7 +134,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
        <button type="button" onClick={close} aria-label="关闭关联面板">关闭</button>
      </div>
    </header>
-   {source && <ContentCommand kind="create" label={tab === 'view' ? '添加关联' : '返回已关联'}
+   {source && <ContentCommand kind="create" createActive={tab !== 'view'} label={tab === 'view' ? '添加关联' : '返回已关联'}
      run={() => changeTab(tab === 'view' ? 'existing' : 'view')} />}
    {tab !== 'view' && <nav className="relation-tabs" aria-label="添加关联方式">
      {[['existing', '关联已有内容'], ['new', '新建关联记录']].map(([id, label]) =>

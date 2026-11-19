@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "book": {
+    "createdAt": "2026-11-19T11:25:40.523Z",
+    "id": "file:c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b",
+    "title": "论语",
+    "author": "",
+    "source": "论语.md"
+  },
+  "files": [
+    {
+      "id": "7b1df85659413d0ca06085ada58a440442b316745c868206f2a9adb16532639b",
+      "role": "reading",
+      "path": "book.md",
+      "format": "md",
+      "sha256": "826b27d25e6c71202be312c28d4c554ddf2d8828b3374cce9e944a905c50382f",
+      "size": 65443,
+      "modifiedAt": "2026-11-19T11:25:40.536Z"
+    },
+    {
+      "id": "349d6455b7236fd3f78a529e036ccb3638f90d643034e72ce92dada6dfda01c2",
+      "role": "original",
+      "path": "original.md",
+      "format": "md",
+      "sha256": "c82f464bd4f72ea0e34f5d52b81a37c770af403c1a21f80502c7db1a132c986b",
+      "size": 66025,
+      "modifiedAt": "2026-11-19T11:25:40.524Z"
+    }
+  ]
+}

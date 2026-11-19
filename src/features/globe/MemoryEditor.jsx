@@ -13,7 +13,7 @@ import { loadCities, nodeById } from './geography.js';
 const blank = { title: '', location: '', caption: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
 const label = p => p.title || p.location || p.filename || p.caption?.slice(0, 40) || '未命名记忆点';
 
-export default function MemoryEditor({ mode, photos, journeys, editJourney, onClose, error, busy, request, onView, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
+export default function MemoryEditor({ mode, photos, journeys, editJourney, onClose, error, busy, request, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
   const order = useContentOrder();
   const [point, setPoint] = useState(() => ({ ...blank, ...initialPoint }));
   const [journey, setJourney] = useState(editJourney || { title: '', note: '', pointIds: [] });
@@ -70,10 +70,19 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
         onDrop={e => { e.preventDefault(); const source = draggedStop.current; if (!busy && source) setJourney(current => ({ ...current, pointIds: moveBefore(current.pointIds, source, id) })); draggedStop.current = null; }}>
         <button type="button" disabled={busy} onDoubleClick={event => { event.stopPropagation(); if (!busy && window.confirm('从这段旅程中删除这个记忆点？记忆点本身会保留。')) setJourney(current => ({ ...current, pointIds: current.pointIds.filter(value => value !== id) })); }}><span className="journey-stop-title">{label(byId.get(id) || {})}</span><span className="journey-stop-place">{byId.get(id)?.city || byId.get(id)?.location || ''}</span></button>
       </li>)}</ul>
-      {journey.id && onView && <button type="button" disabled={busy} onClick={() => { setJourneyEditorOpen(false); onView(journey.id); }}>在地球上查看</button>}
-      <WorkspaceActions><button disabled={busy}>保存</button>
-      {journey.id && !remove && <ContentEditButton label="删除" disabled={busy} run={() => setRemove(true)} />}</WorkspaceActions>
-      {journey.id && remove && <div role="group" aria-label="确认删除旅程"><p>删除这段旅程后，记忆点仍会保留。</p><button type="button" onClick={() => setRemove(false)}>取消</button><button type="button" disabled={busy} onClick={async () => { if (await request('journey', { id: journey.id, remove: true })) { setJourneyEditorOpen(!editJourney); setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); } }}>确认删除旅程</button></div>}
+      <WorkspaceActions>{journey.id && remove ? <>
+        <button type="button" disabled={busy} onClick={event => { event.preventDefault(); setRemove(false); }}>取消</button>
+        <button type="button" disabled={busy} onClick={async () => {
+          const result = await request('journey', { id: journey.id, remove: true });
+          if (!result || result.canceled) return;
+          setRemove(false);
+          setJourney({ title: '', note: '', pointIds: [] });
+          setJourneyEditorOpen(false);
+        }}>确认删除旅程</button>
+      </> : <>
+        <button disabled={busy}>保存</button>
+        {journey.id && <ContentEditButton label="删除" disabled={busy} run={() => setRemove(true)} />}
+      </>}</WorkspaceActions>
     </form></ActionWorkspace>);
   if (editJourney) return editor;
   return <div className="globe-library-layout journey-library-layout">

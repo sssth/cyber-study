@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Book } from '../../reader/ShelfModel.jsx';
 import { loadArrangement, arrangeBooks, carriedBooks } from '../../reader/shelfArrangement.js';
-import { sampleBooks } from '../../reader/sampleBooks.js';
 import { loadReaderState } from '../../data/storage.js';
 
 export default function SceneShelfBooks({ scene, books=[], onActivate, onHover, inputActive, hidden=[] }) {
@@ -9,7 +8,7 @@ export default function SceneShelfBooks({ scene, books=[], onActivate, onHover, 
  useEffect(()=>{const refresh=()=>setRevision(v=>v+1);window.addEventListener('cyber-shelf-changed',refresh);window.addEventListener('storage',refresh);window.addEventListener('cyber-content-changed',refresh);return()=>{window.removeEventListener('cyber-shelf-changed',refresh);window.removeEventListener('storage',refresh);window.removeEventListener('cyber-content-changed',refresh);};},[]);
  const shelves=useMemo(()=>{
   const state=loadReaderState();
-  const lookup=new Map([...sampleBooks,...books].map(book=>[book.id,{...book,title:state.books?.[book.id]?.customTitle||book.title,author:state.books?.[book.id]?.customAuthor??book.author}]));
+  const lookup=new Map(books.map(book=>[book.id,{...book,title:state.books?.[book.id]?.customTitle||book.title,author:state.books?.[book.id]?.customAuthor??book.author}]));
   try{return loadArrangement(localStorage).map((entries,index)=>arrangeBooks(index,entries.filter(e=>lookup.has(e.bookId))).map(e=>({...e,book:lookup.get(e.bookId)})));}
   catch(error){console.warn('无法显示书架陈列',error);return [[],[]];}
  },[books,revision,inputActive]);

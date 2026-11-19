@@ -12,7 +12,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FeaturePanel, ActionWorkspace, WorkspaceActions } from './ui.jsx';
 import ExcerptAnnotations from '../reader/ExcerptAnnotations.jsx';
-import { sampleBooks } from '../reader/sampleBooks.js';
 import { parseMarkdownContent, underlineMarkdown } from '../reader/markdownReader.js';
 import { highlightRanges, indexChapters } from '../reader/readerPosition.js';
 import { loadKnowledge, groupExcerpts, excerptKey, updateExcerptRange, deleteExcerpt } from '../data/knowledgeStore.js';
@@ -26,7 +25,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   const notes = useMemo(() => loadKnowledge().notes, [version, revision]);
   const groups = useMemo(() => groupExcerpts(notes), [notes]);
   const sources = useMemo(() => {
-    const books = new Map([...sampleBooks, ...importedBooks].map((book) => [book.id, book]));
+    const books = new Map(importedBooks.map((book) => [book.id, book]));
     const result = new Map();
     for (const id of new Set(notes.map((note) => note.bookId))) {
       const book = books.get(id);
