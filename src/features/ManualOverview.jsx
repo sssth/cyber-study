@@ -1,77 +1,78 @@
+import { translate } from '../i18n/index.js';
 export default function ManualOverview() {
   return <>
     <section>
-      <h3>书库</h3>
+      <h3>{translate("i18n.library")}</h3>
       <ul>
-        <li>「全部书籍」 汇集所有〔书籍〕。从本地导入新书，点击封面开始阅读。</li>
-        <li>「展示书架」 可以自行布置，挑选想陈列的〔书籍〕，放到对应的书架上。</li>
-        <li>「摘录与批注」 保存阅读时留下的〔摘录〕和〔批注〕。</li>
+        <li>{translate("i18n.allBooksListsYourEntireCollectionImport")}</li>
+        <li>{translate("i18n.arrangeTheDisplayShelfBySelectingBooks")}</li>
+        <li>{translate("i18n.excerptsAnnotationsStoresWhatYouSaveWhile")}</li>
       </ul>
     </section>
     <section>
-      <h3>唱片机</h3>
+      <h3>{translate("i18n.recordPlayer")}</h3>
       <ul>
-        <li>「播放」 用来听歌。选择〔歌单〕和〔歌曲〕，实现后台音乐播放。</li>
-        <li>「歌单」 显示所有〔歌单〕和〔歌曲〕。可以连接音乐平台，也可以导入本地音频。</li>
+        <li>{translate("i18n.playbackLetsYouSelectPlaylistsAndTracks")}</li>
+        <li>{translate("i18n.playlistsListsAllPlaylistsAndTracksConnect")}</li>
       </ul>
     </section>
     <section>
-      <h3>影碟机与屏幕</h3>
-      <ul><li>把〔影片〕收进书房。可以通过豆瓣电影条目链接添加资料。</li></ul>
+      <h3>{translate("i18n.discPlayerAndScreen")}</h3>
+      <ul><li>{translate("i18n.addFilmsToYourStudyUsingA")}</li></ul>
     </section>
     <section>
-      <h3>日记</h3>
+      <h3>{translate("i18n.diary")}</h3>
       <ul>
-        <li>「今日日记」 用来写下当天的经历和心情。</li>
-        <li>「阅读模式」 用来翻看以前的〔日记〕。</li>
+        <li>{translate("i18n.todaySEntryIsWhereYouRecord")}</li>
+        <li>{translate("i18n.readingModeLetsYouBrowsePastDiary")}</li>
       </ul>
     </section>
     <section>
-      <h3>便签与待办</h3>
+      <h3>{translate("i18n.notesAndToDos")}</h3>
       <ul>
-        <li>「Memo 板」 把〔便签〕和〔待办〕摆在同一块板上。</li>
-        <li>「便签」 适合随手记下想法。</li>
-        <li>「待办」 适合写下计划，并在完成后点击勾选。</li>
+        <li>{translate("i18n.theMemoBoardShowsNotesAndTo")}</li>
+        <li>{translate("i18n.useNotesToJotDownIdeas")}</li>
+        <li>{translate("i18n.useToDosToMakePlansAnd")}</li>
       </ul>
     </section>
     <section>
-      <h3>地球仪</h3>
+      <h3>{translate("i18n.globe")}</h3>
       <ul>
-        <li>「3D 浏览」 按地理位置展示。转动地球，点开〔记忆点〕，回看留在那里的照片和文字。</li>
-        <li>「记忆点」 用来新建和整理〔记忆点〕。补上地点后，就能在地球上找到它。</li>
-        <li>「旅程」 把同一次出行的〔记忆点〕归入一段〔旅程〕。</li>
+        <li>{translate("i18n.in3dViewSpinTheGlobeAnd")}</li>
+        <li>{translate("i18n.createAndOrganizeEntriesUnderMemoryPins")}</li>
+        <li>{translate("i18n.groupMemoryPinsFromTheSameTrip")}</li>
       </ul>
     </section>
     <section>
-      <h3>打字机</h3>
+      <h3>{translate("i18n.typewriter")}</h3>
       <ul>
-        <li>从一本〔书籍〕中选择章节，或从已有的〔摘录〕开始，对照原文抄写。</li>
+        <li>{translate("i18n.chooseAChapterFromABookOr")}</li>
       </ul>
     </section>
     <section>
-      <h3>AI 对话</h3>
+      <h3>{translate("i18n.aiChat")}</h3>
       <ul>
-        <li>选择 AI 模型，进行对话。</li>
-        <li>给 AI 模型附上〔实体〕快照。</li>
+        <li>{translate("i18n.chooseAnAiModelAndStartA")}</li>
+        <li>{translate("i18n.attachSnapshotsOfItemsToTheConversation")}</li>
       </ul>
     </section>
     <section>
-      <h3>个人知识库</h3>
+      <h3>{translate("i18n.personalKnowledgeBase")}</h3>
       <ul>
-        <li>「全部实体」 把书房各处的〔实体〕汇在同一个列表里。</li>
-        <li>「实体关系图」 展示〔实体〕之间已经建立的关联。</li>
+        <li>{translate("i18n.allItemsListsTheItemsFromAcross")}</li>
+        <li>{translate("i18n.theRelationshipGraphShowsTheLinksBetween")}</li>
       </ul>
     </section>
     <section>
-      <h3>书房猫</h3>
+      <h3>{translate("i18n.studyCat")}</h3>
       <ul>
-        <li>点击猫咪，查看它的心情、亲密度和抚摸记录。双击猫咪，就能摸摸它。</li>
+        <li>{translate("i18n.clickTheCatToSeeItsMood")}</li>
       </ul>
     </section>
     <section>
-      <h3>书房植物</h3>
+      <h3>{translate("i18n.studyPlant")}</h3>
       <ul>
-        <li>点击植物，查看水分、成长值和近 24 小时的专注记录。双击植物可以浇水。</li>
+        <li>{translate("i18n.clickThePlantToSeeItsMoisture")}</li>
       </ul>
     </section>
   </>;

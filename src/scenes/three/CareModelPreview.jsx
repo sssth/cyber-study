@@ -1,3 +1,4 @@
+import { translate } from '../../i18n/index.js';
 import ModelLoading from '../../ui/ModelLoading.jsx';
 import { Suspense, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
@@ -33,11 +34,11 @@ export default function CareModelPreview({ feature, model, theme, label }) {
     const id = resolveSceneFeature(candidate);
     return id === feature || (feature === 'pet' && id === 'cat');
   });
-  if (!item) return <p>此场景包没有配置{label}模型。</p>;
+  if (!item) return <p>{translate("i18n.thisScenePackHasNo")}{label}{translate("i18n.model")}</p>;
 
-  return <div className="care-model-preview" aria-label={`${label}的 3D 模型，可拖动旋转`}>
+  return <div className="care-model-preview" aria-label={translate("i18n.3dModelOf0DragToRotate", label)}>
     {!ready && <ModelLoading />}
-    <LoadingBoundary message="3D 模型加载失败。">
+    <LoadingBoundary message={translate("i18n.couldNotLoadThe3dModel")}>
       <Canvas gl={{ alpha: true, antialias: true }} camera={{ position: [2.5, 1.7, 3.6], fov: 38 }} dpr={[1, 1.5]} frameloop="demand">
         <ambientLight intensity={1.3} />
         <hemisphereLight args={['#ffffff', '#877264', 1.6]} />

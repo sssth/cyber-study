@@ -1,7 +1,8 @@
+import { translate } from '../i18n/index.js';
 import { loadOrder, saveVisibleOrder } from '../data/contentOrder.js';
 import { useEffect, useRef, useState } from 'react';
 import '../../shared/contentAssets.js';
-import { contentElements } from '../data/contentRelations.js';
+import { contentElements } from '../ui/contentTargets.js';
 let draggedContent = null;
 const assets=globalThis.ContentAssets.repository('cyber-study-content-assets-v1');
 // Invisible registration: right-click belongs to the enclosing content, not a repeated toolbar.
@@ -17,7 +18,7 @@ export default function ContentActions({type,id,title='',surface,preview=true,so
   const previousTab=element.getAttribute('tabindex');
   element.dataset.contentTarget=key;
   if(!element.matches('button,a,input,textarea,select')&&!element.hasAttribute('tabindex'))element.tabIndex=0;
-  contentElements.set(element,{key,type,id,title:title||'未命名内容',createdAt,element});
+  contentElements.set(element,{key,type,id,title:title||translate("i18n.untitledItem"),createdAt,element});
   const previousOrder = element.style.order;
   const previousDraggable = element.getAttribute('draggable');
   const canSort = sortable ?? !element.matches('.memo-item');
@@ -52,7 +53,7 @@ export default function ContentActions({type,id,title='',surface,preview=true,so
     event.preventDefault(); event.stopPropagation();
     const siblings = [...element.parentElement.querySelectorAll('[data-content-target]')].map(node => contentElements.get(node)).filter(Boolean).filter(entry => entry.type === type && entry.element.parentElement === element.parentElement);
     try { saveVisibleOrder(type, siblings, source, key); end(); }
-    catch { window.dispatchEvent(new CustomEvent('cyber-order-error', { detail: '排序保存失败，请检查本地存储空间。' })); }
+    catch { window.dispatchEvent(new CustomEvent('cyber-order-error', { detail: "i18n.couldNotSaveTheOrderCheckYour" })); }
   };
   refreshOrder();
   window.addEventListener('cyber-order-changed', refreshOrder);
@@ -68,5 +69,5 @@ export default function ContentActions({type,id,title='',surface,preview=true,so
   refresh();window.addEventListener('cyber-content-changed',refresh);
   return ()=>{alive=false;urls.forEach(URL.revokeObjectURL);window.removeEventListener('cyber-content-changed',refresh);};
  },[key,type,preview]);
- return <span className="content-anchor" ref={ref}>{preview&&pictures.map(url=><img key={url} src={url} className="preview-image" alt={`${title}的图片`}/>)}</span>;
+ return <span className="content-anchor" ref={ref}>{preview&&pictures.map(url=><img key={url} src={url} className="preview-image" alt={translate("i18n.imageFor0", title)}/>)}</span>;
 }

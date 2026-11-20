@@ -1,3 +1,4 @@
+import { translateError } from '../i18n/index.js';
 import { Component } from 'react';
 
 export function LoadingScreen({ title, percent = 0, detail, done = false, error, panel = false }) {
@@ -7,7 +8,7 @@ export function LoadingScreen({ title, percent = 0, detail, done = false, error,
       aria-hidden={done || undefined}
     >
       <div className="loading-card">
-        {error ? <p role="alert">{error}</p> : (
+        {error ? <p role="alert">{translateError(error)}</p> : (
           <>
             <div className="loading-heading"><strong>{title}</strong><span aria-hidden="true">{percent}%</span></div>
             <progress aria-label={title} value={percent} max={100} />

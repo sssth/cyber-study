@@ -1,3 +1,4 @@
+import { translate } from '../i18n/index.js';
 export default function ModelLoading() {
-  return <div className="model-loading-indicator" role="status" aria-label="正在加载模型"><span aria-hidden="true" /><small>加载中</small></div>;
+  return <div className="model-loading-indicator" role="status" aria-label={translate("i18n.loadingModel")}><span aria-hidden="true" /><small>{translate("i18n.loading")}</small></div>;
 }

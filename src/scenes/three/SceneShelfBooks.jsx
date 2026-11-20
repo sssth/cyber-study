@@ -1,7 +1,8 @@
+import { translate } from '../../i18n/index.js';
 import { useEffect, useMemo, useState } from 'react';
-import { Book } from '../../reader/ShelfModel.jsx';
-import { loadArrangement, arrangeBooks, carriedBooks } from '../../reader/shelfArrangement.js';
-import { loadReaderState } from '../../data/storage.js';
+import Book from '../../features/library/BookModel.jsx';
+import { loadArrangement, arrangeBooks, carriedBooks, displayShelves } from '../../features/library/sceneShelfArrangement.js';
+import { loadReaderState } from '../../features/library/storage.js';
 
 export default function SceneShelfBooks({ scene, books=[], onActivate, onHover, inputActive, hidden=[] }) {
  const [revision,setRevision]=useState(0);
@@ -10,9 +11,9 @@ export default function SceneShelfBooks({ scene, books=[], onActivate, onHover, 
   const state=loadReaderState();
   const lookup=new Map(books.map(book=>[book.id,{...book,title:state.books?.[book.id]?.customTitle||book.title,author:state.books?.[book.id]?.customAuthor??book.author}]));
   try{return loadArrangement(localStorage).map((entries,index)=>arrangeBooks(index,entries.filter(e=>lookup.has(e.bookId))).map(e=>({...e,book:lookup.get(e.bookId)})));}
-  catch(error){console.warn('无法显示书架陈列',error);return [[],[]];}
+  catch(error){console.warn('无法显示书架陈列',error);return displayShelves.map(() => []);}
  },[books,revision,inputActive]);
- return ['shelf','F26'].map((id,index)=>{
+ return displayShelves.map(({ model: id }, index) => {
   const base=scene.models.find(m=>m.id===id);if(!base||hidden.includes(id))return null;
   const layout=shelves[index];
   function target(entry){
@@ -21,7 +22,7 @@ export default function SceneShelfBooks({ scene, books=[], onActivate, onHover, 
    return carriedBooks(layout,bottom?.bookId||entry.bookId);
   }
   return <group key={id} position={[base.position[0],0,base.position[2]]} rotation={[0,base.rotation?.[1]||0,0]}>
-   {layout.map(entry=><group key={entry.id} userData={{sceneBookShelf:id}} onPointerMove={event=>{if(!inputActive||event.buttons)return;event.stopPropagation();const group=target(entry);onHover?.(group.length>1?`进入书堆 · ${group.length} 本书`:`阅读《${entry.book.title}》`);}} onPointerOut={()=>onHover?.(null)}><Book book={entry.book} position={entry.position} orientation={entry.orientation} preview={!inputActive} onActivate={()=>{
+   {layout.map(entry=><group key={entry.id} userData={{sceneBookShelf:id}} onPointerMove={event=>{if(!inputActive||event.buttons)return;event.stopPropagation();const group=target(entry);onHover?.(group.length>1?translate("i18n.openStack0Books", group.length):translate("i18n.read0", entry.book.title));}} onPointerOut={()=>onHover?.(null)}><Book book={entry.book} position={entry.position} orientation={entry.orientation} preview={!inputActive} onActivate={()=>{
     if(!inputActive)return;
     const group=target(entry);
     onActivate?.(group.map(e=>e.bookId));

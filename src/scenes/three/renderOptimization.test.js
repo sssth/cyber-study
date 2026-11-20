@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { BackSide, BoxGeometry, BufferAttribute, BufferGeometry, Matrix4, MeshStandardMaterial, Vector3 } from 'three';
 import { boxCorners, boxFullyOccluded, opaqueOccluder, solidBox } from './solidBox.js';
 import { createAssetLifetime, releaseParser } from './assetLifetime.js';
-import { retainLodGeometry, lodCacheStats } from './modelLod.js';
+import { chooseLod, retainLodGeometry, lodCacheStats } from './modelLod.js';
 
 test('occluders must be complete outward cuboids, excluding missing or duplicated faces',()=>{
  const geometry=new BoxGeometry(2,2,2); assert.ok(solidBox(geometry));
@@ -35,10 +35,10 @@ test('LOD shares active geometry and bounds unused cache; disposal releases vari
  const indices=Uint32Array.from({length:240000},(_,i)=>i);base.setIndex(new BufferAttribute(indices,1));
  const spec={vertexCount:240000,sourceTriangles:80000,levels:[{triangles:80000}]};
  const buffer=indices.slice().buffer,a=retainLodGeometry(base,buffer,spec,0),b=retainLodGeometry(base,buffer,spec,0);assert.equal(a.geometry,b.geometry);
- let disposed=0;a.geometry.addEventListener('dispose',()=>disposed++);a.release();assert.equal(disposed,0);
+ let disposed=0;a.geometry.addEventListener('dispose',()=>{disposed++;assert.equal(a.geometry.getAttribute('position'),undefined);});a.release();assert.equal(disposed,0);
  for(let n=0;n<12;n++)retainLodGeometry(base,indices.slice().buffer,spec,0).release();
  assert.equal(disposed,0);assert.ok(lodCacheStats().unusedBytes<=lodCacheStats().idleBudget);
- b.release();base.dispose();assert.equal(disposed,1);assert.equal(lodCacheStats().unusedBytes,0);
+ b.release();base.dispose();assert.equal(disposed,1);assert.equal(base.getAttribute('position').count,240000);assert.equal(lodCacheStats().unusedBytes,0);
 });
 
 test('geometry range requests verify slices and safely accept servers ignoring Range',async()=>{
@@ -59,4 +59,15 @@ test('packaged file URLs retain the standard GLTF loading path',async()=>{
   const parser={json:{buffers:[{uri:'../../original.glb',byteLength:100}],bufferViews:[{buffer:0,byteOffset:10,byteLength:20}]},options:{path:'file:///app/models/quality/low/',manager:{resolveURL:u=>u}}};
   assert.equal(geometryRanges(parser).loadBufferView(0),null);
  } finally { if(previous===undefined)delete globalThis.window;else globalThis.window=previous; }
+});
+
+
+test('LOD uses a tighter error budget when the camera settles', () => {
+  const levels = [{ error: 0.0005 }, { error: 0.002 }, { error: 0.01 }];
+  assert.equal(chooseLod(600, 'low', levels), 1);
+  assert.equal(chooseLod(600, 'low', levels, 1, true), 2);
+  assert.equal(chooseLod(600, 'low', levels, 2), 1);
+  assert.equal(chooseLod(2400, 'high', levels, 1), 0);
+  assert.equal(chooseLod(900, 'medium', levels), 0);
+  assert.equal(chooseLod(1000, 'high', levels, 1), 0);
 });

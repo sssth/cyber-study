@@ -1,5 +1,4 @@
-import GlobePanel from './GlobePanel.jsx';
-import TypewriterPanel from './TypewriterPanel.jsx';
+import { translate } from '../i18n/index.js';
 import { useEffect, useState } from 'react';
 import { FeaturePanel } from './ui.jsx';
 import { loadPlant } from '../data/plantStore.js';
@@ -18,12 +17,12 @@ function useCareClock() {
 function PetPanel({ onClose, model, theme }) {
   const pet = loadPet(useCareClock());
   return (
-    <FeaturePanel title="书房猫" kicker="Quiet Companion" description="在书房里双击猫咪，就能抚摸一次。" onClose={onClose}>
-      <CareModelPreview feature="pet" model={model} theme={theme} label="猫咪" />
+    <FeaturePanel scopeId="pet" title="i18n.studyCat" kicker="Quiet Companion" description={translate("i18n.doubleClickTheCatInTheStudy")} onClose={onClose}>
+      <CareModelPreview feature="pet" model={model} theme={theme} label={translate("i18n.cat2")} />
       <div className="stat-row">
-        <span>心情 {Math.round(pet.mood)}</span>
-        <span>亲密 {Math.round(pet.bond)}</span>
-        <span>抚摸 {pet.pets} 次</span>
+        <span>{translate("i18n.mood")}{' '}{Math.round(pet.mood)}</span>
+        <span>{translate("i18n.bond2")}{' '}{Math.round(pet.bond)}</span>
+        <span>{translate("i18n.timesPetted", pet.pets)}</span>
       </div>
     </FeaturePanel>
   );
@@ -32,15 +31,15 @@ function PetPanel({ onClose, model, theme }) {
 function PlantPanel({ onClose, model, theme }) {
   const plant = loadPlant(useCareClock());
   return (
-    <FeaturePanel title="书房植物" kicker="Growth Plant" description="在书房里双击植物，就能浇水一次。" onClose={onClose}>
-      <CareModelPreview feature="plant" model={model} theme={theme} label="植物" />
+    <FeaturePanel scopeId="plant" title="i18n.studyPlant" kicker="Growth Plant" description={translate("i18n.doubleClickThePlantInTheStudy")} onClose={onClose}>
+      <CareModelPreview feature="plant" model={model} theme={theme} label={translate("i18n.plant")} />
       <div className="stat-row">
-        <span>水分 {Math.round(plant.water)}/100</span>
-        <span>近 24 小时专注 {Math.floor(plant.recentFocusMinutes + 1e-9)} 分钟</span>
-        <span>成长值 {plant.growth.toFixed(1)}</span>
+        <span>{translate("i18n.moisture")}{' '}{Math.round(plant.water)}/100</span>
+        <span>{translate("i18n.focusInTheLast24Hours")}{' '}{Math.floor(plant.recentFocusMinutes + 1e-9)}{' '}{translate("i18n.min")}</span>
+        <span>{translate("i18n.growth")}{' '}{plant.growth.toFixed(1)}</span>
       </div>
     </FeaturePanel>
   );
 }
 
-export { GlobePanel, TypewriterPanel, PetPanel, PlantPanel };
+export { PetPanel, PlantPanel };

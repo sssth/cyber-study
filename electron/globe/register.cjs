@@ -1,3 +1,4 @@
+const { nativeText } = require('../i18n/native.cjs');
 const { app, ipcMain, dialog, nativeImage, protocol } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -33,7 +34,7 @@ function registerGlobe(getWindow) {
       if (action === 'point') {
         let bytes;
         if (input.attach) {
-          const selection = await dialog.showOpenDialog(getWindow(), { properties: ['openFile'], filters: [{ name: '照片', extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
+          const selection = await dialog.showOpenDialog(getWindow(), { properties: ['openFile'], filters: [{ name: nativeText(event.sender, 'i18n.nativePhotos'), extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
           if (selection.canceled) return { canceled: true };
           const file = selection.filePaths[0];
           const info = await fs.stat(file);
@@ -61,7 +62,7 @@ function registerGlobe(getWindow) {
         return { ...await snapshot(), report };
       }
       if (action === 'import') {
-        const selection = await dialog.showOpenDialog(getWindow(), { title: input.folder ? '选择照片文件夹' : '选择照片', properties: input.folder ? ['openDirectory'] : ['openFile', 'multiSelections'], filters: [{ name: '照片', extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
+        const selection = await dialog.showOpenDialog(getWindow(), { title: nativeText(event.sender, input.folder ? 'i18n.nativeChoosePhotoFolder' : 'i18n.nativeChoosePhotos'), properties: input.folder ? ['openDirectory'] : ['openFile', 'multiSelections'], filters: [{ name: nativeText(event.sender, 'i18n.nativePhotos'), extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
         if (selection.canceled) return { canceled: true };
         const files = [], report = [];
         const walk = async folder => {
@@ -87,7 +88,7 @@ function registerGlobe(getWindow) {
         return { ...await snapshot(), report };
       }
       if (action === 'backup' || action === 'restore') {
-        const selection = await dialog.showOpenDialog(getWindow(), { title: action === 'backup' ? '选择备份保存位置（包含原图和精确坐标）' : '选择记忆地球备份文件夹', properties: ['openDirectory', 'createDirectory'] });
+        const selection = await dialog.showOpenDialog(getWindow(), { title: nativeText(event.sender, action === 'backup' ? 'i18n.nativeChooseBackupLocation' : 'i18n.nativeChooseBackupFolder'), properties: ['openDirectory', 'createDirectory'] });
         if (selection.canceled) return { canceled: true };
         if (action === 'backup') return { backupPath: await repo.backup(selection.filePaths[0]) };
         const result = await repo.restore(selection.filePaths[0]);

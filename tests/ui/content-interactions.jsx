@@ -1,11 +1,13 @@
-import TypewriterPanel from '../../src/features/TypewriterPanel.jsx';
-import {DiaryPanel,MemoBoard} from '../../src/features/DiaryMemo.jsx';
-import {MusicPlayer,MovieCollection} from '../../src/features/MediaCollections.jsx';
+import TypewriterPanel from '../../src/features/typewriter/TypewriterPanel.jsx';
+import DiaryPanel from '../../src/features/diary/DiaryPanel.jsx';
+import MemoBoard from '../../src/features/memo/MemoBoard.jsx';
+import MusicPlayer from '../../src/features/music/MusicPlayer.jsx';
+import MovieCollection from '../../src/features/movies/MovieCollection.jsx';
 import '../../src/styles/global.css';
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import ContentCommands from '../../src/features/ContentCommands.jsx';
-import LibraryShelf from '../../src/reader/LibraryShelf.jsx';
+import LibraryShelf from '../../src/features/library/LibraryShelf.jsx';
 import {ActionWorkspace} from '../../src/features/ui.jsx';
 import '../../src/styles/scene.css';import '../../src/styles/reader.css';import '../../src/styles/features.css';import '../../src/styles/immersive.css';
 function Check(){const [books,setBooks]=useState([{id:'file:a',title:'甲书'},{id:'file:b',title:'乙书'},{id:'file:c',title:'丙书'}]);return <main className="app-shell"><section className="reader-overlay"><div className="reader-shell library-mode"><div className="reader-library"><ActionWorkspace label="添加书籍"><button>导入文件</button></ActionWorkspace><LibraryShelf books={books} visibleBooks={books} readerState={{books:{}}} openBook={()=>{}} renameBook={async(book,value)=>setBooks(rows=>rows.map(b=>b.id===book.id?{...b,...value}:b))} removeBook={async book=>{setBooks(rows=>rows.filter(b=>b.id!==book.id));return true;}} canDelete/></div></div></section><ContentCommands shortcuts={{createContent:['Shift+Cmd+A']}} viewKey="check"/></main>}

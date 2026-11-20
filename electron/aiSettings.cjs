@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, safeStorage } = require('electron');
+const { app, safeStorage, shell } = require('electron');
 const { listProviders, chat } = require('./aiChat.cjs');
 
 function settingsPath() {
@@ -65,4 +65,9 @@ function chatCurrent({ messages, system }, onText) {
   return chat({ ...state.current, messages, system, apiKey: key }, fetch, onText);
 }
 
-module.exports = { initialize, describe, select, chatCurrent };
+function revealSettingsFile() {
+  initialize();
+  shell.showItemInFolder(settingsPath());
+}
+
+module.exports = { initialize, describe, select, chatCurrent, revealSettingsFile };

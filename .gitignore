@@ -14,7 +14,10 @@ pnpm-debug.log*
 release/
 
 # 大体积本地素材（约 5.9GB，不进仓库）
-场景包/
+/场景包/*
+!/场景包/3D版Loft v0.2/
+/场景包/3D版Loft v0.2/*
+!/场景包/3D版Loft v0.2/display-shelves.json
 work/
 备份/
 全景图查看/

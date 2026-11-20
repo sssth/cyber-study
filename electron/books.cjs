@@ -1,3 +1,4 @@
+const { nativeText } = require('./i18n/native.cjs');
 const { app, dialog, ipcMain, shell } = require('electron');
 const { createHash } = require('node:crypto');
 const { execFile } = require('node:child_process');
@@ -5,7 +6,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { promisify, TextDecoder } = require('node:util');
 
-const { atomicWrite, backup, readBook, publishBook, renameBook } = require('./bookStorage.cjs');
+const { atomicWrite, backup, readBook, readLibrary, publishBook, renameBook } = require('./bookStorage.cjs');
 const { retiredBookIds } = require('./defaultSamples.cjs');
 
 const run = promisify(execFile);
@@ -90,20 +91,9 @@ async function toMarkdown(bytes, original, extension, title) {
   return `# ${title}\n\n${body}\n`;
 }
 
-async function listBooks() {
-  await fs.mkdir(library(), { recursive: true });
-  const folders = await fs.readdir(library(), { withFileTypes: true });
-  const books = [];
-  for (const folder of folders) {
-    if (!folder.isDirectory() || !/^[a-f0-9]{64}$/.test(folder.name)) continue;
-    try {
-      const book = await readBook(path.join(library(), folder.name));
-      if (!retiredBookIds.has(book.id)) books.push(book);
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-  }
-  return books;
+async function listBooks(_window, options) {
+  const report = await readLibrary(library(), retiredBookIds);
+  return options?.includeFailures === true ? report : report.books;
 }
 
 async function* walk(directory, onError) {
@@ -152,7 +142,7 @@ async function importBook(filename, source) {
 async function chooseBooks(window, folder, update) {
   const options = folder
     ? { properties: ['openDirectory'] }
-    : { properties: ['openFile', 'multiSelections'], filters: [{ name: '书籍文件', extensions: [...extensions].map((ext) => ext.slice(1)) }] };
+    : { properties: ['openFile', 'multiSelections'], filters: [{ name: nativeText(window.webContents, 'i18n.nativeBookFiles'), extensions: [...extensions].map((ext) => ext.slice(1)) }] };
   const picked = await dialog.showOpenDialog(window, options);
   if (picked.canceled) {
     update({ phase: 'idle' });
@@ -245,7 +235,7 @@ function registerBooks(getWindow) {
         const record = JSON.parse(await fs.readFile(path.join(library(), entry.name, 'book.json'), 'utf8'));
         if (!record.schemaVersion) needsMigration = true;
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (error.code !== 'ENOENT') console.warn('无法检查单本书籍的迁移状态', entry.name, error.message);
       }
     }
     if (!needsMigration) return [];
@@ -280,9 +270,9 @@ function registerBooks(getWindow) {
       const book = await readBook(directory);
       const { response } = await dialog.showMessageBox(window, {
         type: 'warning',
-        message: `将《${book.title}》移到废纸篓？`,
-        detail: '书库中的 Markdown 和随书保存的原件将移到废纸篓。知识库里的摘录和批注会保留。',
-        buttons: ['取消', '移到废纸篓'],
+        message: nativeText(window.webContents, 'i18n.nativeBookTrashTitle', book.title),
+        detail: nativeText(window.webContents, 'i18n.nativeBookTrashDetail'),
+        buttons: [nativeText(window.webContents, 'i18n.cancel'), nativeText(window.webContents, 'i18n.nativeMoveToTrash')],
         defaultId: 0,
         cancelId: 0
       });

@@ -41,17 +41,17 @@ export const shelfBooks = shelfRows.flatMap((row, rowIndex) =>
 );
 
 export const hotspots = {
-  desk: { id: 'desk', label: '书桌阅读区', detail: '打开本地阅读界面' },
-  shelf: { id: 'shelf', label: '发光书架', detail: '打开书房书架' },
-  lamp: { id: 'lamp', label: '桌灯', detail: '开启或关闭主灯光' },
-  knowledge: { id: 'knowledge', label: '知识库与创作台', detail: '笔记、检索、项目与导出' },
-  music: { id: 'music', label: '唱片机', detail: '歌单管理与后台播放' },
-  movie: { id: 'movie', label: '影碟机与屏幕', detail: '电影收藏与观影记录' },
-  diary: { id: 'diary', label: '日记本', detail: '自由日记与照片' },
-  memo: { id: 'memo', label: 'Memo 板', detail: '便签、To-do 与图片固定' },
-  globe: { id: 'globe', label: '地球仪', detail: '照片按地点与日期归档' },
-  typewriter: { id: 'typewriter', label: '打字机', detail: '经典片段逐字抄写' },
-  pet: { id: 'pet', label: '书房猫', detail: '抚摸与亲密度成长' },
-  crystal: { id: 'crystal', label: '水晶对话' },
-  plant: { id: 'plant', label: '书房植物', detail: '专注时长影响生长' }
+  desk: { id: 'desk', label: "i18n.readingDesk", detail: "i18n.openLocalReader" },
+  shelf: { id: 'shelf', label: "i18n.litBookshelf", detail: "i18n.openTheStudyBookshelf" },
+  lamp: { id: 'lamp', label: "i18n.deskLamp", detail: "i18n.toggleTheMainLight" },
+  knowledge: { id: 'knowledge', label: "i18n.knowledgeBaseAndWorkspace", detail: "i18n.notesSearchProjectsAndExports" },
+  music: { id: 'music', label: "i18n.recordPlayer", detail: "i18n.playlistsAndBackgroundPlayback" },
+  movie: { id: 'movie', label: "i18n.discPlayerAndScreen", detail: "i18n.filmCollectionAndViewingHistory" },
+  diary: { id: 'diary', label: "i18n.journal", detail: "i18n.journalEntriesAndPhotos" },
+  memo: { id: 'memo', label: "i18n.memoBoard", detail: "i18n.pinNotesToDosAndImages" },
+  globe: { id: 'globe', label: "i18n.globe", detail: "i18n.browsePhotosByPlaceAndDate" },
+  typewriter: { id: 'typewriter', label: "i18n.typewriter", detail: "i18n.typeOutPassagesFromYourBooks" },
+  pet: { id: 'pet', label: "i18n.studyCat", detail: "i18n.petTheCatAndBuildABond" },
+  crystal: { id: 'crystal', label: "i18n.crystalChat" },
+  plant: { id: 'plant', label: "i18n.studyPlant", detail: "i18n.focusTimeHelpsThePlantGrow" }
 };

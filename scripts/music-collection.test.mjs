@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeMusicPlaylist } from '../src/data/musicCollection.js';
+import { mergeMusicPlaylist } from '../src/features/music/musicCollection.js';
 
 const list = { id: '1', title: '收藏' };
 const song = sourceId => ({ provider: 'netease', sourceId, title: sourceId, cachedUrl: `study-audio://audio/${sourceId}.mp3` });

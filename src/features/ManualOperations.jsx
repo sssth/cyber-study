@@ -1,61 +1,64 @@
+import { translate, useLanguage } from '../i18n/index.js';
 const manualShortcutLabel = keys => keys[0]?.replace(/^((?:[^+]+\+)*)Cmd\+/, 'Command+$1').replace(/\+(?=.)/g, ' ');
 
 export default function ManualOperations({ shortcuts }) {
+  const english = useLanguage() === 'en';
+  const space = english ? ' ' : '';
   return <>
     <section>
-      <h3>基础操作</h3>
+      <h3>{translate("i18n.basicControls")}</h3>
       <ul>
-        <li><strong>☰ 切换界面</strong></li>
-        <li><strong>× 返回书房</strong></li>
-        <li><strong><kbd>Esc</kbd> 返回上一级</strong></li>
+        <li><strong>{translate("i18n.switchPanels")}</strong></li>
+        <li><strong>{translate("i18n.returnToStudy")}</strong></li>
+        <li><strong><kbd>Esc</kbd>{' '}{translate("i18n.goBack")}</strong></li>
       </ul>
     </section>
     <section>
-      <h3><kbd>{manualShortcutLabel(shortcuts.search) ?? '未设置'}</kbd> 搜索与筛选〔实体〕</h3>
+      <h3><kbd>{manualShortcutLabel(shortcuts.search) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.searchAndFilterItems")}</h3>
       <ul>
-        <li>在任何页面，{manualShortcutLabel(shortcuts.search)
-          ? <>按 <kbd>{manualShortcutLabel(shortcuts.search)}</kbd> 打开/关闭顶部检索框。</>
-          : '先在“快捷键设置”中设键，就可以用该快捷键开关顶部检索框。'}</li>
-        <li>在检索框输入文字，或点击右侧的筛选图标，设置检索规则。</li>
-        <li>检索规则即时应用，当前页面只显示符合规则的〔实体〕。</li>
+        <li>{translate("i18n.onAnyPage")}{space}{manualShortcutLabel(shortcuts.search)
+          ? <>{translate("i18n.press")}{' '}<kbd>{manualShortcutLabel(shortcuts.search)}</kbd>{' '}{translate("i18n.toToggleTheSearchBar")}</>
+          : translate("i18n.assignAKeyInKeyboardShortcutsTo")}</li>
+        <li>{translate("i18n.typeInTheSearchBarOrClick")}</li>
+        <li>{translate("i18n.filtersApplyImmediatelyAndShowMatchingItems")}</li>
       </ul>
     </section>
     <section>
-      <h3><kbd>{manualShortcutLabel(shortcuts.createContent) ?? '未设置'}</kbd> 新建〔实体〕</h3>
+      <h3><kbd>{manualShortcutLabel(shortcuts.createContent) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.createAnItem")}</h3>
       <ul>
-        <li>在功能区内，{manualShortcutLabel(shortcuts.createContent)
-          ? <>按 <kbd>{manualShortcutLabel(shortcuts.createContent)}</kbd> 添加〔实体〕。</>
-          : '在“快捷键设置”中设键后，按该键添加〔实体〕。'}</li>
+        <li>{translate("i18n.inAFeaturePanel")}{space}{manualShortcutLabel(shortcuts.createContent)
+          ? <>{translate("i18n.press")}{' '}<kbd>{manualShortcutLabel(shortcuts.createContent)}</kbd>{' '}{translate("i18n.toAddAnItem")}</>
+          : translate("i18n.assignAKeyInKeyboardShortcutsThen")}</li>
       </ul>
     </section>
     <section>
-      <h3><span className="manual-mouse-control">鼠标双击</span> 编辑〔实体〕</h3>
+      <h3><span className="manual-mouse-control">{translate("i18n.doubleClick")}</span>{' '}{translate("i18n.editAnItem")}</h3>
       <ul>
-        <li><span className="manual-mouse-control">鼠标双击</span> 任何〔实体〕，对它的字段进行编辑。</li>
+        <li><span className="manual-mouse-control">{translate("i18n.doubleClick")}</span>{' '}{translate("i18n.anyItemToEditItsFields")}</li>
       </ul>
     </section>
     <section>
-      <h3><span className="manual-mouse-control">鼠标右击</span> 给〔实体〕添加关联</h3>
+      <h3><span className="manual-mouse-control">{translate("i18n.rightClick")}</span>{' '}{translate("i18n.linkItems")}</h3>
       <ul>
-        <li><span className="manual-mouse-control">鼠标右击</span> 任何〔实体〕，查看/{manualShortcutLabel(shortcuts.createContent)
+        <li><span className="manual-mouse-control">{translate("i18n.rightClick")}</span>{' '}{translate("i18n.anyItemToViewLinksOrUse")}{space}{manualShortcutLabel(shortcuts.createContent)
           ? <kbd>{manualShortcutLabel(shortcuts.createContent)}</kbd>
-          : '新建'}与其他〔实体〕的关联。</li>
+          : translate("i18n.new")}{space}{translate("i18n.toCreateLinksToOtherItems")}</li>
       </ul>
     </section>
     <section>
-      <h3><kbd>{manualShortcutLabel(shortcuts.showOnGlobe) ?? '未设置'}</kbd> 进入地球仪并显示〔记忆点〕</h3>
+      <h3><kbd>{manualShortcutLabel(shortcuts.showOnGlobe) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.openTheGlobeAndShowMemoryPins")}</h3>
       <ul>
-        <li>在任何页面，{manualShortcutLabel(shortcuts.showOnGlobe)
-          ? <>按 <kbd>{manualShortcutLabel(shortcuts.showOnGlobe)}</kbd></>
-          : '在“快捷键设置”中设键后按该键'} 进入地球仪，显示当前页面的所有〔记忆点〕及其他类型〔实体〕关联的〔记忆点〕。</li>
+        <li>{translate("i18n.onAnyPage")}{space}{manualShortcutLabel(shortcuts.showOnGlobe)
+          ? <>{translate("i18n.press")}{' '}<kbd>{manualShortcutLabel(shortcuts.showOnGlobe)}</kbd></>
+          : translate("i18n.assignAKeyInKeyboardShortcutsThen2")}{' '}{translate("i18n.openTheGlobeAndShowMemoryPins2")}</li>
       </ul>
     </section>
     <section>
-      <h3><kbd>{manualShortcutLabel(shortcuts.snapshot) ?? '未设置'}</kbd> 保存〔实体〕快照</h3>
+      <h3><kbd>{manualShortcutLabel(shortcuts.snapshot) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.saveASnapshotOfItems")}</h3>
       <ul>
-        <li>在任何页面，{manualShortcutLabel(shortcuts.snapshot)
-          ? <>按 <kbd>{manualShortcutLabel(shortcuts.snapshot)}</kbd>，</>
-          : '在“快捷键设置”中设键后按该键，'}将当前页面的所有〔实体〕保存为一个 Markdown 文件。</li>
+        <li>{translate("i18n.onAnyPage")}{space}{manualShortcutLabel(shortcuts.snapshot)
+          ? <>{translate("i18n.press")}{' '}<kbd>{manualShortcutLabel(shortcuts.snapshot)}</kbd>{english ? ' to ' : '，'}</>
+          : <>{translate("i18n.assignAKeyInKeyboardShortcutsThen3")}{space}</>}{translate("i18n.saveAllItemsOnTheCurrentPage")}</li>
       </ul>
     </section>
   </>;

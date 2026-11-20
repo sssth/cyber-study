@@ -1,10 +1,11 @@
+import { translate } from '../i18n/index.js';
 import { useState } from 'react';
 
-import { shortcutKey } from '../data/shortcuts.js';
+import { shortcutKey, translateShortcutLabel } from '../data/shortcuts.js';
 
 export default function ShortcutSettings({ groups, bindings, onChange, onBack }) {
   const [recording, setRecording] = useState(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(null);
 
   function record(event, id, index, actions) {
     const key = shortcutKey(event);
@@ -13,7 +14,7 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
     event.stopPropagation();
 
     if (id === 'search' && key === 'Esc') {
-      setMessage('ESC 用于返回上一级，不能用于开关搜索。');
+      setMessage(["i18n.escGoesBackAndCannotBeAssigned"]);
       return;
     }
 
@@ -24,7 +25,7 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
       (isGlobal(id) || isGlobal(otherId) || actions.some(([actionId]) => actionId === otherId))
     );
     if (conflict) {
-      setMessage(`${key} 已用于「${conflict[1]}」，请先修改该快捷键或按其他键。`);
+      setMessage(["i18n.0IsAssignedTo1ChangeThat", key, conflict[1]]);
       return;
     }
 
@@ -36,39 +37,40 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
   return (
     <section className="interaction-list shortcut-settings" id="room-interactions" aria-labelledby="shortcut-title">
       <header>
-        <h2 id="shortcut-title">快捷键设置</h2>
-        <button type="button" autoFocus onClick={onBack}>返回菜单</button>
+        <h2 id="shortcut-title">{translate("i18n.keyboardShortcuts")}</h2>
+        <button type="button" autoFocus onClick={onBack}>{translate("i18n.backToMenu")}</button>
       </header>
 
-      {message && <p role="status">{message}</p>}
+      {message && <p role="status">{translate(message[0], ...message.slice(1).map(translateShortcutLabel))}</p>}
       {groups.map(([label, scope, actions]) => (
         <section key={scope} className="interaction-group" aria-labelledby={`shortcuts-${scope}`}>
-          <h2 id={`shortcuts-${scope}`}>{label}</h2>
-          {actions.map(([id, name]) => {
+          <h2 id={`shortcuts-${scope}`}>{translate(label)}</h2>
+          {actions.map(([id, label]) => {
+            const name = translateShortcutLabel(label);
             const keys = bindings[id];
             return (
               <div className="shortcut-row" key={id}>
                 <span>{name}</span>
                 <div className="shortcut-keys">
-                  {(keys.length ? keys : ['设键']).map((key, index) => {
+                  {(keys.length ? keys : [translate("i18n.assignKey")]).map((key, index) => {
                     const active = recording?.id === id && recording.index === index;
                     return (
-                      <button type="button" key={index} aria-label={`${name} · ${active ? '请按键' : key}`}
+                      <button type="button" key={index} aria-label={`${name} · ${active ? translate("i18n.pressAKey") : key}`}
                         onBlur={() => setRecording(null)}
                         onClick={() => {
-                          setMessage('');
+                          setMessage(null);
                           setRecording(active ? null : { id, index });
                         }}
                         onKeyDown={active ? event => record(event, id, index, actions) : undefined}>
-                        {active ? '请按键…' : key}
+                        {active ? translate("i18n.pressAKey2") : key}
                       </button>
                     );
                   })}
-                  <button type="button" disabled={!keys.length} aria-label={`清空${name}`}
+                  <button type="button" disabled={!keys.length} aria-label={translate("i18n.clear0", name)}
                     onClick={() => {
-                      setMessage('');
+                      setMessage(null);
                       onChange({ ...bindings, [id]: [] });
-                    }}>清空</button>
+                    }}>{translate("i18n.clear")}</button>
                 </div>
               </div>
             );
@@ -76,10 +78,10 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
         </section>
       ))}
       <button type="button" onClick={() => {
-        setMessage('');
+        setMessage(null);
         onChange(Object.fromEntries(groups.flatMap(([, , actions]) =>
           actions.map(([id, , defaults]) => [id, defaults]))));
-      }}>恢复默认快捷键</button>
+      }}>{translate("i18n.restoreDefaultShortcuts")}</button>
     </section>
   );
 }

@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { backup, readBook, publishBook } = require('../../electron/bookStorage.cjs');
+const { backup, readBook, readLibrary, publishBook } = require('../../electron/bookStorage.cjs');
 
 (async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'book-storage-'));
@@ -16,7 +16,9 @@ const { backup, readBook, publishBook } = require('../../electron/bookStorage.cj
     assert.equal((await readBook(directory)).content, content);
     const record = JSON.parse(await fs.readFile(path.join(directory, 'book.json')));
     assert.equal(record.schemaVersion, 2);
-    assert.deepEqual(record.book, metadata);
+    const { createdAt, ...migratedMetadata } = record.book;
+    assert.deepEqual(migratedMetadata, metadata);
+    assert.equal(createdAt, (await fs.stat(directory)).birthtime.toISOString());
     assert.equal(record.files.length, 2);
     assert.equal((await readBook(directory)).id, metadata.id);
     const snapshots = await fs.readdir(path.join(directory, 'migration-backup'));
@@ -33,6 +35,21 @@ const { backup, readBook, publishBook } = require('../../electron/bookStorage.cj
       await fs.copyFile(path.join(directory, 'migration-backup', snapshots.find(file => file.startsWith(name + '-'))), path.join(directory, name));
     }
     assert.equal((await readBook(directory)).content, content);
+    const library = path.join(directory, 'library');
+    const healthy = path.join(library, 'a'.repeat(64));
+    const damaged = path.join(library, 'b'.repeat(64));
+    await fs.mkdir(healthy, { recursive: true });
+    await fs.mkdir(damaged);
+    await publishBook(healthy, metadata, content);
+    await fs.writeFile(path.join(damaged, 'book.json'), '{');
+    await fs.mkdir(path.join(library, 'c'.repeat(64)));
+    const invalid = path.join(library, 'd'.repeat(64));
+    await fs.mkdir(invalid);
+    await fs.writeFile(path.join(invalid, 'book.json'), JSON.stringify({ schemaVersion: 2, book: {} }));
+    await fs.writeFile(path.join(invalid, 'book.md'), content);
+    const report = await readLibrary(library);
+    assert.deepEqual(report.books.map(book => book.id), [metadata.id]);
+    assert.deepEqual(report.failures.map(failure => failure.directory).sort(), ['b'.repeat(64), 'd'.repeat(64)]);
     console.log('旧书迁移、重复加载、原件保护、快照去重和备份恢复通过。');
   } finally {
     await fs.rm(directory, { recursive: true, force: true });

@@ -180,6 +180,7 @@ export function createFrameProfiler() {
       render: info ? {
         calls: info.render.calls,
         triangles: info.render.triangles,
+        pixelRatio: gl.getPixelRatio?.() ?? null,
         points: info.render.points,
         lines: info.render.lines,
         geometries: info.memory.geometries,

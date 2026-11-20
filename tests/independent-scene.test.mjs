@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { readScenePackage } from '../scripts/read-scene-package.mjs';
 import { selectScene, writeIndependentScene } from '../scripts/independent-scene.mjs';
 function glb(data) {
  const j=Buffer.from(JSON.stringify(data));const pad=Buffer.alloc(Math.ceil(j.length/4)*4,32);j.copy(pad);
@@ -24,4 +25,28 @@ test('extracts only selected ranges, deduplicates them, and preserves accessor o
   assert.equal(original.models[0].file,'high.glb');await assert.rejects(fs.access(path.join(output,'high.glb')));
   assert.deepEqual(selectScene(original,'full').models,original.models);
  } finally {await fs.rm(root,{recursive:true,force:true});}
+});
+
+test('publishing a scene embeds a separate shelf declaration in its manifest', async () => {
+ const root = await fs.mkdtemp(path.join(os.tmpdir(), 'display-shelves-'));
+ try {
+  const source = path.join(root, 'source');
+  const output = path.join(root, 'output');
+  await fs.mkdir(source);
+  await fs.mkdir(output);
+  const model = { id: 'bookcase', file: 'shelf.glb', position: [0, 0, 0], width: 1.8 };
+  const scene = { version: 1, name: 'Test room', models: [model], camera: { position: [0, 1, 2], fov: 60 } };
+  const layout = {
+   displayShelfStorage: 'test-room',
+   displayShelves: [{ model: 'bookcase', depth: 0.15, height: 0.38, zones: [[0, 1, 1.5, 0]], regions: [[[0], -0.75, 0.75]] }]
+  };
+  await fs.writeFile(path.join(source, 'scene.json'), JSON.stringify(scene));
+  await fs.writeFile(path.join(source, 'display-shelves.json'), JSON.stringify(layout));
+  await fs.writeFile(path.join(source, model.file), glb({ asset: { version: '2.0' } }));
+  await writeIndependentScene(selectScene(readScenePackage(source), 'full'), source, output);
+  assert.deepEqual(readScenePackage(output).displayShelves, layout.displayShelves);
+  assert.equal(readScenePackage(output).displayShelfStorage, layout.displayShelfStorage);
+ } finally {
+  await fs.rm(root, { recursive: true, force: true });
+ }
 });

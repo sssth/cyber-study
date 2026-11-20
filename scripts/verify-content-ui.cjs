@@ -4,7 +4,7 @@ const { app, BrowserWindow } = require('electron');
 app.setPath('userData', require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'study-interactions-')));
 app.whenReady().then(async()=>{
  const w=new BrowserWindow({width:1440,height:960,show:true,webPreferences:{contextIsolation:true,backgroundThrottling:false}});
- w.webContents.on('console-message',(_e,l,m)=>{if(l>=2)console.log('CONSOLE',m)});
+ w.webContents.on('console-message',event=>{if(event.level==='error')console.log('CONSOLE',event.message)});
  await w.loadURL('http://127.0.0.1:5173/tests/ui/content-interactions.html');
  await new Promise(r=>setTimeout(r,5000));
  console.log('UI',await w.webContents.executeJavaScript(`JSON.stringify({text:document.body.innerText.slice(0,2200),buttons:[...document.querySelectorAll('button')].map(e=>({text:e.innerText,label:e.getAttribute('aria-label')}))})`));
@@ -28,10 +28,9 @@ app.whenReady().then(async()=>{
  await w.webContents.executeJavaScript(`document.querySelectorAll('.shelf-read')[0].dispatchEvent(new MouseEvent('click',{bubbles:true,button:0,detail:1}));`);
  await new Promise(r=>setTimeout(r,700));
  console.log('EDIT',await w.webContents.executeJavaScript(`JSON.stringify({dialogs:[...document.querySelectorAll('dialog[open]')].map(e=>e.innerText),cards:[...document.querySelectorAll('.shelf-book')].map(e=>({visible:e.checkVisibility(),key:e.dataset.contentTarget,drag:e.draggable}))})`));
- await w.webContents.executeJavaScript(`(() => { const cards=[...document.querySelectorAll('.shelf-book')]; window.draggedBookKey = cards[2].dataset.contentTarget; const dt=new DataTransfer(); cards[2].dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:dt})); cards[0].dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:dt})); cards[0].dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:dt})); })()`);
- require('fs').writeFileSync('/tmp/study-edit-verified.png',(await w.webContents.capturePage()).toPNG());
- if (!await w.webContents.executeJavaScript(`document.querySelector('.shelf-book').dataset.contentTarget === window.draggedBookKey`)) throw Error('Drop did not change visual order');
- console.log('DROP',await w.webContents.executeJavaScript(`JSON.stringify([...document.querySelectorAll('.shelf-book')].map(e=>({key:e.dataset.contentTarget,order:e.style.order,left:e.getBoundingClientRect().left})))`));
+ if (await w.webContents.executeJavaScript(`[...document.querySelectorAll('.shelf-book')].some(card => card.draggable)`)) {
+   throw Error('The library shelf must keep its chronological order');
+ }
  w.focus();
  w.webContents.sendInputEvent({type:'keyDown',keyCode:'A',modifiers:['meta','shift']});
  w.webContents.sendInputEvent({type:'keyUp',keyCode:'A',modifiers:['meta','shift']});

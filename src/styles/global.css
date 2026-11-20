@@ -114,15 +114,14 @@ button.active {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
 }
 
-.interaction-buttons [role="switch"]::after {
-  content: '关' / '';
+.interaction-buttons .switch-state {
   color: var(--muted);
 }
 
-.interaction-buttons [aria-checked="true"]::after {
-  content: '开' / '';
+.interaction-buttons [aria-checked="true"] .switch-state {
   color: var(--cyan);
 }
 
@@ -328,4 +327,37 @@ button.active {
 .shortcut-keys button {
   padding: 4px 8px;
   white-space: nowrap;
+}
+.room-menu-preferences {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.language-setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.language-setting select {
+  max-width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: #101c29;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.room-menu-preferences [role="alert"] {
+  margin: 0;
+  padding-inline: 8px;
+  color: var(--muted);
+  font-size: 13px;
 }

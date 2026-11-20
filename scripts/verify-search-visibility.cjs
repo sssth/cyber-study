@@ -13,7 +13,7 @@ app.whenReady().then(async()=>{
  if(!await w.webContents.executeJavaScript(`!!document.querySelector('.unified-search-filters')&&!document.querySelector('.search-filter-reset')`))throw Error('Filter format mismatch');
  await w.webContents.executeJavaScript(`document.querySelector('.search-filter-toggle').click();document.querySelector('.unified-search input').focus()`);
  await w.webContents.insertText('甲');await pause();await expect(2,'甲');
- await key('Escape');await expect(2,'甲');
+ await w.webContents.executeJavaScript(`document.querySelector('.unified-search input').dispatchEvent(new KeyboardEvent('keydown', {key:'Escape',bubbles:true,cancelable:true}))`);await expect(2,'甲');
  await key('K',['meta']);await expect(2,'甲');
  await key('Z',['meta','shift']);await expect(3,null);
  await key('Z',['meta','shift']);await expect(2,'甲');

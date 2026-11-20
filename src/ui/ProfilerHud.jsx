@@ -1,3 +1,4 @@
+import { translate } from '../i18n/index.js';
 import { useEffect, useState } from 'react';
 import { frameProfiler } from '../scenes/three/frameProfiler.js';
 
@@ -25,8 +26,8 @@ export default function ProfilerHud({ forceAlwaysRender, onToggleAlwaysRender, q
         setTraceState(next);
         frameProfiler.setUserTiming(Boolean(next.recording));
         setUserTiming(Boolean(next.recording));
-        if (next.recording) setStatusMessage('正在录制 Perfetto Trace (F10 停止)…');
-        else if (next.lastFile) setStatusMessage(`Trace 已保存: ${next.lastFile}`);
+        if (next.recording) setStatusMessage(translate("i18n.recordingPerfettoTraceF10ToStop"));
+        else if (next.lastFile) setStatusMessage(translate("i18n.traceSaved0", next.lastFile));
       });
       disposeHud = api.onToggleHud?.(() => setOpen((current) => !current));
     }
@@ -76,13 +77,13 @@ export default function ProfilerHud({ forceAlwaysRender, onToggleAlwaysRender, q
   const handleTrace5s = async () => {
     if (!api) return;
     const res = await api.startTrace({ durationMs: 5000 });
-    if (!res?.ok) setStatusMessage(res?.error || '启动 Trace 失败');
+    if (!res?.ok) setStatusMessage(res?.error || translate("i18n.couldNotStartTrace"));
   };
 
   const handleToggleTrace = async () => {
     if (!api) return;
     const res = traceState.recording ? await api.stopTrace() : await api.startTrace();
-    if (!res?.ok) setStatusMessage(res?.error || 'Trace 操作失败');
+    if (!res?.ok) setStatusMessage(res?.error || translate("i18n.traceFailed"));
   };
 
   const handleSaveReport = async () => {
@@ -92,15 +93,15 @@ export default function ProfilerHud({ forceAlwaysRender, onToggleAlwaysRender, q
       forceAlwaysRender,
       profiler: frameProfiler.snapshot()
     });
-    if (res?.ok) setStatusMessage(`报告已导出: ${res.filePath}`);
-    else setStatusMessage(res?.error || '导出失败');
+    if (res?.ok) setStatusMessage(translate("i18n.reportExported0", res.filePath));
+    else setStatusMessage(res?.error || translate("i18n.exportFailed"));
   };
 
   return (
     <>
       {!open && (traceState.recording || statusMessage) && (
         <div className="profiler-toast" role="status">
-          <span>{traceState.recording ? '● 正在录制 Trace (F10 停止)' : statusMessage}</span>
+          <span>{traceState.recording ? translate("i18n.recordingTraceF10ToStop") : statusMessage}</span>
           {!traceState.recording && (
             <button type="button" onClick={() => setStatusMessage('')}>×</button>
           )}
@@ -108,34 +109,34 @@ export default function ProfilerHud({ forceAlwaysRender, onToggleAlwaysRender, q
       )}
 
       {open && (
-        <aside className="profiler-hud" aria-label="性能剖析面板">
+        <aside className="profiler-hud" aria-label={translate("i18n.performanceProfiler")}>
           <header className="profiler-hud-header">
             <strong>Profiler HUD (F9)</strong>
             <div className="profiler-hud-actions">
               <label>
                 <input type="checkbox" checked={forceAlwaysRender} onChange={(e) => onToggleAlwaysRender(e.target.checked)} />
-                持续渲染
+                {translate("i18n.continuousRendering")}
               </label>
               <label>
                 <input type="checkbox" checked={userTiming} onChange={(e) => toggleUserTiming(e.target.checked)} />
                 UserTiming
               </label>
-              <button type="button" onClick={() => { frameProfiler.reset(); setSummary(frameProfiler.summarize(60)); }}>重置</button>
-              <button type="button" onClick={() => setOpen(false)}>收起</button>
+              <button type="button" onClick={() => { frameProfiler.reset(); setSummary(frameProfiler.summarize(60)); }}>{translate("i18n.reset")}</button>
+              <button type="button" onClick={() => setOpen(false)}>{translate("i18n.collapse")}</button>
             </div>
           </header>
 
           <div className="profiler-kpis">
             <div><span>FPS</span><strong>{summary.fps || '—'}</strong></div>
             <div><span>P50 / P95 / P99</span><strong>{summary.p50Ms ?? '—'} / {summary.p95Ms ?? '—'} / {summary.p99Ms ?? '—'} ms</strong></div>
-            <div><span>CPU 帧耗时</span><strong>{formatMs(summary.avgCpuFrameMs)}</strong></div>
-            <div><span>GPU 耗时</span><strong>{summary.gpuSupported ? formatMs(summary.avgGpuMs) : '不支持'}</strong></div>
+            <div><span>{translate("i18n.cpuFrameTime")}</span><strong>{formatMs(summary.avgCpuFrameMs)}</strong></div>
+            <div><span>{translate("i18n.gpuTime")}</span><strong>{summary.gpuSupported ? formatMs(summary.avgGpuMs) : translate("i18n.unsupported")}</strong></div>
           </div>
 
           <section className="profiler-stages">
-            <h3>阶段耗时（近 {summary.frameCount} 帧均值 / 峰值）</h3>
+            <h3>{translate("i18n.stageTimingsLast")}{' '}{summary.frameCount}{' '}{translate("i18n.framesAveragePeak")}</h3>
             {summary.stages.length === 0 ? (
-              <p className="profiler-empty">暂无采样帧（可拖动视角或开启「持续渲染」）</p>
+              <p className="profiler-empty">{translate("i18n.noSamplesYetDragTheCameraOr")}</p>
             ) : (
               <ul>
                 {summary.stages.map((stage) => (
@@ -152,22 +153,23 @@ export default function ProfilerHud({ forceAlwaysRender, onToggleAlwaysRender, q
           </section>
 
           <div className="profiler-counters">
+            <span>DPR: <strong>{summary.render?.pixelRatio?.toFixed(2) ?? '—'}</strong></span>
             <span>DrawCalls: <strong>{summary.render?.calls ?? '—'}</strong></span>
             <span>Triangles: <strong>{summary.render?.triangles?.toLocaleString() ?? '—'}</strong></span>
             <span>Geometries: <strong>{summary.render?.geometries ?? '—'}</strong></span>
             <span>Textures: <strong>{summary.render?.textures ?? '—'}</strong></span>
             <span>JS Heap: <strong>{summary.heapMb !== null ? `${summary.heapMb} MB` : '—'}</strong></span>
-            <span>Cull: <strong>{summary.optimization ? `遮挡${summary.optimization.occluded} / 视锥外${summary.optimization.outside} / 单面${summary.optimization.singleSided}` : '—'}</strong></span>
+            <span>Cull: <strong>{summary.optimization ? translate("i18n.occluded0OutsideFrustum1SingleSided", summary.optimization.occluded, summary.optimization.outside, summary.optimization.singleSided) : '—'}</strong></span>
           </div>
 
           {api && traceState.allowed && (
             <footer className="profiler-footer">
               <button type="button" onClick={handleToggleTrace}>
-                {traceState.recording ? '停止 Trace (F10)' : '开始 Trace (F10)'}
+                {traceState.recording ? translate("i18n.stopTraceF10") : translate("i18n.startTraceF10")}
               </button>
-              <button type="button" disabled={traceState.recording} onClick={handleTrace5s}>录制 5s</button>
-              <button type="button" onClick={handleSaveReport}>导出 JSON 报告</button>
-              <button type="button" onClick={() => api.openTraces()}>打开目录</button>
+              <button type="button" disabled={traceState.recording} onClick={handleTrace5s}>{translate("i18n.record5S")}</button>
+              <button type="button" onClick={handleSaveReport}>{translate("i18n.exportJsonReport")}</button>
+              <button type="button" onClick={() => api.openTraces()}>{translate("i18n.openFolder")}</button>
             </footer>
           )}
 

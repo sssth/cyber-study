@@ -1,3 +1,4 @@
+import { translate } from '../../i18n/index.js';
 import MemoryMarkers from './MemoryMarkers.jsx';
 import { globeInteraction, zoomGlobeDistance } from './cameraInteraction.js';
 import { createSingleClick } from './singleClick.js';
@@ -96,7 +97,7 @@ function GlobeObjects({ cameraPosition, initialView, geography, places, highligh
       if (place?.photos.some(p => highlighted?.has(p.id)) && new Vector3(...globePosition(place.latitude, place.longitude)).dot(camera.position) > 1.0015) clickGate.run(event.nativeEvent?.detail || 1, () => onSelect(place, { position:camera.position.toArray() }));
     }} onPointerMove={event => { const place=places[event.instanceId]; if (!place?.photos.some(p => highlighted?.has(p.id)) || new Vector3(...globePosition(place.latitude,place.longitude)).dot(camera.position)<=1.0015) return; event.stopPropagation(); setHovered(null); setHoveredPoint(place.id); gl.domElement.style.cursor='pointer'; }} onPointerOut={() => { setHoveredPoint(null); gl.domElement.style.cursor='grab'; }}>
 </MemoryMarkers>
-    {hoveredPoint && places.filter(p => p.id === hoveredPoint && p.photos.some(photo => highlighted?.has(photo.id))).map(place => <Html key={place.id} position={globePosition(place.latitude,place.longitude,1.025)} style={{pointerEvents:'none'}}><div className="atlas-region-tooltip atlas-memory-tooltip" role="tooltip">{place.name}<br/>{place.photos.length} 个记忆点 · 点击查看</div></Html>)}
+    {hoveredPoint && places.filter(p => p.id === hoveredPoint && p.photos.some(photo => highlighted?.has(photo.id))).map(place => <Html key={place.id} position={globePosition(place.latitude,place.longitude,1.025)} style={{pointerEvents:'none'}}><div className="atlas-region-tooltip atlas-memory-tooltip" role="tooltip">{place.name}<br/>{place.photos.length}{' '}{translate("i18n.pinsClickToView")}</div></Html>)}
     <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false} minDistance={1.015} maxDistance={5.5} minPolarAngle={.05} maxPolarAngle={Math.PI - .05} autoRotate={rotating && !reduced && !flight.current} autoRotateSpeed={.35} onStart={() => { if (controls.current) Object.assign(controls.current, globeInteraction(camera.position.length())); flight.current = null; setHovered(null); onInteract(); }} />
   </>;
 }
@@ -107,7 +108,7 @@ class GlobeBoundary extends Component {
   render() { return this.state.error ? null : this.props.children; }
 }
 export default function GlobeScene(props) {
-  return <GlobeBoundary onFailure={props.onFailure}><Canvas camera={{ position: props.initialView?.position || globePosition(22, 110, 3.6), fov: 43, near: .001, far: 30 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true }} fallback={<p>请使用地点列表浏览照片。</p>}>
+  return <GlobeBoundary onFailure={props.onFailure}><Canvas camera={{ position: props.initialView?.position || globePosition(22, 110, 3.6), fov: 43, near: .001, far: 30 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true }} fallback={<p>{translate("i18n.useThePlaceListToBrowsePhotos")}</p>}>
     <GlobeObjects {...props} />
   </Canvas></GlobeBoundary>;
 }

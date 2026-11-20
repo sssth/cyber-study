@@ -1,3 +1,4 @@
+import { translate, translateFixedText } from '../../i18n/index.js';
 import { prioritizeShelfBooks } from './shelfPointerPriority.js';
 import SceneShelfBooks from './SceneShelfBooks.jsx';
 import StaticSceneOptimizer from './StaticSceneOptimizer.jsx';
@@ -15,11 +16,27 @@ import { Html, OrbitControls } from '@react-three/drei';
 import { Box3, Vector3, Raycaster } from 'three';
 import { SceneTextures, ThemePanorama, ThemeGlows, ThemeLighting, useThemeMaterials } from './ScenePresentation.jsx';
 import PackageCamera from './PackageCamera.jsx';
+import CameraMotion from './CameraMotion.jsx';
 import { matchesShortcut, shortcutGroups, typingTarget, viewShortcut } from '../../data/shortcuts.js';
 import OutdoorRain from './OutdoorRain.jsx';
 import { clampCameraValue, initialCameraKey } from '../packages/cameraConfig.js';
 import { featureCatalog } from '../featureBindings.js';
 import { LoadingBoundary, LoadingScreen } from '../../ui/LoadingScreen.jsx';
+
+function roomEvents(store) {
+  const base = events(store);
+  return {
+    ...base,
+    filter: prioritizeShelfBooks,
+    compute(event, state, previous) {
+      if (event.type === 'pointermove' && (event.buttons || event.pointerType === 'touch')) {
+        state.raycaster.camera = null;
+        return;
+      }
+      base.compute(event, state, previous);
+    }
+  };
+}
 
 function TrackModelLoad({ url, onLoaded }) {
   useSceneGLTF(url);
@@ -40,7 +57,7 @@ function FirstSceneFrame({ onReady }) {
   return null;
 }
 
-const Model = memo(function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHover, onLeave, theme, hidden }) {
+const Model = memo(function Model({ item, models, onSelect, onCare, selected, onModelSelect, onHover, onLeave, theme, hidden, motion }) {
   const careClickTimer = useRef(null);
   const cancelCareClick = () => { clearTimeout(careClickTimer.current); careClickTimer.current = null; };
   useEffect(() => cancelCareClick, [onCare, hidden, onModelSelect]);
@@ -107,7 +124,7 @@ const Model = memo(function Model({ item, models, onSelect, onCare, selected, on
       onCare(item.feature);
     } : undefined}>
     <group position={prepared.offset}><primitive object={prepared.object} />
-      {item.lodUrls && !onModelSelect && <Suspense fallback={null}><ModelLod object={prepared.object} item={item} forceOriginal={Boolean(selected)} /></Suspense>}
+      {item.lodUrls && !onModelSelect && <Suspense fallback={null}><ModelLod object={prepared.object} item={item} forceOriginal={Boolean(selected)} motion={motion} /></Suspense>}
     </group>
     {selected && <>
       <mesh position={[0, prepared.size[1] / 2, 0]} raycast={() => {}}>
@@ -206,6 +223,7 @@ function FeatureHint({ description }) {
 function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGraphics, onLiveGraphics, forceAlwaysRender = false, viewState, quality = 'medium', graphicsTest, onGraphicsResult, scene, lightsOn = true, mode, onFeature, onCare, onModelSelect, selectedId, previewView, previewTheme, rainOn = true, onSceneSettled, onTheme, inputActive = true, shortcuts }) {
   const preset = normalizeGraphics(quality);
   const controls = useRef();
+  const motion = useRef(false);
   const bindings = useMemo(() => shortcuts ?? Object.fromEntries(
     (shortcutGroups(scene).find(([, scope]) => scope === 'scene')?.[2] ?? []).map(([id, , keys]) => [id, keys])
   ), [scene, shortcuts]);
@@ -252,11 +270,13 @@ function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGrap
   const percent = ready ? 100 : Math.floor(99 * loadedCount / (modelUrls.length || 1));
   const featureHover = Boolean(onFeature && !onModelSelect);
   const hoveredFeature = featureHover && scene.models.find(item => item.id === hoveredId)?.feature;
-  const hint = bookHint || featureCatalog.find(feature => feature.id === (hoveredFeature === 'pet' ? 'cat' : hoveredFeature))?.description;
+  const featureHint = featureCatalog.find(feature => feature.id === (hoveredFeature === 'pet' ? 'cat' : hoveredFeature))?.description;
+  const hint = bookHint || translate(featureHint);
   const dim = !lightsOn || mode === 'low-light';
 
   const careFor = feature => inputActive && onCare && ['cat', 'pet', 'plant'].includes(feature) ? onCare : undefined;
   const clearHover = useCallback(() => {setHoveredId(null);setBookHint(null);}, []);
+  const handleHover = useCallback(id => { setBookHint(null); setHoveredId(id); }, []);
   const handleLeave = useCallback(id => setHoveredId(current => current === id ? null : current), []);
   const canvasDpr = useMemo(() => [1, preset.dpr], [preset.dpr]);
   const monitoring = graphicsTest || liveGraphics || forceAlwaysRender;
@@ -265,7 +285,7 @@ function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGrap
   const canvasGl = useMemo(() => ({ antialias: preset.antialias }), [preset.antialias]);
 
   return <div className={hoveredFeature || bookHint ? 'furniture-3d-layer feature-hovered' : 'furniture-3d-layer'}
-    aria-label="三维书房，拖动旋转视角，滚轮缩放"
+    aria-label={translate("i18n.3dStudyDragToRotateAndScroll")}
     onPointerDownCapture={featureHover ? clearHover : undefined}
     onPointerLeave={featureHover ? clearHover : undefined}
     onPointerCancel={featureHover ? clearHover : undefined}
@@ -276,9 +296,10 @@ function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGrap
       layer.style.setProperty('--scene-pointer-x', `${event.clientX - left}px`);
       layer.style.setProperty('--scene-pointer-y', `${event.clientY - top}px`);
     } : undefined}>
-    <LoadingBoundary message="房间加载失败，请重新打开应用。" onError={onSceneSettled}>
-      <Canvas events={state=>({...events(state),filter:prioritizeShelfBooks})} frameloop={frameLoop} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={canvasDpr} gl={canvasGl}>
+    <LoadingBoundary message={translate("i18n.couldNotLoadTheRoomReopenThe")} onError={onSceneSettled}>
+      <Canvas events={roomEvents} frameloop={frameLoop} camera={initialCamera} shadows={Boolean(theme) && preset.shadowSize > 0} dpr={canvasDpr} gl={canvasGl}>
         <FrameProfilerBridge />
+        {preset.textures === 'low' && !onModelSelect && <CameraMotion motion={motion} />}
         {liveGraphics && ready && <LiveGraphicsMonitor onUpdate={onLiveGraphics} />}
         {graphicsTest && ready && <GraphicsMonitor onResult={onGraphicsResult} />}
         <CameraRange far={scene.camera.far ?? 150} />
@@ -299,8 +320,8 @@ function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGrap
           {scene.models.map(item => <Model key={item.id} item={item} models={scene.models} onSelect={onFeature}
             onCare={careFor(item.feature)} theme={theme} hidden={theme?.hidden?.includes(item.id)}
             onModelSelect={onModelSelect} selected={item.id === selectedId}
-            onHover={featureHover && item.feature ? id=>{setBookHint(null);setHoveredId(id);} : undefined}
-            onLeave={featureHover && item.feature ? handleLeave : undefined} />)}
+            onHover={featureHover && item.feature ? handleHover : undefined}
+            onLeave={featureHover && item.feature ? handleLeave : undefined} motion={motion} />)}
             {!onModelSelect&&<SceneShelfBooks scene={scene} books={books} onActivate={onSceneBooks} onHover={setBookHint} inputActive={inputActive} hidden={theme?.hidden}/> }
             <StaticSceneOptimizer ready={ready} theme={theme} models={scene.models} disabled={Boolean(onModelSelect)} />
             {preset.glows && theme?.glows && <ThemeGlows config={theme.glows} />}
@@ -312,30 +333,30 @@ function FurnitureScene({ renderingPaused = false, books, onSceneBooks, liveGrap
           ? <PackageCamera config={scene.camera} view={view} roam={scene.roam} controls={controls} inputActive={inputActive} shortcuts={bindings} />
           : <RoomView key={initialCameraKey(scene.camera)} controls={controls} config={scene.camera} />}
       </Canvas>
-      <LoadingScreen title="正在加载书房" percent={percent} done={ready}
-        detail={ready ? '书房已就绪' : loadedCount < modelUrls.length ? `模型 ${loadedCount} / ${modelUrls.length}` : '正在绘制场景'} />
+      <LoadingScreen title={translate("i18n.loadingStudy")} percent={percent} done={ready}
+        detail={ready ? translate("i18n.studyReady") : loadedCount < modelUrls.length ? translate("i18n.models01", loadedCount, modelUrls.length) : translate("i18n.renderingScene")} />
     </LoadingBoundary>
     {inputActive && (scene.views?.length || appearance) && <div className="scene-package-controls">
-      {previewView !== 'orbit' && scene.views?.length > 0 && <div role="group" aria-label="分区视角">
+      {previewView !== 'orbit' && scene.views?.length > 0 && <div role="group" aria-label={translate("i18n.cameraViews")}>
         {scene.views.map(item => <button key={item.id} type="button"
           title={[
-            previewView && `位置 ${item.position.join(', ')} · 落点 ${item.target.join(', ')} · 视野 ${item.fov}°`,
+            previewView && translate("i18n.position0Target1Fov2", item.position.join(', '), item.target.join(', '), item.fov),
             bindings[viewShortcut(item.id)]?.join(' / ')
           ].filter(Boolean).join(' · ') || undefined}
           aria-pressed={view?.id === item.id} onClick={() => {
             if (view?.id === item.id) controls.current?.reset();
             else setView(item.id);
-          }}>{item.label}</button>)}
+          }}>{translateFixedText(item.label)}</button>)}
       </div>}
-      {!previewTheme && appearance?.nightTheme && <div className="scene-day-night" role="group" aria-label="日夜切换">
-        <button type="button" title={['切换日间／夜间', bindings.dayNight?.join(' / ')].filter(Boolean).join(' · ')} aria-pressed={!night} onClick={flipDay}>
-          <span aria-hidden="true">{night ? '☾' : '☀'}</span> {night ? '夜间' : '日间'}
+      {!previewTheme && appearance?.nightTheme && <div className="scene-day-night" role="group" aria-label={translate("i18n.dayAndNight")}>
+        <button type="button" title={[translate("i18n.toggleDayOrNight"), bindings.dayNight?.join(' / ')].filter(Boolean).join(' · ')} aria-pressed={!night} onClick={flipDay}>
+          <span aria-hidden="true">{night ? '☾' : '☀'}</span> {night ? translate("i18n.night") : translate("i18n.day")}
         </button>
       </div>}
     </div>}
     {hint && <FeatureHint key={bookHint||hoveredId} description={hint} />}
-    {onModelSelect && <div className="scene-camera-help">{previewView === 'orbit' ? '拖动旋转 · 右键拖动平移 · 滚轮缩放'
-      : <>拖动环顾 · 滚轮调整视野 <button onClick={() => controls.current?.reset()}>重置视角</button></>}</div>}
+    {onModelSelect && <div className="scene-camera-help">{previewView === 'orbit' ? translate("i18n.dragToRotateRightDragToPan")
+      : <>{translate("i18n.dragToLookAroundScrollToAdjust")}{' '}<button onClick={() => controls.current?.reset()}>{translate("i18n.resetView")}</button></>}</div>}
   </div>;
 }
 

@@ -39,6 +39,10 @@ pnpm dev
 pnpm start
 ```
 
+### 验证项目
+
+`pnpm test` 运行正式源码、测试目录和旧书迁移验证。`pnpm test:ui` 会启动本地测试页面，在独立的 Electron 会话中验证阅读进度、导航、搜索、书架编辑和地图投影。运行界面验收前请关闭占用 5173 端口的开发服务。
+
 ### 打包成 macOS App
 
 在 macOS 上执行：
@@ -171,16 +175,23 @@ macOS 打包时会读取当前的 `sceneFolder`，只收录该场景的 `scene.j
 | 阅读层 | 已接入：书架、Markdown 阅读、进度、划线、批注、知识库回跳 |
 | 本地存档 | 默认配置已定义，待接入 |
 
-## 目录说明
+## 代码结构与扩展入口
 
-```text
-electron/      桌面窗口主进程
-src/scenes/    书房场景
-src/audio/     声音系统
-src/reader/    阅读界面
-src/data/      设置与存档
-assets/        后续图片、音频、书籍素材
-```
+| 设计层 | 代码入口 | 负责的内容 |
+| --- | --- | --- |
+| 场景包 | `场景包/`、`src/scenes/` | 清单、资源、渲染、物件与功能 ID 的绑定 |
+| 功能区 | `src/features/` | `library`、`music`、`movies`、`diary`、`memo`、`globe`、`typewriter` |
+| 实体与知识库 | `src/entities/` | 全局标识、目录读取、直属与包含关系、用户关联 |
+| 搜索与当前结果 | `src/search/`、`src/results/` | 查询策略、范围、完整命中集合、当前对象或应用所需的特定记录 |
+| 结果应用 | `src/resultApplications/` | Markdown 快照、地图投影、关系图 |
+| 共用交互 | `src/ui/` | 命令触发、实体定位后的焦点、页面滚动与返回恢复 |
+| 桌面服务 | `electron/` | 书库文件、媒体、地理数据、快照及原生对话框 |
+
+增加功能区时，先参照相邻目录编写 `definition.js`，然后在 `src/features/definitions.js` 登记。定义包括功能 ID、实体类型、目录读取、检索字段、打开目标和可创建项。可选的 `view.jsx` 声明功能面板和目录编辑器。场景热点可以直接绑定功能 ID。目录读取会保留各区原有的存储和文件引用。
+
+页面通过 `useResultSource` 提供完整命中集合 `matches`，并用 `scopeId` 指明查询来源。某个应用需要不同范围时可以显式声明，例如日记快照记录当前篇，地图展示全部命中篇目。新结果应用调用 `currentResultInput(应用ID)` 读取当前结果。带全局命令的应用可在 `src/resultApplications/ResultApplications.jsx` 登记。查询默认走现有关键词策略，也可以向 `queryEntities` 提供自己的匹配规则。
+
+功能面板使用稳定的 `scopeId` 保存视图状态。新建和编辑分别声明 `ActionWorkspace` 的 `kind`，共用操作通过 `src/ui/commands.js` 定义的命令触发。书籍正文位置、音频进度和草稿仍由各功能区各自保存。
 
 ## 唱片机在线音乐
 

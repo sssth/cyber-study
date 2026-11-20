@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getSearch, setSearch, suspendSearch, resumeSearch } from './searchStore.js';
+import { getSearch, setSearch, suspendSearch, resumeSearch, locateEntityInScope } from './searchStore.js';
 import { emptySearch } from './searchCore.js';
 test('closing removes applied conditions, reopening restores text and filters', () => {
  const state={query:'书',filters:{type:'book',from:'2026-11-01'}};
@@ -23,4 +23,15 @@ test('unfinished input is remembered without applying an invalid date',()=>{
  const applied={query:'a',filters:{}},draft={query:'a',filters:{from:'2026-'}};
  setSearch('draft',applied);suspendSearch('draft',draft);
  assert.deepEqual(resumeSearch('draft'),{draft,applied});
+});
+
+test('opening a new entity supersedes the remembered location for the same collection', () => {
+ const scope = 'location-test';
+ locateEntityInScope(scope, 'id', 'first');
+ suspendSearch(scope);
+ assert.equal(getSearch(scope), emptySearch);
+ locateEntityInScope(scope, 'id', 'second');
+ assert.deepEqual(resumeSearch(scope).applied, { query: '', filters: { id: 'second' } });
+ setSearch(scope, { query: '', filters: {} });
+ assert.deepEqual(getSearch(scope), emptySearch);
 });

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { sceneAssets } from './src/scenes/packages/presentation.js';
-import { validatePackage } from './src/scenes/packages/validatePackage.js';
+import { readScenePackage, shelfManifestFile } from './scripts/read-scene-package.mjs';
 import { petModels } from './src/scenes/three/modelConfig.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -18,7 +18,7 @@ try {
     throw new Error('sceneFolder 必须填写场景文件夹路径。');
   }
   sceneFolder = resolve(root, config.sceneFolder);
-  scene = validatePackage(JSON.parse(readFileSync(resolve(sceneFolder, 'scene.json'), 'utf8')));
+  scene = readScenePackage(sceneFolder);
   for (const file of sceneAssets(scene)) {
     const modelPath = resolve(sceneFolder, file);
     if (!modelPath.startsWith(sceneFolder + sep)) throw new Error(`资源路径超出场景目录：${file}`);
@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
         name: 'scene-manifest',
         // The virtual module is built from files read while loading this config.
         configResolved(config) {
-          config.configFileDependencies.push(resolve(root, 'scene.config.json'), resolve(sceneFolder, 'scene.json'));
+          config.configFileDependencies.push(resolve(root, 'scene.config.json'), resolve(sceneFolder, 'scene.json'), resolve(sceneFolder, shelfManifestFile));
         },
         resolveId(id) {
           if (id === 'virtual:scene-manifest') return '\0virtual:scene-manifest';

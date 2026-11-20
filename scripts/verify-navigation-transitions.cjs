@@ -4,7 +4,11 @@ app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'study-navigation-')
 app.whenReady().then(async()=>{
  const w=new BrowserWindow({width:1200,height:900,show:true,webPreferences:{backgroundThrottling:false}});
  await w.loadURL('http://127.0.0.1:5173/tests/ui/navigation-transitions.html');
- await new Promise(r=>setTimeout(r,1000));
+ for(let attempt=0;attempt<100;attempt++){
+  if(await w.webContents.executeJavaScript(`typeof openPreviewBook === 'function' && !!document.querySelector('.feature-overlay')`))break;
+  if(attempt===99)throw Error('Navigation fixture did not render');
+  await new Promise(r=>setTimeout(r,50));
+ }
  for(const action of ['navigatePreview','navigatePreview','openPreviewBook']){
   const result=await w.webContents.executeJavaScript(`new Promise(resolve=>{
    const frames=[],start=performance.now();window[${JSON.stringify(action)}]();

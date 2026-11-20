@@ -1,14 +1,13 @@
+import { commands, invokeCommand } from '../ui/commands.js';
+import { translate } from '../i18n/index.js';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isCreating } from './ContentCommands.jsx';
 import { commandTargetMode } from '../ui/commandTarget.js';
 
 const buttons = [
-  ['search', '检索', 'cyber-toggle-search', 'search'],
-  ['create', '新建', 'cyber-toggle-create', 'createContent'],
-  ['edit', '编辑', 'cyber-toggle-edit'],
-  ['snapshot', '快照', 'cyber-save-snapshot', 'snapshot'],
-  ['relate', '关联', 'cyber-toggle-relate']
+  ['search', 'i18n.search'], ['create', 'i18n.new'], ['edit', 'i18n.edit'],
+  ['snapshot', 'i18n.snapshot'], ['relate', 'i18n.link']
 ];
 const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay';
 const expandedKey = 'cyber-study.command-toolbar.expanded';
@@ -66,28 +65,29 @@ export default function CommandToolbar({ shortcuts }) {
   if (!status?.available) return null;
 
   return createPortal(
-    <nav className="command-toolbar" aria-label="页面操作">
+    <nav className="command-toolbar" aria-label={translate("i18n.pageActions")}>
       <button className="command-toolbar-toggle" type="button" aria-expanded={expanded}
-        aria-controls="page-command-buttons" aria-label={expanded ? '收起操作栏' : '展开操作栏'}
-        title={expanded ? '收起操作栏' : '展开操作栏'} onClick={toggleExpanded}>
+        aria-controls="page-command-buttons" aria-label={expanded ? translate("i18n.collapseToolbar") : translate("i18n.expandToolbar")}
+        title={expanded ? translate("i18n.collapseToolbar") : translate("i18n.expandToolbar")} onClick={toggleExpanded}>
         <span aria-hidden="true">{expanded ? '›' : '‹'}</span>
       </button>
       <div id="page-command-buttons" hidden={!expanded}>
-        {buttons.map(([id, label, event, shortcut]) => {
+        {buttons.map(([id, label]) => {
+          const { shortcut } = commands[id];
           const hint = shortcut ? shortcuts[shortcut]?.join(' / ') :
-            id === 'edit' ? '双击实体' : '右键点击实体';
+            id === 'edit' ? translate("i18n.doubleClickAnItem") : translate("i18n.rightClickAnItem");
           const selecting = status.mode === id;
           return <button key={id} type="button"
             aria-pressed={id === 'snapshot' ? undefined : status[id]}
             disabled={id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
-            title={selecting ? '请点击要操作的实体' : [label, hint].filter(Boolean).join(' · ')}
-            onClick={click => click.currentTarget.dispatchEvent(new Event(event, { bubbles: true }))}>
-            {label}
+            title={selecting ? translate("i18n.selectAnItem") : [translate(label), hint].filter(Boolean).join(' · ')}
+            onClick={click => invokeCommand(id, click.currentTarget)}>
+            {translate(label)}
           </button>;
         })}
       </div>
       {expanded && status.mode && <span className="command-target-hint" role="status">
-        {status.mode === 'edit' ? '点击要编辑的实体' : '点击要关联的实体'}
+        {status.mode === 'edit' ? translate("i18n.selectAnItemToEdit") : translate("i18n.selectAnItemToLink")}
       </span>}
     </nav>, status.host
   );

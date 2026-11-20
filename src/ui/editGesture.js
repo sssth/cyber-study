@@ -1,3 +1,5 @@
+export const itemClickDelay = 420;
+
 // A local surface may keep its own selection policy while sharing edit toggling.
 export function toggleEditor(setOpen, event, ignoreWithin) {
   if (ignoreWithin && event?.target.closest(ignoreWithin)) return;

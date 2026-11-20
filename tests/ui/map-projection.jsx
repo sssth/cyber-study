@@ -1,20 +1,22 @@
-import EntityCatalog from '../../src/features/EntityCatalog.jsx';
+import EntityCatalog from '../../src/entities/EntityCatalog.jsx';
 import ContentCommands from '../../src/features/ContentCommands.jsx';
 import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
 import {ActionWorkspace} from '../../src/features/ui.jsx';
-import MapProjection from '../../src/features/MapProjection.jsx';
-import {DiaryPanel,MemoBoard} from '../../src/features/DiaryMemo.jsx';
-import GlobePanel from '../../src/features/GlobePanel.jsx';
-import TypewriterPanel from '../../src/features/TypewriterPanel.jsx';
-import {MusicPlayer,MovieCollection} from '../../src/features/MediaCollections.jsx';
-import ExcerptAnnotations from '../../src/reader/ExcerptAnnotations.jsx';
-import ReaderOverlay from '../../src/reader/ReaderOverlay.jsx';
-import ContentRelationshipPanel from '../../src/features/ContentRelationshipPanel.jsx';
-import LibraryShelf from '../../src/reader/LibraryShelf.jsx';
+import MapProjection from '../../src/resultApplications/MapProjection.jsx';
+import DiaryPanel from '../../src/features/diary/DiaryPanel.jsx';
+import MemoBoard from '../../src/features/memo/MemoBoard.jsx';
+import GlobePanel from '../../src/features/globe/GlobePanel.jsx';
+import TypewriterPanel from '../../src/features/typewriter/TypewriterPanel.jsx';
+import MusicPlayer from '../../src/features/music/MusicPlayer.jsx';
+import MovieCollection from '../../src/features/movies/MovieCollection.jsx';
+import ExcerptAnnotations from '../../src/features/library/ExcerptAnnotations.jsx';
+import ReaderOverlay from '../../src/features/library/ReaderOverlay.jsx';
+import ContentRelationshipPanel from '../../src/entities/ContentRelationshipPanel.jsx';
+import LibraryShelf from '../../src/features/library/LibraryShelf.jsx';
 import GlobalSearch from '../../src/search/GlobalSearch.jsx';
 import UnifiedSearch from '../../src/search/UnifiedSearch.jsx';
 import {saveSpaceData} from '../../src/data/spaceStorage.js';
-import {currentMapSource} from '../../src/data/mapProjection.js';
+import { currentResultInput } from '../../src/results/activeResults.js';
 import {setSearch} from '../../src/search/searchStore.js';
 import '../../src/styles/global.css';import '../../src/styles/features.css';import '../../src/styles/reader.css';import '../../src/styles/immersive.css';
 const photos=['p1','p2','p3','p4'].map((id,i)=>({id,title:id,latitude:30+i,longitude:110+i,locationStatus:'confirmed',visitStatus:'visited'}));
@@ -31,7 +33,7 @@ saveSpaceData('content-relations',[
  {id:'memo-link-1',fromId:'memo:m1',toId:'memory_point:p1',relationType:'related'},{id:'memo-link-2',fromId:'memo:m2',toId:'memory_point:p2',relationType:'related'},{id:'todo-link',fromId:'todo:t1',toId:'memory_point:p3',relationType:'related'},
  {id:'book-link',fromId:'book:b44',toId:'memory_point:p4',relationType:'related'}]);
 const shortcuts={previousTrack:['Shift+←'],nextTrack:['Shift+→'],toggleMusic:['Shift+Space'],showOnGlobe:['Shift+Cmd+X'],search:['Shift+Cmd+Z']};
-window.mapScope=()=>currentMapSource();window.filterPreview=(id,query)=>setSearch(id,{query,filters:{}});
+window.mapScope=()=>currentResultInput('map');window.filterPreview=(id,query)=>setSearch(id,{query,filters:{}});
 function CatalogPreview({onClose}) {
  const [editing,setEditing]=useState(null);
  return <><EntityCatalog books={books} editing={editing} onEdit={setEditing} onOpen={onClose} onClose={onClose}/>

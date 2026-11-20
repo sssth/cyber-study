@@ -1,40 +1,42 @@
+import { translate, translateFixedText } from '../i18n/index.js';
+
 export const viewShortcut = id => `view:${id}`;
 
 export const movementShortcuts = [
-  ['w', '向前移动', ['W', '↑']],
-  ['a', '向左移动', ['A', '←']],
-  ['s', '向后移动', ['S', '↓']],
-  ['d', '向右移动', ['D', '→']],
-  ['q', '下降', ['Q']],
-  ['e', '上升', ['E']]
+  ['w', "i18n.moveForward", ['W', '↑']],
+  ['a', "i18n.moveLeft", ['A', '←']],
+  ['s', "i18n.moveBackward", ['S', '↓']],
+  ['d', "i18n.moveRight", ['D', '→']],
+  ['q', "i18n.moveDown", ['Q']],
+  ['e', "i18n.moveUp", ['E']]
 ];
 
 export function shortcutGroups(scene) {
   return [
-    ['通用', 'global', [
-      ['showOnGlobe', '在地球仪中显示', ['Shift+Cmd+X', 'Ctrl+Shift+X']],
-      ['snapshot', '快照保存', ['Shift+Cmd+S', 'Ctrl+Shift+S']],
-      ['search', '搜索与筛选当前集合', ['Shift+Cmd+Z', 'Ctrl+Shift+Z']],
-      ['createContent', '新建当前页面的内容', ['Shift+Cmd+A', 'Ctrl+Shift+A']]
+    ["i18n.general", 'global', [
+      ['showOnGlobe', "i18n.showOnGlobe", ['Shift+Cmd+X', 'Ctrl+Shift+X']],
+      ['snapshot', "i18n.saveSnapshot", ['Shift+Cmd+S', 'Ctrl+Shift+S']],
+      ['search', "i18n.searchAndFilterTheCurrentCollection", ['Shift+Cmd+Z', 'Ctrl+Shift+Z']],
+      ['createContent', "i18n.createContentOnTheCurrentPage", ['Shift+Cmd+A', 'Ctrl+Shift+A']]
     ]],
-    ['书房场景', 'scene', [
-      ...(scene.appearance?.nightTheme ? [['dayNight', '切换白天和黑夜', ['L']]] : []),
+    ["i18n.studyScene", 'scene', [
+      ...(scene.appearance?.nightTheme ? [['dayNight', "i18n.switchBetweenDayAndNight", ['L']]] : []),
       ...(scene.views ?? []).map(({ id, label }, index) =>
-        [viewShortcut(id), `切换视角 · ${label}`, index < 9 ? [String(index + 1)] : []]),
+        [viewShortcut(id), () => translate("i18n.switchView", translateFixedText(label)), index < 9 ? [String(index + 1)] : []]),
       ...(scene.roam ? movementShortcuts : [])
     ]],
-    ['阅读器', 'reader', [
-      ['previousPage', '上一页（分页阅读）', ['←']],
-      ['nextPage', '下一页（分页阅读）', ['→']],
-      ['readerBack', '返回上一级', ['Esc']]
+    ["i18n.reader", 'reader', [
+      ['previousPage', "i18n.previousPagePaginatedReading", ['←']],
+      ['nextPage', "i18n.nextPagePaginatedReading", ['→']],
+      ['readerBack', "i18n.goBack", ['Esc']]
     ]],
-    ['音乐播放器', 'music', [
-      ['previousTrack', '上一首', ['Shift+←']],
-      ['nextTrack', '下一首', ['Shift+→']],
-      ['toggleMusic', '播放 / 暂停', ['Shift+Space']]
+    ["i18n.musicPlayer", 'music', [
+      ['previousTrack', "i18n.previousTrack", ['Shift+←']],
+      ['nextTrack', "i18n.nextTrack", ['Shift+→']],
+      ['toggleMusic', "i18n.playPause", ['Shift+Space']]
     ]],
-    ['互动菜单', 'menu', [['closeMenu', '关闭菜单', ['Esc']]]],
-    ['Memo 板', 'memo', [['addTodo', '添加待办（输入框内）', ['Enter']]]]
+    ["i18n.roomMenu", 'menu', [['closeMenu', "i18n.closeMenu", ['Esc']]]],
+    ["i18n.memoBoard", 'memo', [['addTodo', "i18n.addAToDoInTheInput", ['Enter']]]]
   ].filter(([, , actions]) => actions.length);
 }
 
@@ -81,4 +83,8 @@ export function matchesShortcut(event, keys) {
   if (event.defaultPrevented) return false;
   if (['Enter', ' '].includes(event.key) && event.target?.closest?.('button, a[href], [role="button"]')) return false;
   return keys?.includes(shortcutKey(event));
+}
+
+export function translateShortcutLabel(label) {
+  return typeof label === 'function' ? label() : translate(label);
 }

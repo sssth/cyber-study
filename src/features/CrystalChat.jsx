@@ -1,3 +1,4 @@
+import { translate, translateError } from '../i18n/index.js';
 import { useState, useRef, useEffect } from 'react';
 import { FeaturePanel } from './ui.jsx';
 import {snapshotPrompt} from '../data/snapshotPrompt.js';
@@ -10,6 +11,7 @@ export default function CrystalChat({ open, onClose }) {
   const [partial, setPartial] = useState('');
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
+  const [settingsError, setSettingsError] = useState('');
   const [busy, setBusy] = useState(false);
   const [files,setFiles]=useState([]),[attachments,setAttachments]=useState([]);
   const [libraryStatus,setLibraryStatus]=useState('');
@@ -21,7 +23,7 @@ export default function CrystalChat({ open, onClose }) {
     const refresh=async()=>{
       const version=++revision;
       try {const names=await library.list();if(active && version===revision){setFiles(names);setLibraryStatus('');}}
-      catch {if(active && version===revision)setLibraryStatus('无法读取快照文件夹');}
+      catch {if(active && version===revision)setLibraryStatus("i18n.couldNotReadTheSnapshotsFolder");}
     };
     refresh();window.addEventListener('focus',refresh);window.addEventListener('snapshots-changed',refresh);
     return ()=>{active=false;window.removeEventListener('focus',refresh);window.removeEventListener('snapshots-changed',refresh);};
@@ -29,13 +31,35 @@ export default function CrystalChat({ open, onClose }) {
   function attach(name){if(files.includes(name))setAttachments(items=>items.includes(name)?items:[...items,name]);}
   const log = useRef(null);
   const ai = window.cyberStudy?.ai;
+  const settingsRevision = useRef(0);
+  const current = settings?.current;
+  const provider = settings?.providers.find(p => p.id === current?.provider);
+  const canSend = !busy && provider?.hasApiKey && Boolean(draft.trim());
   useEffect(() => {
     if (!open) return;
-    let active = true;
-    if (ai) ai.getSettings().then(value => { if (active) setSettings(value); })
-      .catch(() => { if (active) setError('无法读取 ai-settings.json，请检查文件格式。'); });
-    else setError('请在书房桌面应用中打开对话。');
-    return () => { active = false; };
+    if (!ai) {
+      setSettingsError("i18n.openTheDesktopAppToStartA");
+      return;
+    }
+    async function refreshSettings() {
+      const revision = ++settingsRevision.current;
+      try {
+        const value = await ai.getSettings();
+        if (revision !== settingsRevision.current) return;
+        setSettings(value);
+        setSettingsError('');
+      } catch {
+        if (revision !== settingsRevision.current) return;
+        setSettings(null);
+        setSettingsError("i18n.couldNotReadAiSettingsJsonCheck");
+      }
+    }
+    refreshSettings();
+    window.addEventListener('focus', refreshSettings);
+    return () => {
+      settingsRevision.current++;
+      window.removeEventListener('focus', refreshSettings);
+    };
   }, [open, ai]);
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
@@ -45,14 +69,19 @@ export default function CrystalChat({ open, onClose }) {
     const [provider, model] = JSON.parse(value);
     setBusy(true);
     setError('');
-    try { setSettings(await ai.selectModel({ provider, model })); }
-    catch { setError('模型选择保存失败，请检查配置文件。'); }
+    try {
+      const value = await ai.selectModel({ provider, model });
+      settingsRevision.current++;
+      setSettings(value);
+      setSettingsError('');
+    }
+    catch { setError("i18n.couldNotSaveTheSelectedModelCheck"); }
     finally { setBusy(false); }
   }
 
   async function send(event) {
     event.preventDefault();
-    if (busy || !settings?.current || !draft.trim()) return;
+    if (!canSend) return;
     setBusy(true);
     setError('');
     setAttachments([]);
@@ -61,7 +90,7 @@ export default function CrystalChat({ open, onClose }) {
     try {
       const documents=await Promise.all(attachments.map(async name=>({name,text:await library.read(name)})));
       const content=snapshotPrompt(draft.trim(),documents);
-      const next=[...messages,{role:'user',content,display:[draft.trim(),...attachments.map(name=>'引用快照：'+name)].join('\n')}];
+      const next=[...messages,{ role: 'user', content, text: draft.trim(), attachments }];
       setMessages(next);
       const reply = await ai.streamCurrent({ messages: next.map(({role,content})=>({role,content})) }, playback.append);
       await playback.finish(reply.content);
@@ -70,39 +99,49 @@ export default function CrystalChat({ open, onClose }) {
       setMessages(messages);
       setDraft(draft);
       setAttachments(items => [...new Set([...attachments, ...items])]);
-      setError(err.message.replace(/^.*?Error: /, ''));
+      setError(err.message);
     } finally { playback.stop(); setPartial(''); setBusy(false); }
   }
 
+  async function revealSettings() {
+    setError('');
+    try { await ai.revealSettingsFile(); }
+    catch { setError("i18n.couldNotShowAiSettingsFile"); }
+  }
+
   if (!open) return null;
-  const current = settings?.current;
-  const provider = settings?.providers.find(p => p.id === current?.provider);
-  return <FeaturePanel title="水晶对话" onClose={onClose}>
+  const setupMessage = settingsError || (provider && !provider.hasApiKey
+    ? translate("i18n.providerApiKey", provider.name) : '');
+  return <FeaturePanel scopeId="crystal" title="i18n.crystalChat" onClose={onClose}>
     <div className="crystal-layout">
-      <aside className="crystal-library" aria-label="快照文件列表">
-        {libraryStatus}
+      <aside className="crystal-library" aria-label={translate("i18n.snapshotFiles")}>
+        {translate(libraryStatus)}
         {files.map(name=><button key={name} type="button" draggable onDragStart={event=>{event.dataTransfer.setData(dragType,name);event.dataTransfer.effectAllowed='copy';}} onClick={()=>attach(name)}>{name}</button>)}
       </aside>
     <div className="crystal-chat" onDragOver={event=>{if(event.dataTransfer.types.includes(dragType)){event.preventDefault();event.dataTransfer.dropEffect='copy';}}} onDrop={event=>{if(event.dataTransfer.types.includes(dragType)){event.preventDefault();attach(event.dataTransfer.getData(dragType));}}}>
         <div className="crystal-tools">
-          <button type="button" disabled={busy || !messages.length} onClick={() => { setMessages([]); setError(''); }}>清空对话</button>
+          <button type="button" disabled={busy || !messages.length} onClick={() => { setMessages([]); setError(''); }}>{translate("i18n.clearChat")}</button>
         </div>
-      <div className="crystal-log" role="log" aria-label="聊天记录" ref={log}>
-        {messages.map((m, i) => <p key={i} data-role={m.role} aria-label={m.role === 'user' ? '你' : 'AI'}>{m.display ?? m.content}</p>)}
-        {partial ? <p data-role="assistant" aria-label="AI">{partial}</p> : busy && messages.at(-1)?.role === 'user' && <small>正在回复…</small>}
+      <div className="crystal-log" role="log" aria-label={translate("i18n.chatHistory")} ref={log}>
+        {messages.map((m, i) => <p key={i} data-role={m.role} aria-label={m.role === 'user' ? translate("i18n.you") : 'AI'}>{m.text === undefined ? m.content : [m.text, ...m.attachments.map(name => translate("i18n.attachedSnapshot", name))].join("\n")}</p>)}
+        {partial ? <p data-role="assistant" aria-label="AI">{partial}</p> : busy && messages.at(-1)?.role === 'user' && <small>{translate("i18n.replying")}</small>}
       </div>
       <form onSubmit={send}>
-        {attachments.length>0 && <div className="crystal-attachments">{attachments.map(name=><button type="button" key={name} aria-label={'移除 '+name} onClick={()=>setAttachments(items=>items.filter(item=>item!==name))}>{name} ×</button>)}</div>}
-        {(error || (provider && !provider.hasApiKey)) && <small role="status">{error || '请在 ai-settings.json 中填写 ' + provider.name + ' 的 API Key。'}</small>}
+        {attachments.length>0 && <div className="crystal-attachments">{attachments.map(name=><button type="button" key={name} aria-label={translate("i18n.removeAttachment", name)} onClick={()=>setAttachments(items=>items.filter(item=>item!==name))}>{name} ×</button>)}</div>}
+        {setupMessage && <div className="crystal-setup">
+          <small id="crystal-setup-message" role="status">{translate(setupMessage)}</small>
+          {ai?.revealSettingsFile && <button type="button" onClick={revealSettings}>{translate("i18n.showAiSettingsFile")}</button>}
+        </div>}
+        {error && <small role="status">{translateError(error)}</small>}
         <div className="crystal-composer">
-        <select aria-label="对话模型" disabled={busy || !settings} value={current ? JSON.stringify([current.provider, current.model]) : ''} onChange={e => choose(e.target.value)}>
-          {!current && <option value="">选择模型</option>}
+        <select aria-label={translate("i18n.chatModel")} disabled={busy || !settings} value={current ? JSON.stringify([current.provider, current.model]) : ''} onChange={e => choose(e.target.value)}>
+          {!current && <option value="">{translate("i18n.chooseAModel")}</option>}
           {settings?.providers.map(p => <optgroup key={p.id} label={p.name}>{p.models.map(model =>
             <option key={model} value={JSON.stringify([p.id, model])}>{model}</option>)}</optgroup>)}
         </select>
-          <textarea rows="1" aria-label="消息" placeholder="输入消息…" value={draft} readOnly={busy} onChange={e => setDraft(e.target.value)}
+          <textarea rows="1" aria-label={translate("i18n.message")} placeholder={translate("i18n.typeAMessage")} value={draft} readOnly={busy} onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); e.currentTarget.form.requestSubmit(); } }} />
-          <button disabled={busy || !draft.trim() || !current}>发送</button></div>
+          <button disabled={!canSend} aria-describedby={setupMessage ? "crystal-setup-message" : undefined}>{translate("i18n.send")}</button></div>
       </form>
     </div></div>
   </FeaturePanel>;

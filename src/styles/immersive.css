@@ -87,24 +87,24 @@ body[data-item-editing] [data-content-target][draggable="true"] { user-select:no
  :root { --edit-rail-width: min(280px, 60vw); --edit-rail-gap:12px; }
 }
 
-/* Translate the existing layout without changing its width or column count. */
+/* Animate the collection as the editing rail opens. */
 .reader-library, .feature-body { transition:margin-left 480ms cubic-bezier(.22,1,.36,1), margin-right 480ms cubic-bezier(.22,1,.36,1); }
 .edit-sidebar > header { display:none; }
-.edit-sidebar .stack-form, .edit-sidebar.stack-form { display:flex; flex-direction:column; gap:22px; min-height:100%; }
-.edit-sidebar .stack-form > label { display:grid; grid-template-columns:56px minmax(0,1fr); align-items:center; column-gap:14px; font-size:13px; line-height:1.6; }
+.edit-sidebar .stack-form { display:flex; flex-direction:column; }
+.edit-sidebar :is(.stack-form,.workspace-fields) > label { display:grid; grid-template-columns:56px minmax(0,1fr); align-items:center; column-gap:14px; font-size:13px; line-height:1.6; }
 .edit-sidebar :is(input:not([type=checkbox]):not([type=radio]),textarea,select) { width:100%; padding:10px 12px; color:#dfe8e8; background:#ffffff06; border:1px solid #ffffff20; border-radius:6px; font:inherit; }
 .edit-sidebar :is(input,textarea,select):focus { outline:1px solid #83b9b3; border-color:#83b9b3; }
 .edit-sidebar input[type=file] { padding:6px; font-size:11px; }
 .edit-sidebar input::file-selector-button { border:0; border-radius:4px; padding:7px; margin-right:6px; color:#dfe8e8; background:#ffffff12; }
-.edit-actions { display:flex; gap:12px; margin-top:auto; padding-top:24px; position:sticky; bottom:0; background:#10171d; }
+.edit-actions { display:flex; gap:12px; flex:none; padding-top:14px; }
 .edit-actions > button { flex:1; min-height:38px; }
 .edit-actions > button:last-child { color:#d5a3a0; }
 @media(prefers-reduced-motion:reduce) { .reader-library,.feature-body { transition:none; } }
 
-.edit-sidebar > :is(h2,h3), .edit-sidebar form > :is(h2,h3) { display:none; }
+.edit-sidebar > :is(h2,h3), .edit-sidebar form > :is(h2,h3),
+.edit-sidebar form > .workspace-fields > :is(h2,h3) { display:none; }
 .edit-sidebar .panel-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:22px; }
 .edit-sidebar .panel-toolbar > label { display:grid; grid-template-columns:56px minmax(0,1fr); align-items:center; gap:14px; font-size:13px; }
-.edit-sidebar .edit-actions { order:100; }
 
 /* The shared rail reserves only the space it needs, never a negative right margin. */
 body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body:not(:has(.copying-library,.knowledge-browser,.entity-catalog,.entity-graph)) {
@@ -119,15 +119,20 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) :is(.reader-libra
 
 body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .display-menu-toggle { visibility:hidden; }
 .feature-body :is(.admin-list,.admin-card,.copying-work-cover,.memo-board) { min-width:0; max-width:100%; box-sizing:border-box; overflow-wrap:anywhere; }
-.edit-sidebar { padding-bottom:100px !important; animation:edit-rail-in 220ms cubic-bezier(.22,1,.36,1); }
-.edit-sidebar .stack-form, .edit-sidebar.stack-form { min-height:0; }
-.edit-sidebar .edit-actions {
- position:fixed; left:30px; bottom:34px; width:calc(var(--edit-rail-width) - 36px);
- box-sizing:border-box; margin:0; padding:14px 0 0; z-index:90; background:#10171d;
- box-shadow:0 -12px 18px #10171d; flex-shrink:0;
+.edit-sidebar { animation:edit-rail-in 220ms cubic-bezier(.22,1,.36,1); }
+.edit-sidebar:has(.workspace-fields) {
+ display:flex; flex-direction:column; overflow:hidden;
 }
-/* Animate the rail offset without creating a temporary containing block for its fixed footer. */
-@keyframes edit-rail-in { from { opacity:0; left:4px; } to { opacity:1; left:12px; } }
+.edit-sidebar :is(.workspace-content,.stack-form):has(.workspace-fields) {
+ display:flex; flex:1; flex-direction:column; min-height:0; gap:0;
+}
+.edit-sidebar .stack-form:has(> .workspace-fields) { margin:0; }
+.edit-sidebar .workspace-fields {
+ display:flex; flex:1; flex-direction:column; min-height:0;
+ gap:var(--workspace-row-gap); overflow:auto; padding:1px 1px 4px;
+}
+.edit-sidebar .workspace-fields > * { flex:none; }
+@keyframes edit-rail-in { from { opacity:0; } to { opacity:1; } }
 @media(max-width:800px) {
  body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) :is(.feature-body:not(:has(.copying-library,.knowledge-browser,.entity-catalog,.entity-graph)),.reader-library) {
  margin-left:calc(var(--edit-rail-width) + 12px); margin-right:0;
@@ -138,14 +143,15 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .display-menu-tog
 /* Canonical workspace tokens: all create/edit forms share this contract. */
 :root { --workspace-font:13px; --workspace-row-gap:22px; --workspace-label-width:64px; --workspace-control-height:38px; }
 .edit-sidebar { font-size:var(--workspace-font); line-height:1.6; }
-.edit-sidebar .workspace-fields { min-height:0; }
-.edit-sidebar :is(.stack-form,.stack-form.horizontal) { gap:var(--workspace-row-gap); }
-.edit-sidebar :is(.stack-form > label,.panel-toolbar > label) { grid-template-columns:var(--workspace-label-width) minmax(0,1fr); column-gap:14px; }
+.edit-sidebar :is(.stack-form,.stack-form.horizontal):not(:has(> .workspace-fields)) { gap:var(--workspace-row-gap); }
+.edit-sidebar :is(.stack-form > label,.workspace-fields > label,.panel-toolbar > label) { grid-template-columns:var(--workspace-label-width) minmax(0,1fr); column-gap:14px; }
 .edit-sidebar :is(input:not([type=checkbox]):not([type=radio]),select) { min-height:var(--workspace-control-height); }
 .edit-sidebar .edit-actions > button { font:inherit; font-weight:500; min-height:var(--workspace-control-height); margin:0; }
 .edit-sidebar .edit-actions > button:only-child { color:var(--text); }
+.edit-sidebar .workspace-feedback { flex:none; margin:10px 0 0; overflow-wrap:anywhere; }
 
 .edit-sidebar textarea { resize:none; }
+.edit-sidebar .movie-field small { grid-column:2; color:var(--muted); font-size:12px; line-height:1.4; }
 
 /* Keep copy rows at one width; opening the rail only translates the list. */
 body .feature-overlay .feature-body:has(.copying-library,.entity-catalog,.entity-graph) {
@@ -229,7 +235,7 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-overlay 
  .feature-body > .diary-today { transition:none; }
 }
 
-.edit-sidebar .stack-form > label > input[type="checkbox"] {
+.edit-sidebar :is(.stack-form,.workspace-fields) > label > input[type="checkbox"] {
  width:auto; min-height:0; margin:0; justify-self:start;
 }
 
@@ -433,13 +439,20 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body:has
   .song-credits small { text-align:left; }
 }
 
+:root { --command-toolbar-width: 72px; }
+body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)):has(.command-toolbar)
+  :is(.feature-overlay,.reader-overlay) {
+  padding-right: calc(var(--command-toolbar-width) + 16px);
+}
 .command-toolbar {
   position: fixed;
+  box-sizing: border-box;
+  width: var(--command-toolbar-width);
   z-index: 10001;
   inset: 50% 8px auto auto;
   transform: translateY(-50%);
   display: grid;
-  justify-items: end;
+  justify-items: stretch;
   gap: 4px;
   padding: 4px;
   border: 1px solid #ffffff24;

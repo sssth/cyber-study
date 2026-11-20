@@ -32,6 +32,7 @@ test('near keeps originals, far simplifies, high is conservative, boundary is st
  for(const q of ['low','medium','high']){assert.equal(chooseLod(2000,q,levels),0);assert.equal(chooseLod(30,q,levels),3);}
  assert.ok(chooseLod(500,'high',levels)<=chooseLod(500,'medium',levels));
  assert.equal(chooseLod(700,'medium',levels,0),0);assert.equal(chooseLod(700,'medium',levels,1),1);
+ assert.equal(chooseLod(700,'medium',levels,0,true),0);
 });
 test('LOD compacts exact attribute values without modifying original indices',()=>{
  const base=new BoxGeometry();base.computeBoundingBox();base.computeBoundingSphere();const original=base.index.array.slice();

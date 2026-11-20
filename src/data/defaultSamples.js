@@ -1,5 +1,5 @@
 import '../../shared/contentAssets.js';
-import { arrangementKey, loadArrangement } from '../reader/shelfArrangement.js';
+import { arrangementKey, displayShelves, loadArrangement } from '../features/library/sceneShelfArrangement.js';
 
 const orderKey = 'cyber-study-content-order-v1';
 const musicKey = 'cyber-study.space.v1.music';
@@ -48,8 +48,8 @@ export async function initializeDefaultSamples() {
   const { storage, retiredBookIds } = samples;
   try {
     const kept = new Set(retiredBookIds);
-    const hasUserArrangement = loadArrangement(localStorage).some(shelf => shelf.some(entry => !kept.has(entry.bookId)));
-    if (!hasUserArrangement) save(arrangementKey, storage[arrangementKey]);
+    const hasUserArrangement = displayShelves.length && loadArrangement(localStorage).some(shelf => shelf.some(entry => !kept.has(entry.bookId)));
+    if (!hasUserArrangement && storage[arrangementKey]) save(arrangementKey, storage[arrangementKey]);
   } catch (error) {
     console.warn('保留无法读取的书架陈列记录', error);
   }

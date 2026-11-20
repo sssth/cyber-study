@@ -56,6 +56,50 @@ export function validatePackage(data) {
     if (m.surfaceCeiling !== undefined && !Number.isFinite(m.surfaceCeiling)) throw Error('承托高度无效。');
   }
   for (const m of data.models) if (m.support && (!ids.has(m.support) || m.support === m.id)) throw Error('承托模型不存在或引用自身。');
+  validateDisplayShelves(data, ids);
   validatePresentation(data, ids);
   return data;
+}
+
+function validateDisplayShelves({ displayShelves, displayShelfStorage }, ids) {
+  if (displayShelves === undefined) return;
+  if (!Array.isArray(displayShelves) || typeof displayShelfStorage !== 'string' ||
+      !/^[a-z0-9][a-z0-9_-]*$/i.test(displayShelfStorage)) {
+    throw Error('displayShelves 需要数组和有效的 displayShelfStorage 标识。');
+  }
+  const seen = new Set();
+  for (const shelf of displayShelves) {
+    if (!shelf || !ids.has(shelf.model) || seen.has(shelf.model) ||
+        !Number.isFinite(shelf.depth) || !(Number.isFinite(shelf.height) && shelf.height > 0)) {
+      throw Error('展示书架需要唯一的包内模型及有效的深度和高度。');
+    }
+    seen.add(shelf.model);
+    if (shelf.ornaments !== undefined && (!Array.isArray(shelf.ornaments) || !shelf.ornaments.every(id => ids.has(id)))) {
+      throw Error('展示书架的摆件必须引用包内模型。');
+    }
+    if (!Array.isArray(shelf.zones) || !shelf.zones.length || shelf.zones.some(zone =>
+      !Array.isArray(zone) || zone.length !== 4 || !zone.every(Number.isFinite) ||
+      zone[2] <= 0 || !Number.isInteger(zone[3]) || zone[3] < 0)) {
+      throw Error('展示书架格位需要有效的横坐标、高度、宽度及层号。');
+    }
+    const covered = new Set();
+    if (!Array.isArray(shelf.regions) || shelf.regions.some(region => {
+      if (!Array.isArray(region) || region.length !== 3) return true;
+      const [zones, left, right] = region;
+      if (!Array.isArray(zones) || !zones.length || !Number.isFinite(left) || !Number.isFinite(right) || right <= left) return true;
+      const first = shelf.zones[zones[0]];
+      return zones.some(id => {
+        if (!Number.isInteger(id) || !shelf.zones[id] || covered.has(id) || shelf.zones[id][3] !== first?.[3]) return true;
+        covered.add(id);
+        return false;
+      });
+    }) || covered.size !== shelf.zones.length) {
+      throw Error('展示书架可用区域必须恰好覆盖全部格位，且同一区域内的格位位于同一层。');
+    }
+    if (shelf.layerBounds !== undefined && (!Array.isArray(shelf.layerBounds) ||
+        shelf.layerBounds.some(bounds => !Array.isArray(bounds) || bounds.length !== 2 ||
+          !bounds.every(Number.isFinite) || bounds[1] <= bounds[0]))) {
+      throw Error('展示书架层边界必须是有序的数值区间。');
+    }
+  }
 }

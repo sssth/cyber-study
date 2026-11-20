@@ -1290,12 +1290,12 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .diary-read-canvas > p { white-space:pre-wrap; line-height:2; }
 .diary-photo-library { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .diary-photo-library img { width:100%; height:110px; object-fit:contain; cursor:grab; }
-.edit-sidebar .stack-form > label.diary-photo-upload { display:flex; justify-content:center; position:relative; padding:10px; border:1px solid #ffffff20; border-radius:6px; cursor:pointer; }
+.edit-sidebar .workspace-fields > label.diary-photo-upload { display:flex; justify-content:center; position:relative; padding:10px; border:1px solid #ffffff20; border-radius:6px; cursor:pointer; }
 .diary-photo-upload input { position:absolute; inset:0; width:100%; opacity:0; cursor:pointer; }
 
-.memo-create-form > label { display: grid; gap: 8px; min-width: 0; }
+.memo-create-form > .workspace-fields > label { display: grid; gap: 8px; min-width: 0; }
 .memo-create-form :is(select, textarea) { width: 100%; box-sizing: border-box; }
-.memo-create-form > .memo-image-picker { display: flex; width: 100%; min-height: 112px; padding: 16px; box-sizing: border-box; }
+.memo-create-form > .workspace-fields > .memo-image-picker { display: flex; width: 100%; min-height: 112px; padding: 16px; box-sizing: border-box; }
 .memo-image-picker span { overflow-wrap: anywhere; }
 .memo-image-picker:focus-within { outline: 2px solid var(--accent, #00f0ff); outline-offset: 2px; }
 .memo-item:is(.todo,.image)[data-tone='violet'] { background: #664064b3; }
@@ -1389,6 +1389,10 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .journey-card-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; align-content:start; }
 .journey-summary-card { position:relative; }
 .journey-summary-card .memory-card-edit { position:absolute; inset:0; width:100%; height:100%; background:transparent; backdrop-filter:none; border:0; box-shadow:none; }
+@media (max-width: 1200px) {
+  .memory-card-heading { display:grid; gap:4px; }
+  .memory-card-heading > span { max-width:none; }
+}
 .journey-summary-heading { display:block; }
 .journey-summary-heading > span { display:block; margin-top:10px; max-width:none; }
 .globe-photo-viewer .memory-detail-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); width:min(1100px,100%); gap:36px; min-height:0; max-height:80vh; overflow:auto; }
@@ -1412,7 +1416,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .memory-wish-list { display:flex; flex-direction:column; gap:8px; }
 .memory-wish-list .memory-wish-row { position:relative; display:block; flex:none; padding:16px 12px; background:#ffffff03; border:0; border-bottom:1px solid #ffffff12; border-radius:0; }
 .memory-wish-row h3 { margin:0; font-size:14px; font-weight:400; }
-.memory-status-visited .memory-card-meta { font-size:11px; justify-content:space-between; }
+.memory-status-visited .memory-card-meta { font-size:12px; justify-content:space-between; }
 @media(max-width:800px) { .memory-status-columns { gap:12px; grid-template-columns:minmax(0,2fr) minmax(100px,1fr); } .memory-status-visited .globe-photo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .memory-status-wish { padding-left:8px; } }
 
 .globe-photo-viewer .memory-detail-layout.memory-detail-wish { display:block; width:min(640px,100%); }
@@ -1467,7 +1471,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 }
 .entity-catalog > button:is(:hover, :focus-visible) { border-color: var(--cyan, #72dce8); }
 .entity-catalog strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.entity-catalog small { color: var(--muted); }
+.entity-catalog small { color: var(--muted); font-size: 12px; }
 
 .catalog-range-editor .knowledge-original { max-height: 52vh; overflow: auto; padding: 8px; user-select: text; }
 

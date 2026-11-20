@@ -4,6 +4,7 @@ let streamId = 0;
 
 contextBridge.exposeInMainWorld('cyberStudy', {
   name: '赛博书房',
+  setInterfaceLanguage: language => ipcRenderer.send('ui:set-language', language),
   defaultSamples: {
     read: options => ipcRenderer.invoke('default-samples:read', options),
     finish: () => ipcRenderer.invoke('default-samples:finish')
@@ -15,6 +16,7 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   },
   ai: {
     getSettings: () => ipcRenderer.invoke('ai:settings'),
+    revealSettingsFile: () => ipcRenderer.invoke('ai:reveal-settings-file'),
     selectModel: settings => ipcRenderer.invoke('ai:select', settings),
     streamCurrent: async (input, onText) => {
       const id = ++streamId;
@@ -38,7 +40,7 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   stage: 'desktop-skeleton',
   deleteBook: (id) => ipcRenderer.invoke('books:delete', id),
   migrateLegacyBooks: (payload) => ipcRenderer.invoke('books:migrate-legacy', payload),
-  listBooks: () => ipcRenderer.invoke('books:list'),
+  listBooks: (options) => ipcRenderer.invoke('books:list', options),
   getBookImportState: () => ipcRenderer.invoke('books:import-state'),
   importBooks: (folder) => ipcRenderer.invoke('books:import', folder),
   renameBook: (id, title) => ipcRenderer.invoke('books:rename', id, title),

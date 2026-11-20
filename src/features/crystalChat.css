@@ -20,3 +20,6 @@
 .crystal-log p[data-role=user] { align-self:flex-end; background:#163e49; }
 .crystal-chat form { border-top:1px solid #77cddb38; padding-top:14px; }
 .crystal-chat small { display:block; margin-bottom:6px; color:var(--muted); }
+
+.crystal-setup { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
+.crystal-setup small { flex:1 1 240px; margin:0; font-size:13px; }

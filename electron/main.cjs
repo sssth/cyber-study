@@ -1,3 +1,4 @@
+const { nativeText, setWindowLanguage } = require('./i18n/native.cjs');
 const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('node:path');
 const { registerAudioScheme, serveCachedAudio } = require('./music/cache.cjs');
@@ -21,6 +22,11 @@ if (!app.isPackaged) {
 registerAudioScheme();
 
 let mainWindow = null;
+ipcMain.on('ui:set-language', (event, language) => {
+  if (event.sender === mainWindow?.webContents && event.senderFrame === event.sender.mainFrame) {
+    setWindowLanguage(event.sender, language);
+  }
+});
 const samples = defaultSamples(app.getPath('userData'));
 for (const action of ['read', 'finish']) {
   ipcMain.handle('default-samples:' + action, (event, options) => {
@@ -42,6 +48,7 @@ const aiSettings = require('./aiSettings.cjs');
 for (const [action, handler] of Object.entries({
   settings: () => aiSettings.describe(),
   select: aiSettings.select,
+  'reveal-settings-file': aiSettings.revealSettingsFile,
   'chat-current': aiSettings.chatCurrent
 })) {
   ipcMain.handle('ai:' + action, (event, input) => {
@@ -113,7 +120,7 @@ ipcMain.handle('movie:douban-browser', (event, subjectId) => {
     show: false,
     width: 1000,
     height: 780,
-    title: '豆瓣电影',
+    title: nativeText(event.sender, 'i18n.nativeDoubanFilm'),
     webPreferences: { partition: 'persist:douban-movie', backgroundThrottling: false, sandbox: true, contextIsolation: true, nodeIntegration: false }
   });
   const contents = browser.webContents;

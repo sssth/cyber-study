@@ -11,7 +11,7 @@ class IndexLoader extends FileLoader {
 
 const indexLifetime = createAssetLifetime(key => useLoader.clear(IndexLoader, JSON.parse(key)));
 
-export default function ModelLod({ object, item, forceOriginal = false }) {
+export default function ModelLod({ object, item, forceOriginal = false, motion }) {
   const buffers = useLoader(IndexLoader, item.lodUrls);
   const bufferKey = JSON.stringify(item.lodUrls);
   useEffect(() => indexLifetime.retain(bufferKey, buffers), [bufferKey, buffers]);
@@ -22,11 +22,14 @@ export default function ModelLod({ object, item, forceOriginal = false }) {
     const mesh = meshes[0], base = mesh.geometry;
     return [{ mesh, base, active: null, raycast: mesh.raycast }];
   }, [object, buffers, item.lod]);
-  const scratch = useMemo(() => ({ box: new Box3(), center: new Vector3(), size: new Vector3(), camera: new Vector3() }), []);
+  const bounds = useMemo(() => ({ box: new Box3(), center: new Vector3(), diameter: 0 }), []);
+  const eye = useMemo(() => new Vector3(), []);
   const level = useRef(0);
-  const last = useMemo(() => ({ camera: new Matrix4(), projection: new Matrix4(), object: new Matrix4(), flags: '' }), []);
+  const last = useMemo(() => ({
+    object: new Matrix4(), distance: -1, lensScale: 0, moving: false, original: null
+  }), []);
   useLayoutEffect(() => {
-    level.current = 0; last.flags = '';
+    level.current = 0; last.original = null;
     // Input always uses the original surface, independently of the visual LOD.
     for (const t of targets) t.mesh.raycast = function(raycaster, intersects) {
       const current = this.geometry;
@@ -38,27 +41,37 @@ export default function ModelLod({ object, item, forceOriginal = false }) {
   useFrame(({ camera, size, gl, scene }) => {
     if (!targets.length) return;
     frameProfiler.measureZone('scene:lod', () => {
-    for (let parent = object; parent; parent = parent.parent) if (!parent.visible) return;
-    object.updateWorldMatrix(true, true);
-    const flags = `${forceOriginal}-${scene.userData.lodDisabled}-${size.height}-${gl.getPixelRatio()}`;
-    if (flags === last.flags && last.camera.equals(camera.matrixWorld) && last.projection.equals(camera.projectionMatrix) && last.object.equals(object.matrixWorld)) return;
-    last.flags = flags; last.camera.copy(camera.matrixWorld); last.projection.copy(camera.projectionMatrix); last.object.copy(object.matrixWorld);
-    const { box, center, camera: eye, size: extent } = scratch;
-    box.copy(targets[0].base.boundingBox).applyMatrix4(targets[0].mesh.matrixWorld);
-    box.getCenter(center);box.getSize(extent);camera.getWorldPosition(eye);
-    const diameter = extent.length();
-    const distance = Math.max(0.001, eye.distanceTo(center) - diameter / 2);
-    const pixels = diameter * size.height * gl.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360) * distance);
-    const next = forceOriginal || scene.userData.lodDisabled === true ? 0 : chooseLod(pixels, item.lodQuality, item.lod.levels, level.current);
-    if (next !== level.current) {
-      for (const t of targets) {
-        const active = next ? retainLodGeometry(t.base, buffers[next - 1], item.lod, next - 1) : null;
-        t.mesh.geometry = active?.geometry ?? t.base;
-        t.active?.release(); t.active = active;
+      for (let parent = object; parent; parent = parent.parent) if (!parent.visible) return;
+      const target = targets[0];
+      target.mesh.updateWorldMatrix(true, false);
+      const matrix = target.mesh.matrixWorld;
+      if (last.original === null || !last.object.equals(matrix)) {
+        last.object.copy(matrix);
+        bounds.box.copy(target.base.boundingBox).applyMatrix4(matrix);
+        bounds.box.getCenter(bounds.center);
+        bounds.diameter = bounds.box.min.distanceTo(bounds.box.max);
+        last.distance = -1;
       }
+      const moving = motion.current;
+      const original = forceOriginal || scene.userData.lodDisabled === true;
+      const distance = eye.setFromMatrixPosition(camera.matrixWorld).distanceToSquared(bounds.center);
+      const lensScale = size.height * gl.getPixelRatio() * camera.projectionMatrix.elements[5] / 2;
+      if (last.distance === distance && last.lensScale === lensScale && last.moving === moving && last.original === original) return;
+      last.distance = distance;
+      last.lensScale = lensScale;
+      last.moving = moving;
+      last.original = original;
+
+      const nearest = Math.max(0.001, Math.sqrt(distance) - bounds.diameter / 2);
+      const pixels = bounds.diameter * lensScale / nearest;
+      const next = original ? 0 : chooseLod(pixels, item.lodQuality, item.lod.levels, level.current, moving);
+      if (next === level.current) return;
+      const active = next ? retainLodGeometry(target.base, buffers[next - 1], item.lod, next - 1) : null;
+      target.mesh.geometry = active?.geometry ?? target.base;
+      target.active?.release();
+      target.active = active;
+      target.mesh.userData.displayLod = next;
       level.current = next;
-    }
-    for (const t of targets) t.mesh.userData.displayLod = next;
     });
   });
   return null;

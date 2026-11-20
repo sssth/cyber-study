@@ -6,6 +6,10 @@ let idleBytes = 0;
 function discard(entry) {
   if (unused.delete(entry)) idleBytes -= entry.bytes;
   entry.variants.delete(entry.buffer);
+  // Variants own their index only. Three removes all attached GPU
+  // attributes on dispose, so detach the base mesh's shared attributes first.
+  entry.geometry.attributes = {};
+  entry.geometry.morphAttributes = {};
   entry.geometry.dispose();
 }
 function geometryEntry(base, buffer, spec, i) {
@@ -79,15 +83,16 @@ export function lodGeometries(base, buffers, spec) {
 }
 export function lodCacheStats() { return { unusedBytes: idleBytes, unusedCount: unused.size, idleBudget }; }
 
-// Conservative screen-size and measured simplification-error limits.
-// Hysteresis returns to finer detail earlier than it switches to coarser detail.
-export function chooseLod(pixels, quality, levels, previous = 0) {
-  const thresholds = quality === 'high' ? [460, 230, 90] : quality === 'low' ? [900, 500, 220] : [700, 380, 160];
-  const errorPixels = quality === 'high' ? 0.55 : quality === 'low' ? 1 : 0.75;
-  let chosen = 0;
-  for (let i = 0; i < levels.length; i++) {
-    const margin = previous >= i + 1 ? 1.12 : 0.88;
-    if (pixels < thresholds[i] * margin && pixels * levels[i].error < errorPixels * margin) chosen = i + 1;
+// Bound projected simplification error in screen pixels. Hold the current
+// level around its boundary so small camera movements do not swap index buffers.
+export function chooseLod(pixels, quality, levels, previous = 0, moving = false) {
+  const lowQuality = quality === 'low';
+  const thresholds = quality === 'high' ? [460, 230, 90] : [700, 380, 160];
+  const errorPixels = lowQuality ? (moving ? 2 : 0.9) : quality === 'high' ? 0.55 : 0.75;
+  if (lowQuality && pixels >= 1800) return 0;
+  for (let i = levels.length - 1; i >= 0; i--) {
+    const margin = previous > i ? 1.12 : 0.88;
+    if ((lowQuality || pixels < thresholds[i] * margin) && pixels * levels[i].error < errorPixels * margin) return i + 1;
   }
-  return chosen;
+  return 0;
 }

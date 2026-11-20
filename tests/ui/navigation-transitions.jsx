@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PanelLoading } from '../../src/ui/LoadingScreen.jsx';
 import { FeaturePanel } from '../../src/features/ui.jsx';
-import ReaderOverlay from '../../src/reader/ReaderOverlay.jsx';
-import { sampleBooks } from '../../src/reader/sampleBooks.js';
+import ReaderOverlay from '../../src/features/library/ReaderOverlay.jsx';
+import { sampleBooks } from './sampleBooks.js';
 import '../../src/styles/global.css';
 import '../../src/styles/reader.css';
 import '../../src/styles/features.css';
@@ -17,7 +17,7 @@ function Preview() {
   window.openPreviewBook = () => setReader(true);
   return <main className="app-shell" style={{background:'#ae352e'}}>
     <PanelLoading key={reader ? 'reader' : page} title="加载中">
-      {reader ? <ReaderOverlay initialBookId={sampleBooks[0]?.id} initialView="last" shortcuts={{}} onClose={() => setReader(false)}/> :
+      {reader ? <ReaderOverlay importedBooks={sampleBooks} initialBookId={sampleBooks[0]?.id} initialView="last" shortcuts={{}} onClose={() => setReader(false)}/> :
         <FeaturePanel title={`页面${page}`} onClose={() => {}}>
           <div style={{height:400}}>页面{page}<img width="200" height="200" alt="慢图片" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3C/svg%3E"/></div>
         </FeaturePanel>}

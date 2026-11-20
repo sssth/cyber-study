@@ -59,6 +59,10 @@ async function readBook(directory) {
   const raw = await fs.readFile(filename);
   const metadata = JSON.parse(raw);
   if (metadata.schemaVersion && metadata.schemaVersion !== 2) throw new Error('书库数据版本不受支持。');
+  const book = metadata.schemaVersion === 2 ? metadata.book : metadata;
+  if (typeof book?.id !== 'string' || !book.id || typeof book.title !== 'string') {
+    throw new Error('书籍元数据无效。');
+  }
   const content = await fs.readFile(path.join(directory, 'book.md'), 'utf8');
   if (metadata.schemaVersion === 2) {
     const cover = await fs.readFile(path.join(directory, 'cover-data.txt'), 'utf8').catch(error => {
@@ -82,6 +86,26 @@ async function readBook(directory) {
   return { ...record.book, ...conversionFields(record.files,record.book.id), content, markdownFile: true };
 }
 
+async function readLibrary(directory, retiredIds = new Set()) {
+  await fs.mkdir(directory, { recursive: true });
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const books = [];
+  const failures = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !/^[a-f0-9]{64}$/.test(entry.name)) continue;
+    const bookDirectory = path.join(directory, entry.name);
+    try {
+      const book = await readBook(bookDirectory);
+      if (!retiredIds.has(book.id)) books.push(book);
+    } catch (error) {
+      // Failed or interrupted imports may have created a folder without publishing a book.
+      if (error.code === 'ENOENT' && error.path === path.join(bookDirectory, 'book.json')) continue;
+      failures.push({ directory: entry.name, message: error.message });
+    }
+  }
+  return { books, failures };
+}
+
 async function renameBook(directory, title, author) {
   const book = await readBook(directory);
   const fields = { title, ...(author === undefined ? {} : { author: author.trim() }) };
@@ -91,4 +115,4 @@ async function renameBook(directory, title, author) {
   return { ...book, ...fields };
 }
 
-module.exports = { atomicWrite, backup, readBook, publishBook, renameBook };
+module.exports = { atomicWrite, backup, readBook, readLibrary, publishBook, renameBook };

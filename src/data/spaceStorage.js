@@ -49,3 +49,18 @@ export function readImageFile(file, maxBytes = 2 * 1024 * 1024) {
     reader.readAsDataURL(file);
   });
 }
+
+export const contentDataChangeEvent = 'cyber-content-data-changed';
+
+export function saveContentData(key, value) {
+  try {
+    const storageKey = `${prefix}.${key}`;
+    const data = JSON.stringify(value);
+    if (globalThis.localStorage.getItem(storageKey) === data) return true;
+    globalThis.localStorage.setItem(storageKey, data);
+  } catch {
+    return false;
+  }
+  globalThis.window?.dispatchEvent(new CustomEvent(contentDataChangeEvent, { detail: key }));
+  return true;
+}
