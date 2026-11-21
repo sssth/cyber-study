@@ -46,7 +46,7 @@ function createSpotify({ dataPath, resourcesPath, openExternal, request = fetch 
       try { await fs.access(file, constants.X_OK); executable = file; break; }
       catch { /* Check the next location. */ }
     }
-    if (!executable) throw new Error('未找到 Spotify 播放组件 go-librespot（建议 0.10.7，或兼容的 0.10.6）。');
+    if (!executable) throw new Error('未找到 Spotify 播放组件 go-librespot（建议 0.10.7）。首次使用请先运行：python3 scripts/install-spotify-player.py，详见 README「音乐服务连接」章节。');
     const port = await availablePort();
     await fs.mkdir(directory, { recursive: true, mode: 0o700 });
     await fs.mkdir(cache, { recursive: true, mode: 0o700 });

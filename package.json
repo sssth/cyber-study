@@ -19,7 +19,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
-    "NeteaseCloudMusicApi": "4.32.0",
+    "NeteaseCloudMusicApi": "4.34.1",
     "qrc-decoder": "1.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

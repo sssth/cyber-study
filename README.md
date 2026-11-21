@@ -199,6 +199,16 @@ macOS 打包时会读取当前的 `sceneFolder`，只收录该场景的 `scene.j
 
 QQ 音乐连接使用 [Simple Music v2.7.0](https://github.com/Yyyangshenghao/simple-music/tree/v2.7.0) 的部分模块。网易云使用与 [YesPlayMusic](https://github.com/qier222/YesPlayMusic) 相同的 NeteaseCloudMusicApi。上游来源和许可证见 [NOTICE](electron/music/simple-music/NOTICE.md)。
 
+## 音乐服务连接说明
+
+| 服务 | 前提条件 | 常见问题 |
+|------|---------|---------|
+| QQ 音乐 | 无额外步骤，扫码即用 | 基本无 |
+| 网易云音乐 | 设备网络需能**直连** music.163.com（中国大陆网络环境） | 若开启了 VPN / 代理，或在中国大陆以外的网络环境，网易云接口可能被拒绝连接——请关闭代理后重试；仍失败时可把 `NeteaseCloudMusicApi` 更新到最新版（社区维护活跃，新版本通常带最新反爬适配） |
+| Spotify（可选） | 首次使用前需安装播放组件：运行 `python3 scripts/install-spotify-player.py`（自动从 ghcr.io 下载 go-librespot 0.10.7）；需 Spotify Premium 账号扫码 | 报「未找到 Spotify 播放组件」即说明尚未安装；安装后重启应用 |
+
+网易云登录二维码正常时是标准 PNG 图片；若长时间显示不出，先检查网络能否打开 `music.163.com`。
+
 ## 水晶聊天（AI 对话，可选）
 
 在「互动菜单 → 水晶球」中提供**可选**的 AI 对话功能，不需要该功能可完全跳过本节，应用其余功能不受影响。想使用时：把项目根目录的 [ai-settings.example.json](./ai-settings.example.json) 复制为 `ai-settings.json`，在对应厂商的 `apiKey` 字段填入你自己的 API Key，并在 `current` 里选择默认厂商和模型即可。`ai-settings.json` 含个人密钥，已被 `.gitignore` 排除，不会被提交。
