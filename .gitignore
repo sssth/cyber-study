@@ -25,6 +25,9 @@ assets/
 !/assets/
 /assets/*
 !/assets/default-samples/
+!/assets/geography/
+/assets/geography/*
+!/assets/geography/runtime/
 
 # 超大边界测试样例（81MB，超过 GitHub 50MB 告警线）
 测试样例/09_异常样例/超过80MB_照片大小限制.jpg

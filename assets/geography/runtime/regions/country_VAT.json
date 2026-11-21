@@ -1,0 +1,1 @@
+[{"id":"region:VAT+00?","parent_id":"country:VAT","region_id":"region:VAT+00?","name":"梵蒂冈","kind":"region","bbox":[12.45271,41.90275,12.45404,41.90386],"longitude":12.453376649639557,"latitude":41.90322763100001,"geometry":{"type":"Polygon","coordinates":[[[12.45271,41.90302],[12.45398,41.90386],[12.45404,41.90275],[12.45271,41.90302]]]}}]
