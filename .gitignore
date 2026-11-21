@@ -21,7 +21,7 @@ release/
 work/
 备份/
 全景图查看/
-assets/
+/assets/
 !/assets/
 /assets/*
 !/assets/default-samples/
