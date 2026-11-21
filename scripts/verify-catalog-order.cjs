@@ -29,6 +29,8 @@ app.whenReady().then(async () => {
   })()`);
   await win.loadURL('http://127.0.0.1:5173/tests/ui/map-projection.html');
   await run("previewPage('catalog')");
+  await wait("document.querySelector('.catalog-columns')");
+  await run("[...document.querySelectorAll('.shelf-view-bar button')].find(button => button.textContent === '全部实体').click()");
   await edit('book:b0');
   const selector='.entity-catalog > [data-content-target]';
   const before=await keys(selector);
@@ -45,6 +47,8 @@ app.whenReady().then(async () => {
   assert.deepEqual((await keys('.shelf-book')).slice(0,2),['book:b1','book:b0']);
   await move('book:b0','book:b1');
   await run("previewPage('catalog')");
+  await wait("document.querySelector('.catalog-columns')");
+  await run("[...document.querySelectorAll('.shelf-view-bar button')].find(button => button.textContent === '全部实体').click()");
   await wait(card('book:b0'));
   assert.deepEqual(await keys(selector),before);
   console.log('Catalog and library order synchronized in both directions; other slots stayed fixed.');

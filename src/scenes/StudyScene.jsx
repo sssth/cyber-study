@@ -8,7 +8,7 @@ const scene = {
   ...defaultPackage,
   models: defaultPackage.models.map((model) => {
     const feature = resolveSceneFeature(model);
-    return { ...model, feature: feature === 'window' && !hasOutdoorRain ? null : feature };
+    return { ...model, feature: feature === 'window' || feature === 'lamp' ? null : feature };
   })
 };
 

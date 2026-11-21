@@ -1,5 +1,5 @@
 export default {
-  id: 'memo', label: 'i18n.note', description: 'i18n.openNotesAndToDos',
+  id: 'memo', label: 'i18n.memoBoard', description: 'i18n.openNotesAndToDos',
   entities: {
     memo: {
       label: 'i18n.note', create: true,

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Plane, Vector2, Vector3 } from 'three';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { displayShelves, shelfRegions } from './sceneShelfArrangement.js';
 // Pointer and HTML drag share the same ray/plane projection, including after zooming.
 export function ShelfDragInput({ enabled, api, drag }) {
+ const isPageBack = usePageBackMatcher();
  const {gl,camera,raycaster,invalidate}=useThree();
  const latest=useRef(api);latest.current=api;
  useEffect(()=>{
@@ -15,10 +17,10 @@ export function ShelfDragInput({ enabled, api, drag }) {
   const over=e=>{e.preventDefault();e.dataTransfer.dropEffect='move';move(e);};
   const drop=e=>{e.preventDefault();latest.current.drop(project(e),drag.current);drag.current=null;};
   const cancel=()=>{drag.current=null;latest.current.hover(null);};
-  const key=e=>{if(e.key==='Escape'){cancel();latest.current.cancel?.();}};
+  const key=e=>{if(isPageBack(e)){e.preventDefault();cancel();latest.current.cancel?.();}};
   canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',cancel);canvas.addEventListener('dragover',over);canvas.addEventListener('drop',drop);canvas.addEventListener('dragleave',cancel);window.addEventListener('dragend',cancel);window.addEventListener('keydown',key);
   return()=>{canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',up);canvas.removeEventListener('pointercancel',cancel);canvas.removeEventListener('dragover',over);canvas.removeEventListener('drop',drop);canvas.removeEventListener('dragleave',cancel);window.removeEventListener('dragend',cancel);window.removeEventListener('keydown',key);};
- },[enabled,gl,camera,raycaster,invalidate,drag]);
+ },[enabled,gl,camera,raycaster,invalidate,drag,isPageBack]);
  return null;
 }
 export function ShelfAreas({ shelf, target }) {

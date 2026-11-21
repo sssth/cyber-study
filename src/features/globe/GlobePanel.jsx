@@ -1,7 +1,7 @@
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
-import { blocksPageBack } from '../../ui/useEscapeBack.js';
+import { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import {requestGlobeBack} from '../../data/globeBack.js';
 import { memoryPlaces } from './geo.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
@@ -20,9 +20,15 @@ import GlobeBrowser from './GlobeBrowser.jsx';
 
 const api = (action, input) => window.cyberStudy.globe(action, input);
 export default function GlobePanel({ onClose, navigationItem, initialPlace, workspaceHost, initialData, initialView, projection = false, backRef }) {
+  const isPageBack = usePageBackMatcher();
   const scopeId = name => projection ? `projection:${name}` : name;
   const searchTarget = ['journey', 'memory_point'].includes(navigationItem?.type) ? navigationItem : null;
   const [photos, setPhotos] = useState(initialData?.photos || []);
+  useEffect(() => {
+    const refresh = ({ detail }) => { setPhotos(detail.photos); setJourneys(detail.journeys); setViewerPhotos(null); };
+    window.addEventListener('cyber-bulk-globe', refresh);
+    return () => window.removeEventListener('cyber-bulk-globe', refresh);
+  }, []);
   const [journeys, setJourneys] = useState(initialData?.journeys || []);
   const [editorVersion, setEditorVersion] = useState(0);
   const [initialPoint, setInitialPoint] = useState(null);
@@ -84,11 +90,10 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   useEffect(() => {
     if (!viewed) return;
     const handler = event => {
-      if (blocksPageBack(event) || !['Escape', 'Tab'].includes(event.key)) return;
+      const back = isPageBack(event);
+      if (blocksPageBack() || (!back && event.key !== 'Tab')) return;
       event.preventDefault(); event.stopPropagation();
-      if (event.key === 'Escape') dismiss();
-      if (event.key === 'ArrowLeft') move(-1);
-      if (event.key === 'ArrowRight') move(1);
+      if (back) dismiss();
       if (event.key === 'Tab') {
         const buttons = [...closeViewer.current.closest('[role="dialog"]').querySelectorAll('button:not(:disabled)')];
         const index = buttons.indexOf(document.activeElement);
@@ -100,7 +105,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   });
   useEffect(() => {
     const back = event => {
-      if (event.key !== 'Escape' || event.repeat || event.defaultPrevented || viewId || initialPoint || blocksPageBack(event)) return;
+      if (!isPageBack(event) || viewId || initialPoint || blocksPageBack()) return;
       if (tripReturn.current) {
         event.preventDefault(); event.stopImmediatePropagation();
         const previous = tripReturn.current; tripReturn.current = null;
@@ -109,7 +114,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
     };
     window.addEventListener('keydown', back, true);
     return () => window.removeEventListener('keydown', back, true);
-  }, [viewId, initialPoint, setMode]);
+  }, [viewId, initialPoint, setMode, isPageBack]);
   const editPoint = point => {
     setInitialPoint(point);
     setEditorVersion(value => value + 1);

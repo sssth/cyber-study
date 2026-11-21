@@ -42,16 +42,16 @@ export const shelfBooks = shelfRows.flatMap((row, rowIndex) =>
 
 export const hotspots = {
   desk: { id: 'desk', label: "i18n.readingDesk", detail: "i18n.openLocalReader" },
-  shelf: { id: 'shelf', label: "i18n.litBookshelf", detail: "i18n.openTheStudyBookshelf" },
+  shelf: { id: 'shelf', label: "i18n.library", detail: "i18n.openTheStudyBookshelf" },
   lamp: { id: 'lamp', label: "i18n.deskLamp", detail: "i18n.toggleTheMainLight" },
-  knowledge: { id: 'knowledge', label: "i18n.knowledgeBaseAndWorkspace", detail: "i18n.notesSearchProjectsAndExports" },
+  knowledge: { id: 'knowledge', label: "i18n.knowledgeBase", detail: "i18n.notesSearchProjectsAndExports" },
   music: { id: 'music', label: "i18n.recordPlayer", detail: "i18n.playlistsAndBackgroundPlayback" },
-  movie: { id: 'movie', label: "i18n.discPlayerAndScreen", detail: "i18n.filmCollectionAndViewingHistory" },
+  movie: { id: 'movie', label: "i18n.discPlayer", detail: "i18n.filmCollectionAndViewingHistory" },
   diary: { id: 'diary', label: "i18n.journal", detail: "i18n.journalEntriesAndPhotos" },
   memo: { id: 'memo', label: "i18n.memoBoard", detail: "i18n.pinNotesToDosAndImages" },
   globe: { id: 'globe', label: "i18n.globe", detail: "i18n.browsePhotosByPlaceAndDate" },
   typewriter: { id: 'typewriter', label: "i18n.typewriter", detail: "i18n.typeOutPassagesFromYourBooks" },
-  pet: { id: 'pet', label: "i18n.studyCat", detail: "i18n.petTheCatAndBuildABond" },
-  crystal: { id: 'crystal', label: "i18n.crystalChat" },
-  plant: { id: 'plant', label: "i18n.studyPlant", detail: "i18n.focusTimeHelpsThePlantGrow" }
+  pet: { id: 'pet', label: "i18n.pet", detail: "i18n.petTheCatAndBuildABond" },
+  crystal: { id: 'crystal', label: "i18n.aiChat" },
+  plant: { id: 'plant', label: "i18n.plant", detail: "i18n.focusTimeHelpsThePlantGrow" }
 };

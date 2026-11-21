@@ -8,6 +8,12 @@ export default function useReadingSession(bookId) {
   const pending = useRef(null);
   const timer = useRef(null);
 
+  useEffect(() => {
+    const refresh = event => { if (event.detail === 'book') { latest.current = loadReaderState(); setState(latest.current); } };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, []);
+
   const update = useCallback(change => {
     const next = change(latest.current);
     latest.current = next;

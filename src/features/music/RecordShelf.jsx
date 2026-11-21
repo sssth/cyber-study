@@ -1,8 +1,10 @@
 import { translate } from '../../i18n/index.js';
 import { useRef } from 'react';
 import { useNavigationState } from '../../ui/useNavigationState.js';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 
 export default function RecordShelf({ records, selectedId, onSelect, title, count, children }) {
+  const isPageBack = usePageBackMatcher();
   const shelf = useRef(null);
   const touchStart = useRef(null);
   const suppressClick = useRef(false);
@@ -34,7 +36,7 @@ export default function RecordShelf({ records, selectedId, onSelect, title, coun
       onClickCapture={event => { if (suppressClick.current) { suppressClick.current = false; event.stopPropagation(); } }}
       onPointerDown={event => { if (event.pointerType !== 'touch') suppressClick.current = false; }}
       onKeyDown={event => {
-        if (!['ArrowLeft','ArrowRight'].includes(event.key)) return;
+        if (isPageBack(event) || !['ArrowLeft','ArrowRight'].includes(event.key)) return;
         event.preventDefault();
         shelf.current.focus({ preventScroll: true });
         move(event.key === 'ArrowRight' ? 1 : -1);

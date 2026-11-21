@@ -375,7 +375,7 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body:has
   transition: transform 480ms cubic-bezier(.22, 1, .36, 1);
 }
 .movie-collection .movie-posters { margin-top: 0; }
-.movie-collection[data-editor-open="true"] {
+body:has(dialog.edit-sidebar[open]) .movie-collection {
   transform: translateX(max(0px, calc(var(--movie-rail-space) - (100cqw - var(--movie-collection-width)) / 2)));
 }
 @media (prefers-reduced-motion: reduce) {
@@ -390,7 +390,7 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body:has
 .knowledge-detail { padding-top:80px; box-sizing:border-box; }
 .content-relation-dialog { margin-top:80px; max-height:calc(100dvh - 100px); }
 
-.feature-overlay[aria-label="个人知识库"] { background: #040a11; backdrop-filter: none; }
+.feature-overlay[data-command-scope="catalog"] { background: #040a11; backdrop-filter: none; }
 .entity-graph-viewport { contain: layout paint; overflow-anchor: none; user-select: none; }
 
 .music-library-columns { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); gap:16px; min-height:360px; }
@@ -514,3 +514,33 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)):has(.command-tool
   }
   .command-target-hint { display: none; }
 }
+
+.feature-body > .entity-catalog { margin-top: 16px; }
+.entity-catalog.catalog-columns {
+  display: flex;
+  align-items: stretch;
+  height: calc(100% - 20px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+}
+.catalog-column {
+  flex: 0 0 min(240px, 86%);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.catalog-column h3 { margin: 0; padding: 6px 10px; font-size: 15px; text-align: center; }
+body[data-item-editing] .catalog-column h3 { cursor: grab; user-select: none; }
+.catalog-column[data-column-target] h3 { outline: 1px solid var(--cyan); border-radius: 6px; }
+.catalog-column-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 2px;
+}
+.catalog-column-items > button { flex-shrink: 0; }

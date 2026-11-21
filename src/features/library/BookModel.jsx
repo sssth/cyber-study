@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Mesh, CanvasTexture, SRGBColorSpace } from 'three';
 import { translate } from '../../i18n/index.js';
+import { getSelection } from '../../entities/entitySelection.js';
+import { invokeCommand } from '../../ui/commands.js';
 import { commandTargetMode, setCommandTargetMode } from '../../ui/commandTarget.js';
 import { itemClickDelay } from '../../ui/editGesture.js';
 import { bookSize } from './shelfArrangement.js';
@@ -27,14 +29,15 @@ export default function Book({ book, position, orientation, onRead, onEdit, onRe
       edit(event);
       return;
     }
-    if(organizing)return;
+    if (organizing || getSelection()?.keys.has(`book:${book.id}`)) return;
     if (event.nativeEvent.detail <= 1) timer.current = setTimeout(() => onRead(book), itemClickDelay);
   };
   const edit = event => {
     event.stopPropagation();
     event.nativeEvent.__shelfBookDoubleClick=true;
     cancelRead();
-    if(!organizing)onEdit?.();
+    if (!preview && getSelection()?.keys.has(`book:${book.id}`)) invokeCommand('edit');
+    else if (!organizing) onEdit?.();
   };
   const relate = event => {
     event.stopPropagation();

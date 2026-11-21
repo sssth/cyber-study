@@ -2,9 +2,10 @@ import { featureViews, persistentFeatureViews } from './features/views.js';
 import { entityTypes } from './entities/registry.js';
 import useStudyNavigation from './ui/useStudyNavigation.js';
 import { translate, translateError, useLanguage } from './i18n/index.js';
-import { blocksPageBack } from './ui/useEscapeBack.js';
+import { blocksPageBack, PageBackKeys, usePageBackMatcher } from './ui/useEscapeBack.js';
 import CrystalChat from './features/CrystalChat.jsx';
 import ResultApplications from './resultApplications/ResultApplications.jsx';
+import BulkEntityCommands from './entities/BulkEntityCommands.jsx';
 import CommandToolbar from './features/CommandToolbar.jsx';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
@@ -31,11 +32,14 @@ import ManualOverview from './features/ManualOverview.jsx';
 import { DisplayCloseButton } from './ui/DisplayControls.jsx';
 import LanguageSelect from './features/LanguageSelect.jsx';
 import ShortcutSettings from './features/ShortcutSettings.jsx';
-import { loadShortcuts, matchesShortcut, saveShortcuts, shortcutGroups } from './data/shortcuts.js';
+import { loadShortcuts, saveShortcuts, shortcutGroups } from './data/shortcuts.js';
 import ProfilerHud from './ui/ProfilerHud.jsx';
 
 const ReaderOverlay = featureViews.shelf.reader;
 const groups = shortcutGroups(defaultPackage);
+const lightsOn = defaultSettings.scene.lightsOn;
+const rainOn = hasOutdoorRain && !defaultPackage.appearance?.nightTheme;
+const audioOn = false;
 const focusFeatures = new Set(['knowledge', 'typewriter', 'diary']);
 
 function formatCareChange(label, before, after) {
@@ -45,16 +49,19 @@ function formatCareChange(label, before, after) {
 }
 
 function App() {
+  const [shortcuts, setShortcuts] = useState(() => loadShortcuts(groups));
+  return <PageBackKeys.Provider value={shortcuts.back}>
+    <Study shortcuts={shortcuts} setShortcuts={setShortcuts} />
+  </PageBackKeys.Provider>;
+}
+
+function Study({ shortcuts, setShortcuts }) {
   useLanguage();
+  const isPageBack = usePageBackMatcher();
   const [sceneSettled, setSceneSettled] = useState(false);
   const markSceneSettled = useCallback(() => setSceneSettled(true), []);
-  const [lightsOn, setLightsOn] = useState(defaultSettings.scene.lightsOn);
-  const [rainOn, setRainOn] = useState(hasOutdoorRain && !defaultPackage.appearance?.nightTheme);
   const [mapOpen, setMapOpen] = useState(false);
   const [activeHotspot, setActiveHotspot] = useState(null);
-  const [audioReady, setAudioReady] = useState(false);
-  const [audioOn, setAudioOn] = useState(false);
-  const [audioPending, setAudioPending] = useState(false);
   const captionTimer = useRef(null);
   const audioManager = useMemo(() => new AudioManager({
     audio: { ...defaultSettings.audio }
@@ -79,6 +86,11 @@ function App() {
   const [sceneTheme, setSceneTheme] = useState(null);
   const careSound = useRef(null);
   const [knowledgeVersion, setKnowledgeVersion] = useState(0);
+  useEffect(() => {
+    const refresh = event => { if (event.detail === 'knowledge') setKnowledgeVersion(version => version + 1); };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, []);
   const [quality, setQuality] = useState(loadGraphics);
   const [calibration, setCalibration] = useState(() => needsGraphicsCalibration() ? 'medium' : null);
   const calibrationRef = useRef(calibration);
@@ -131,7 +143,6 @@ function App() {
   const [catalogEditor, setCatalogEditor] = useState(null);
   useEffect(() => { if (activeFeature !== 'knowledge' || readerOpen) setCatalogEditor(null); }, [activeFeature, readerOpen]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [shortcuts, setShortcuts] = useState(() => loadShortcuts(groups));
   const updateShortcuts = (bindings) => {
     try {
       saveShortcuts(bindings);
@@ -209,37 +220,21 @@ function App() {
         setShortcutsOpen(false);
       }
     };
-    const dismissOnEscape = (event) => {
-      if (blocksPageBack(event) || event.repeat || !matchesShortcut(event, shortcuts.closeMenu)) return;
+    const dismissOnBack = (event) => {
+      if (!isPageBack(event) || blocksPageBack()) return;
       event.preventDefault();
-      setMenuOpen(false);
-      setShortcutsOpen(false);
+      if (shortcutsOpen) setShortcutsOpen(false);
+      else if (graphicsOpen) setGraphicsOpen(false);
+      else setMenuOpen(false);
       menuButton.current?.focus();
     };
     document.addEventListener('pointerdown', dismiss);
-    document.addEventListener('keydown', dismissOnEscape);
+    document.addEventListener('keydown', dismissOnBack);
     return () => {
       document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', dismissOnEscape);
+      document.removeEventListener('keydown', dismissOnBack);
     };
-  }, [menuOpen, shortcuts.closeMenu]);
-
-  const toggleAudio = async () => {
-    setAudioPending(true);
-    try {
-      const muted = audioReady ? await audioManager.toggleMute() : false;
-      if (!audioReady) {
-        await audioManager.enable();
-        setAudioReady(true);
-      }
-      setAudioOn(!muted);
-      showCaption({ label: muted ? "i18n.soundOff" : "i18n.soundOn" });
-    } catch (error) {
-      showCaption({ label: "i18n.couldNotChangeSoundSettings", detail: error.message });
-    } finally {
-      setAudioPending(false);
-    }
-  };
+  }, [menuOpen, shortcutsOpen, graphicsOpen, isPageBack]);
 
   const careForModel = (feature) => {
     const plant = feature === 'plant';
@@ -267,23 +262,17 @@ function App() {
 
   useEffect(() => () => careSound.current?.pause(), []);
 
-  const toggleRain = () => {
-    if (!hasOutdoorRain) return;
-    setRainOn(!rainOn);
-    showCaption({ label: rainOn ? "i18n.outdoorRainOff" : "i18n.outdoorRainOn" });
-  };
-
-  const toggleLights = () => {
-    setLightsOn(!lightsOn);
-    showCaption({ label: lightsOn ? "i18n.lightsOff" : "i18n.lightsOn" });
-    if (audioOn) audioManager.playSwitchSound('switch');
-  };
-
   const commandView = `${readerOpen}:${activeFeature}`;
   const searchView = `${commandView}:${readerEntry}:${sceneTheme}:${navigation.revision}`;
   const contentCommandsDisabled = manualOpen || activeFeature === 'crystal' || mapOpen || shortcutsOpen || calibration;
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  useEffect(() => {
+    const sync = event => setGlobalSearchOpen(event.detail.id === 'global');
+    window.addEventListener('cyber-search-visibility', sync);
+    return () => window.removeEventListener('cyber-search-visibility', sync);
+  }, []);
   const showCommandToolbar = !menuOpen && !manualOpen && !shortcutsOpen && !graphicsOpen && !calibration &&
-    (mapOpen || readerOpen || (activeFeature && activeFeature !== 'crystal'));
+    (mapOpen || readerOpen || globalSearchOpen || (activeFeature && activeFeature !== 'crystal'));
 
   const FeatureView = featureViews[activeFeature]?.panel;
   const editingFeature = entityTypes[catalogEditor?.type]?.target.feature;
@@ -310,8 +299,6 @@ function App() {
           rainOn={rainOn}
           onSceneSettled={markSceneSettled}
           onOpenReader={openReader}
-          onToggleLights={toggleLights}
-          onToggleRain={toggleRain}
           onOpenFeature={openFeature}
           onCare={careForModel}
         />
@@ -357,7 +344,13 @@ function App() {
             <span aria-hidden="true">☰</span>{' '}{translate("i18n.roomMenu")}
           </button>
           <dialog ref={manual} className="study-manual" aria-label={translate("i18n.userGuide")}
-            onKeyDown={event => event.stopPropagation()}
+            onKeyDown={event => {
+              event.stopPropagation();
+              if (isPageBack(event)) {
+                event.preventDefault();
+                manual.current.close();
+              }
+            }}
             onClose={() => { setManualOpen(false); menuButton.current?.focus(); }}>
             <DisplayCloseButton label={translate("i18n.closeGuide")} onClose={() => manual.current.close()} />
             <div className="manual-layout">
@@ -394,18 +387,6 @@ function App() {
                   ))}
                 </div>
               </section>
-              <section className="interaction-group" aria-labelledby="room-controls">
-                <h2 id="room-controls">{translate("i18n.roomControls")}</h2>
-                <div className="interaction-buttons">
-                  <button type="button" role="switch" aria-checked={lightsOn} onClick={toggleLights}>{translate("i18n.lights")}<span className="switch-state" aria-hidden="true">{translate(lightsOn ? "i18n.switchOn" : "i18n.switchOff")}</span></button>
-                  {hasOutdoorRain && (
-                    <button type="button" role="switch" aria-checked={rainOn} onClick={toggleRain}>{translate("i18n.outdoorRain")}<span className="switch-state" aria-hidden="true">{translate(rainOn ? "i18n.switchOn" : "i18n.switchOff")}</span></button>
-                  )}
-                  <button type="button" role="switch" aria-checked={audioOn} disabled={audioPending} onClick={toggleAudio}>
-                    {translate("i18n.sound")}<span className="switch-state" aria-hidden="true">{translate(audioOn ? "i18n.switchOn" : "i18n.switchOff")}</span>
-                  </button>
-                </div>
-              </section>
               <button type="button" aria-haspopup="dialog" onClick={() => { setMenuOpen(false); setManualTab(0); manual.current.showModal(); setManualOpen(true); }}>{translate("i18n.userGuide")}</button>
               <button type="button" onClick={() => setGraphicsOpen(true)}>{translate("i18n.graphicsAndPerformance")}</button>
               <div className="room-menu-preferences">
@@ -417,14 +398,17 @@ function App() {
         </div>
       )}
 
-      <CrystalChat open={activeFeature === 'crystal'} onClose={closeFeature} />
+      <CrystalChat open={activeFeature === 'crystal'} shortcuts={shortcuts} onClose={closeFeature} />
+      <BulkEntityCommands shortcuts={shortcuts} projection={mapOpen} viewKey={searchView}
+        disabled={manualOpen || shortcutsOpen || graphicsOpen || calibration || activeFeature === 'crystal'}
+        books={importedBooks} updateBooks={updateBooks} removeBook={removeBook}/>
       <ContentCommands viewKey={commandView} targetView={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}
         pending={pendingCommand} onPendingHandled={clearPendingCommand} />
       <ResultApplications shortcuts={shortcuts} disabled={manualOpen || shortcutsOpen || graphicsOpen || calibration}
         projection={mapOpen} onOpen={clearReturnPoint} onActiveChange={setMapOpen} />
       <UnifiedSearch viewKey={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}/>
       {showCommandToolbar && <CommandToolbar shortcuts={shortcuts} />}
-      <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!menuOpen&&!calibration} onOpen={openGlobalResult}/>
+      <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!manualOpen&&!shortcutsOpen&&!graphicsOpen&&!calibration} onOpen={openGlobalResult}/>
       <ContentRelationshipPanel books={importedBooks} onNavigate={visitRelation} />
       {persistentFeatureViews.map(({ id, persistent: View }) => (
         <View key={id} active={activeFeature === id}

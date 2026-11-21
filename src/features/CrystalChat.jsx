@@ -4,8 +4,9 @@ import { FeaturePanel } from './ui.jsx';
 import {snapshotPrompt} from '../data/snapshotPrompt.js';
 import './crystalChat.css';
 import { replyPlayback } from './replyPlayback.js';
+import { defaultChatKeys, matchesShortcut } from '../data/shortcuts.js';
 
-export default function CrystalChat({ open, onClose }) {
+export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys }) {
   const [settings, setSettings] = useState(null);
   const [messages, setMessages] = useState([]);
   const [partial, setPartial] = useState('');
@@ -109,10 +110,27 @@ export default function CrystalChat({ open, onClose }) {
     catch { setError("i18n.couldNotShowAiSettingsFile"); }
   }
 
+  function composerKeyDown(event) {
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    const field = event.currentTarget;
+    if (matchesShortcut(event, shortcuts.sendMessage)) {
+      event.preventDefault();
+      if (!event.repeat) field.form.requestSubmit();
+    } else if (matchesShortcut(event, shortcuts.insertNewline)) {
+      if (event.key === 'Enter' && !event.ctrlKey && !event.altKey && !event.metaKey) return;
+      event.preventDefault();
+      if (field.readOnly) return;
+      field.setRangeText('\n', field.selectionStart, field.selectionEnd, 'end');
+      setDraft(field.value);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+    }
+  }
+
   if (!open) return null;
   const setupMessage = settingsError || (provider && !provider.hasApiKey
     ? translate("i18n.providerApiKey", provider.name) : '');
-  return <FeaturePanel scopeId="crystal" title="i18n.crystalChat" onClose={onClose}>
+  return <FeaturePanel scopeId="crystal" title="i18n.aiChat" onClose={onClose}>
     <div className="crystal-layout">
       <aside className="crystal-library" aria-label={translate("i18n.snapshotFiles")}>
         {translate(libraryStatus)}
@@ -140,7 +158,7 @@ export default function CrystalChat({ open, onClose }) {
             <option key={model} value={JSON.stringify([p.id, model])}>{model}</option>)}</optgroup>)}
         </select>
           <textarea rows="1" aria-label={translate("i18n.message")} placeholder={translate("i18n.typeAMessage")} value={draft} readOnly={busy} onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); e.currentTarget.form.requestSubmit(); } }} />
+          onKeyDown={composerKeyDown} />
           <button disabled={!canSend} aria-describedby={setupMessage ? "crystal-setup-message" : undefined}>{translate("i18n.send")}</button></div>
       </form>
     </div></div>

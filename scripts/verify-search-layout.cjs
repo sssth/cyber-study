@@ -3,7 +3,7 @@ app.whenReady().then(async()=>{
  const w=new BrowserWindow({width:1280,height:900,show:true,webPreferences:{backgroundThrottling:false}}),run=s=>w.webContents.executeJavaScript(s),pause=()=>new Promise(r=>setTimeout(r,350));
  const key=async(k,modifiers=[])=>{w.focus();w.webContents.sendInputEvent({type:'keyDown',keyCode:k,modifiers});w.webContents.sendInputEvent({type:'keyUp',keyCode:k,modifiers});await pause();};
  await w.loadURL('http://127.0.0.1:5173/tests/ui/map-projection.html');await pause();
- for(const [page,label,selector] of [['catalog',null,'.entity-catalog > button'],['movie',null,'.movie-tile'],['typewriter',null,'.copying-work-card'],['memo','便签','.memo-item'],['globe','记忆点','.memory-status-column'],['globe','旅程','.journey-summary-card'],['reader',null,'.book-card']]){
+ for(const [page,label,selector] of [['catalog','全部实体','.entity-catalog > button'],['movie',null,'.movie-tile'],['typewriter',null,'.copying-work-card'],['memo','便签','.memo-item'],['globe','记忆点','.memory-status-column'],['globe','旅程','.journey-summary-card'],['reader',null,'.book-card']]){
   await run(`previewPage('${page}')`);await pause();
   if(label){await run(`document.querySelector('.display-menu-toggle').click();[...document.querySelectorAll('button')].find(b=>b.textContent==='${label}').click()`);await pause();}
   if(page==='catalog'){

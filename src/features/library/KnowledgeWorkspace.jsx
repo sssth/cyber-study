@@ -2,7 +2,7 @@ import { translate, translateError } from '../../i18n/index.js';
 import { persistExcerptChange } from './excerptPersistence.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
-import { blocksPageBack } from '../../ui/useEscapeBack.js';
+import { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import { useNavigationState, useNavigationScroll } from '../../ui/useNavigationState.js';
 import { excerptRange } from './excerptRange.js';
@@ -89,7 +89,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
       <WorkspaceActions><button onClick={()=>setEditKey(null)}>{translate("i18n.done")}</button><button disabled={editBusy} onClick={async()=>{if(!window.confirm(translate("i18n.deleteThisExcerptAndAllItsAnnotations")))return;setEditBusy(true);try{await mutateExcerpt(editingEntry.note,null);setEditKey(null);setRevision(v=>v+1);}catch(e){setEditError(e.message);}finally{setEditBusy(false);}}}>{translate("i18n.deleteExcerpt")}</button></WorkspaceActions></>}
     </ActionWorkspace>);
   if (editItem) return editor;
-  return <FeaturePanel scopeId="knowledge" hasMenu={Boolean(shelfMenu)} wide title="i18n.knowledgeBase" onClose={onClose}>
+  return <FeaturePanel scopeId="knowledge" hasMenu={Boolean(shelfMenu)} wide title="i18n.excerptsAndAnnotations" onClose={onClose}>
     {editor}
     {shelfMenu}
     <div className="knowledge-browser">
@@ -115,6 +115,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
 
 
 function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange, onRangeSaved, onClose, onOpenNote, onChange }) {
+  const isPageBack = usePageBackMatcher();
   const { key, items, note, source, blockId, chapterId, chapter } = entry;
   const original = useRef(null);
   const detailRoot = useRef(null);
@@ -127,12 +128,17 @@ function ExcerptDetail({ annotationId, compact, entry, rangeEditing, onSaveRange
       const pane = original.current;
       pane.scrollTop += focus.getBoundingClientRect().top - pane.getBoundingClientRect().top - 28;
     }
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape' && !event.defaultPrevented && !blocksPageBack(event)) { event.preventDefault(); event.stopPropagation(); onClose(); }
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
   }, [key, chapterId, blockId]);
+  useLayoutEffect(() => {
+    const closeOnBack = event => {
+      if (!isPageBack(event) || blocksPageBack()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    };
+    document.addEventListener('keydown', closeOnBack);
+    return () => document.removeEventListener('keydown', closeOnBack);
+  }, [isPageBack, onClose]);
   useNavigationScroll(`excerpt.detail.${compact ? 'edit' : 'read'}`, detailRoot, '[data-scroll-memory]');
 
   return <section ref={detailRoot} className={compact ? "catalog-range-editor" : "knowledge-detail"} role={compact ? undefined : "dialog"} aria-modal={compact ? undefined : true} aria-label={translate("i18n.excerptDetails")}>

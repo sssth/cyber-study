@@ -1,5 +1,5 @@
 export default {
-  id: 'diary', label: 'i18n.diary', description: 'i18n.openDiary',
+  id: 'diary', label: 'i18n.journal', description: 'i18n.openDiary',
   entities: {
     diary: {
       label: 'i18n.diary', create: true, read: ({ list }) => list('diary'),

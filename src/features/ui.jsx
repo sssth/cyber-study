@@ -33,7 +33,7 @@ export function EmptyState({ children }) {
 }
 
 // Shared secondary workspace: the collection remains the default surface.
-export function ActionWorkspace({ kind = 'create', label = "i18n.new", title = label, children, open: controlled, onOpenChange, command = true, onCreate, showTrigger = true, disabled = false, portalHost, scrollMemoryKey }) {
+export function ActionWorkspace({ kind = 'create', label = "i18n.new", title = label, children, open: controlled, onOpenChange, command = true, onCreate, showTrigger = true, bulk = false, disabled = false, portalHost, scrollMemoryKey }) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlled ?? localOpen;
   const editing = kind === 'edit';
@@ -46,14 +46,15 @@ export function ActionWorkspace({ kind = 'create', label = "i18n.new", title = l
     if (open && !dialog.current.open) {
       previousFocus.current = rememberFocus(trigger.current ?? document.activeElement);
       dialog.current.show();
+      if (bulk) dialog.current.focus({ preventScroll: true });
     }
     if (!open && dialog.current.open) dialog.current.close();
-  }, [open, editing]);
-  useEditSession(open, () => change(false), { editing });
+  }, [open, editing, bulk]);
+  useEditSession(open, () => change(false), { editing: editing && !bulk });
   return <>{command
     ? <ContentCommand kind="create" label={label} disabled={disabled} run={() => { onCreate?.(); change(true); }} />
     : showTrigger && <div className="secondary-action"><button ref={trigger} type="button" onClick={() => change(true)}>{translate(label)}</button></div>}
-    {createPortal(<EditSurface ref={dialog} data-create-workspace={command && !editing ? true : undefined} aria-label={translate(title)}
+    {createPortal(<EditSurface ref={dialog} data-bulk-editor={bulk || undefined} data-edit-active={bulk || undefined} tabIndex={bulk ? -1 : undefined} data-create-workspace={command && !editing ? true : undefined} aria-label={translate(title)}
       onCancel={event => { event.preventDefault(); change(false); }}
       onClose={() => { if (!dialog.current?.open) { change(false); restoreFocus(previousFocus.current); } }}>
       <header><h2>{translate(title)}</h2><button type="button" onClick={() => change(false)}>{translate("i18n.backToContent")}</button></header>

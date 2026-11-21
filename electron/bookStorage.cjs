@@ -108,7 +108,7 @@ async function readLibrary(directory, retiredIds = new Set()) {
 
 async function renameBook(directory, title, author) {
   const book = await readBook(directory);
-  const fields = { title, ...(author === undefined ? {} : { author: author.trim() }) };
+  const fields = { ...(title === undefined ? {} : { title }), ...(author === undefined ? {} : { author: author.trim() }) };
   const filename = path.join(directory, 'book.json');
   const record = JSON.parse(await fs.readFile(filename, 'utf8'));
   await atomicWrite(filename, JSON.stringify({ ...record, book: { ...record.book, ...fields } }, null, 2));

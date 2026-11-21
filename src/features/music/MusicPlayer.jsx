@@ -18,7 +18,7 @@ import { ActionWorkspace, FeaturePanel } from '../ui.jsx';
 import { matchesShortcut, typingTarget } from '../../data/shortcuts.js';
 import { createId, loadSpaceData } from '../../data/spaceStorage.js';
 
-import { mergeMusicPlaylist, nextQueuedTrack } from './musicCollection.js';
+import { alignNeteasePositions, mergeMusicPlaylist, neteasePlaylistTracks, nextQueuedTrack } from './musicCollection.js';
 
 import { httpUrl } from '../mediaUrl.js';
 import { useMusicResume, useMusicStorage } from './useMusicStorage.js';
@@ -67,6 +67,14 @@ async function startOnlineAudio(audio) {
 
 export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, shortcuts, shortcutsEnabled }) {
   const [tracks, setTracks] = useState(() => loadSpaceData('music', []).map((track) => ({ ...track, kind: httpUrl(track.url) ? neteaseKind(httpUrl(track.url)) : '', playlists: track.playlists?.length ? track.playlists : [{ id: 'legacy-imports', title: '旧版导入' }] })));
+  useEffect(() => {
+    const refresh = event => {
+      if (event.detail === 'music') setTracks(previous => [...previous.filter(track => track.local), ...loadSpaceData('music', [])]);
+      if (event.detail === 'playlists') setSavedPlaylists(loadSpaceData('playlists', []));
+    };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, []);
   const [savedPlaylists,setSavedPlaylists]=useState(()=>loadSpaceData('playlists',[]));
   const [listTitle,setListTitle]=useState('');
   const [createMusicType,setCreateMusicType]=useState('playlist');
@@ -134,7 +142,8 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const tracksInPlaylist = id => {
     if (!id) return [];
     const entry = track => track.playlists?.find(list => list.id === id);
-    const saved = orderType(tracks.filter(entry),'music',order);
+    const platformOrder = id.startsWith('netease:');
+    const saved = platformOrder ? neteasePlaylistTracks(tracks, id) : orderType(tracks.filter(entry),'music',order);
     if (id !== stagedImport?.id) return saved;
     const merged = new Map(saved.map(track => [track.id, track]));
     for (const [trackId, track] of stagedImport.tracks) {
@@ -142,6 +151,10 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
       // A failed refresh must not hide or disable an existing collection entry.
       if (previous && track.cacheState !== 'ready') continue;
       merged.set(trackId, track);
+    }
+    if (platformOrder) {
+      return [...stagedImport.tracks.keys()].map(key => merged.get(key))
+        .concat(saved.filter(track => !stagedImport.tracks.has(track.id)));
     }
     return [...merged.values()];
   };
@@ -158,7 +171,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   }
   const browserFilter=filteredLists.has(activeFilter)?activeFilter:filteredLists.keys().next().value??'';
   const displayedTracks=filteredLists.get(browserFilter)?.songs??[];
-  useResultSource({ scopeId: 'music', priority:10,label:musicView==='player'?translate("i18n.trackPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
+  useResultSource({ scopeId: 'music', priority:10,applications:{selectAll:musicView==='player'?undefined:resultEntities('music',displayedTracks)},label:musicView==='player'?translate("i18n.recordPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
   const candidateIds=new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id)));
   const candidateTracks=hasSearch(search)?tracks.filter(t=>candidateIds.has(t.id)):tracks;
   useSearchCount('music',new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
@@ -331,9 +344,9 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     return()=>{active=false;};
   },[musicEditor?.id,musicEditor?.type]);
 
-  const savePlaylist = (provider, list, imported) => {
+  const savePlaylist = (provider, list, imported, positions) => {
     setSavedPlaylists(items=>{const id=`${provider}:${list.id}`;const previous=items.find(p=>p.id===id);return [...items.filter(p=>p.id!==id),{...previous,id,title:previous?.title??list.title,description:previous?.description??'',provider,sourceId:String(list.id),cover:list.cover||previous?.cover||'',createdAt:previous?.createdAt??new Date().toISOString()}];});
-    setTracks(items => mergeMusicPlaylist(items, provider, list, imported));
+    setTracks(items => mergeMusicPlaylist(items, provider, list, imported, positions));
   };
 
   const beginImport = (provider, list, imported) => {
@@ -344,7 +357,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     }
     if (activeImport.current) throw new Error(translate("i18n.anotherPlaylistIsCachingTryAgainLater"));
     activeImport.current = true;
-    savePlaylist(provider,list,[]);
+
     const id = `${provider}:${list.id}`;
     const existing = new Map(tracks.map(track => [track.id, track.cachedUrl]));
     const rows = new Map(imported.map(item => {
@@ -352,6 +365,9 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
       const cachedUrl = existing.get(trackId);
       return [trackId, { ...item, id: trackId, cachedUrl, cacheState: cachedUrl ? 'ready' : 'pending' }];
     }));
+    const positions = provider === 'netease' ? new Map([...rows.keys()].map((key, index) => [key, index])) : undefined;
+    if (positions) setTracks(items => alignNeteasePositions(items, id, positions));
+    savePlaylist(provider, list, []);
     setStagedImport({ id, title: `${musicPlatformNames[provider]} · ${list.title}`, tracks: rows });
     setPlaylistFilter(id);
     return {
@@ -361,7 +377,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
         rows.set(trackId, { ...previous, ...item, id: trackId,
           cachedUrl: item.cachedUrl || previous?.cachedUrl,
           cacheState: previous?.cachedUrl ? 'ready' : cacheState });
-        if (cacheState === 'ready') savePlaylist(provider, list, [item]);
+        if (cacheState === 'ready') savePlaylist(provider, list, [item], positions);
         setStagedImport(previous => ({ ...previous, tracks: new Map(rows) }));
       },
       finish() {
@@ -602,7 +618,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
 
 
             <section>
-              <div hidden={musicView!=='player'} {...editActivationProps(e => toggleEditor(setPlayerEditor, e, 'button,input,a,select'))} className={`record-deck ${playing ? 'playing' : ''}`}>
+              <div data-entity-key={current && `music:${current.id}`} hidden={musicView!=='player'} {...editActivationProps(e => toggleEditor(setPlayerEditor, e, 'button,input,a,select'))} className={`record-deck ${playing ? 'playing' : ''}`}>
                 <div className="record-disc">{currentCover && <img src={currentCover} alt="" />}<span /></div>
                 <div>
                   <p>{current?.title ?? translate("i18n.noRecordSelected")}{preview && translate("i18n.preview")}</p>
@@ -678,7 +694,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
               {displayedTracks.length === 0 ? <></> : displayedTracks.map((track) => (
                 <article data-edit-select className={`admin-card ${track.id === currentId ? 'selected' : ''}`} key={track.id}>
                   <SongListing track={track} onPlay={()=>playListedTrack(track)} />
-                  <ContentActions preview={false} orderItem={track} sortable type="music" id={track.id} title={track.title}/>
+                  <ContentActions preview={false} orderItem={track} sortable={!browserFilter.startsWith('netease:')} type="music" id={track.id} title={track.title}/>
                   {tracks.some(item => item.id === track.id) && <>
                     <ContentCommand label={translate("i18n.editTrack0", track.title)} run={()=>setMusicEditor({...track,type:'music'})}/>
                   </>}

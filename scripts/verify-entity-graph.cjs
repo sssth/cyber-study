@@ -11,6 +11,8 @@ app.whenReady().then(async()=>{
   };
   await win.loadURL('http://127.0.0.1:5173/tests/ui/map-projection.html');
   await run("localStorage.setItem('cyber-study.space.v1.knowledge',JSON.stringify({notes:[{id:'n',bookId:'b0',quote:'原文',annotation:'测试批注'}]}));const linksKey='cyber-study.space.v1.content-relations';const links=JSON.parse(localStorage.getItem(linksKey));localStorage.setItem(linksKey,JSON.stringify([...links,...Array.from({length:45},(_,i)=>({fromId:'memo:m2',toId:'book:b'+i,relationType:'related'}))]));previewPage('catalog')");
+  await wait("document.querySelector('.catalog-columns')");
+  await run("[...document.querySelectorAll('.shelf-view-bar button')].find(button => button.textContent === '全部实体').click()");
   await wait("document.querySelectorAll('.entity-catalog > button').length");
   const total=await run("document.querySelectorAll('.entity-catalog > button').length");
   await run("document.querySelector('.display-menu-toggle').click();[...document.querySelectorAll('.shelf-view-bar button')].find(b=>b.textContent==='实体关系图').click()");

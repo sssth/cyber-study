@@ -30,9 +30,16 @@ export default function GlobalSearch({books,enabled,onOpen}){
   return () => { active = false; };
  }, [visible, enabled, books, revision]);
 
+ useEffect(() => {
+  if (!visible || !enabled) return;
+  const refresh = () => setRevision(value => value + 1);
+  window.addEventListener('cyber-content-changed', refresh);
+  return () => window.removeEventListener('cyber-content-changed', refresh);
+ }, [visible, enabled]);
+
  const results=queryEntities(items,state).sort((a,b)=>{const q=state.query.trim().toLowerCase();return Number(b.title.toLowerCase()===q)-Number(a.title.toLowerCase()===q)||a.title.localeCompare(b.title,'zh-CN');});
  useResultSource({ scopeId: 'global', priority:0,enabled,loading:visible&&hasSearch(state)&&loading,plain:!visible||!hasSearch(state),matches:visible&&hasSearch(state)?results:[]});
  useSearchCount('global',loading?null:results.length);
  if(!visible||!enabled||!hasSearch(state)||(!loading&&!error&&!results.length))return null;
- return <aside className="global-search-surface" aria-label={translate("i18n.globalSearchResults")}>{loading?<p role="status">{translate("i18n.readingStudyContent")}</p>:<><div className="global-search-results">{results.slice(0,limit).map(item=><button key={item.key} onClick={()=>{setVisible(false);onOpen(item);}}><small>{translate(contentTypes[item.type])}</small><strong>{item.title}</strong><span>{searchValues(item.type,item).flat(Infinity).filter(v=>typeof v==='string'&&v!==item.title).join(' · ').slice(0,180)}</span></button>)}</div>{results.length>limit&&<button onClick={()=>setLimit(n=>n+40)}>{translate("i18n.showMore")}</button>}</>}{error&&<p role="alert">{translate(error)}<button onClick={()=>setRevision(v=>v+1)}>{translate("i18n.retry2")}</button></p>}</aside>;
+ return <aside className="global-search-surface" aria-label={translate("i18n.globalSearchResults")}>{loading?<p role="status">{translate("i18n.readingStudyContent")}</p>:<><div className="global-search-results">{results.slice(0,limit).map(item=><button data-entity-key={item.key} key={item.key} onClick={()=>{setVisible(false);onOpen(item);}}><small>{translate(contentTypes[item.type])}</small><strong>{item.title}</strong><span>{searchValues(item.type,item).flat(Infinity).filter(v=>typeof v==='string'&&v!==item.title).join(' · ').slice(0,180)}</span></button>)}</div>{results.length>limit&&<button onClick={()=>setLimit(n=>n+40)}>{translate("i18n.showMore")}</button>}</>}{error&&<p role="alert">{translate(error)}<button onClick={()=>setRevision(v=>v+1)}>{translate("i18n.retry2")}</button></p>}</aside>;
 }

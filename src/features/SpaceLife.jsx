@@ -17,8 +17,8 @@ function useCareClock() {
 function PetPanel({ onClose, model, theme }) {
   const pet = loadPet(useCareClock());
   return (
-    <FeaturePanel scopeId="pet" title="i18n.studyCat" kicker="Quiet Companion" description={translate("i18n.doubleClickTheCatInTheStudy")} onClose={onClose}>
-      <CareModelPreview feature="pet" model={model} theme={theme} label={translate("i18n.cat2")} />
+    <FeaturePanel scopeId="pet" title="i18n.pet" kicker="Quiet Companion" description={translate("i18n.doubleClickTheCatInTheStudy")} onClose={onClose}>
+      <CareModelPreview feature="pet" model={model} theme={theme} label={translate("i18n.pet")} />
       <div className="stat-row">
         <span>{translate("i18n.mood")}{' '}{Math.round(pet.mood)}</span>
         <span>{translate("i18n.bond2")}{' '}{Math.round(pet.bond)}</span>
@@ -31,7 +31,7 @@ function PetPanel({ onClose, model, theme }) {
 function PlantPanel({ onClose, model, theme }) {
   const plant = loadPlant(useCareClock());
   return (
-    <FeaturePanel scopeId="plant" title="i18n.studyPlant" kicker="Growth Plant" description={translate("i18n.doubleClickThePlantInTheStudy")} onClose={onClose}>
+    <FeaturePanel scopeId="plant" title="i18n.plant" kicker="Growth Plant" description={translate("i18n.doubleClickThePlantInTheStudy")} onClose={onClose}>
       <CareModelPreview feature="plant" model={model} theme={theme} label={translate("i18n.plant")} />
       <div className="stat-row">
         <span>{translate("i18n.moisture")}{' '}{Math.round(plant.water)}/100</span>

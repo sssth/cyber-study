@@ -5,10 +5,12 @@ import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
 import {currentScope,setSearch,getScope,getSearchCount,subscribeSearch,suspendSearch,resumeSearch} from './searchStore.js';
 import {matchesShortcut} from '../data/shortcuts.js';
+import {usePageBackMatcher} from '../ui/useEscapeBack.js';
 const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;
 
 export default function UnifiedSearch({shortcuts,disabled=false,viewKey}){
- const options=useRef({shortcuts,disabled});options.current={shortcuts,disabled};
+ const isPageBack=usePageBackMatcher();
+ const options=useRef();options.current={shortcuts,disabled,isPageBack};
  const bar=useRef(),input=useRef(),origin=useRef(),active=useRef(null),composing=useRef(false);
  const [current,setCurrent]=useState(null),[value,setValue]=useState(''),[filters,setFilters]=useState({}),[expanded,setExpanded]=useState(false),[choice,setChoice]=useState(null),[host,setHost]=useState(null);
  const draft=useRef({query:value,filters});draft.current={query:value,filters};
@@ -19,7 +21,13 @@ export default function UnifiedSearch({shortcuts,disabled=false,viewKey}){
  useEffect(()=>{
   const open=event=>{if(options.current.disabled)return;const next=event?.detail?.id?getScope(event.detail.id):currentScope();if(!next||next.enabled===false)return;origin.current=rememberFocus();adopt(next);requestAnimationFrame(()=>{if(active.current===next.id&&getScope(next.id)?.autoFocus!==false){input.current?.focus();input.current?.select();}});};
   const toggle=()=>{if(options.current.disabled)return;if(active.current)close();else open();};
-  const keys=e=>{if(options.current.disabled||matchesShortcut(e,options.current.shortcuts?.snapshot))return;if(e.key==='Escape'||matchesShortcut(e,options.current.shortcuts?.showOnGlobe))return;if(handleCommandKey(e, 'search', options.current.shortcuts, toggle, { allowComposing: true }))return;if(e.isComposing||!active.current)return;if(bar.current?.contains(e.target))e.stopImmediatePropagation();};
+  const keys=e=>{
+   const {disabled,shortcuts,isPageBack}=options.current;
+   if(disabled||isPageBack(e)||matchesShortcut(e,shortcuts?.snapshot)||matchesShortcut(e,shortcuts?.showOnGlobe))return;
+   if(handleCommandKey(e,'search',shortcuts,toggle,{allowComposing:true}))return;
+   if(e.key==='Escape'||e.isComposing||!active.current)return;
+   if(bar.current?.contains(e.target))e.stopImmediatePropagation();
+  };
   const closeForCommand=()=>{if(active.current)close(false);};
   const changed=()=>{queueMicrotask(()=>{if(!active.current)return;const next=currentScope();if(options.current.disabled||!next){close(false);return;}if(next.id!==active.current)close(false);else setHost(hostFor(next));});};
   window.addEventListener('keydown',keys,true);window.addEventListener('cyber-open-search',open);window.addEventListener(commands.search.event,toggle);window.addEventListener('cyber-close-search',closeForCommand);window.addEventListener('cyber-search-scope-changed',changed);

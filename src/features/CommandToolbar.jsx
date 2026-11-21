@@ -1,18 +1,20 @@
 import { commands, invokeCommand } from '../ui/commands.js';
 import { translate } from '../i18n/index.js';
-import { useEffect, useState } from 'react';
+import { getSelection, subscribeSelection } from '../entities/entitySelection.js';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { isCreating } from './ContentCommands.jsx';
 import { commandTargetMode } from '../ui/commandTarget.js';
 
 const buttons = [
-  ['search', 'i18n.search'], ['create', 'i18n.new'], ['edit', 'i18n.edit'],
+  ['search', 'i18n.search'], ['create', 'i18n.new'], ['selectAll', 'i18n.selectEntities'], ['edit', 'i18n.edit'],
   ['snapshot', 'i18n.snapshot'], ['relate', 'i18n.link']
 ];
 const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay';
 const expandedKey = 'cyber-study.command-toolbar.expanded';
 
 export default function CommandToolbar({ shortcuts }) {
+  const selection = useSyncExternalStore(subscribeSelection, getSelection);
   const [expanded, setExpanded] = useState(() => {
     try { return localStorage.getItem(expandedKey) !== 'false'; }
     catch { return true; }
@@ -78,8 +80,8 @@ export default function CommandToolbar({ shortcuts }) {
             id === 'edit' ? translate("i18n.doubleClickAnItem") : translate("i18n.rightClickAnItem");
           const selecting = status.mode === id;
           return <button key={id} type="button"
-            aria-pressed={id === 'snapshot' ? undefined : status[id]}
-            disabled={id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
+            aria-pressed={id === 'selectAll' ? Boolean(selection) : id === 'snapshot' ? undefined : status[id]}
+            disabled={(id === 'relate' && selection?.canRelate === false) || id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
             title={selecting ? translate("i18n.selectAnItem") : [translate(label), hint].filter(Boolean).join(' · ')}
             onClick={click => invokeCommand(id, click.currentTarget)}>
             {translate(label)}

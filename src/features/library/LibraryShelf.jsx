@@ -2,18 +2,19 @@ import { displayShelves } from './sceneShelfArrangement.js';
 import { translate, translateError } from '../../i18n/index.js';
 import { bookActivityTime, bookReadingStatus, loadReaderState, readingStatusLabels } from './storage.js';
 import useContentOrder from '../../ui/useContentOrder.js';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { orderType } from '../../data/contentOrder.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import DisplayViewMenu from '../../ui/DisplayViewMenu.jsx';
 import ShelfBookRows from './ShelfBookRows.jsx';
+import ShelfBookPreview from './ShelfBookPreview.jsx';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import DisplayShelf from './DisplayShelf.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
-import { useEffect, useState, useRef, lazy, Suspense, useDeferredValue, useMemo, memo } from 'react';
+import { useEffect, useState, useRef, useDeferredValue, useMemo } from 'react';
 import ContentActions from '../ContentActions.jsx';
 import { bookCoverAssets, coverHue, useBookCover } from './bookCover.js';
 import './libraryShelf.css';
-const GroupPreview=memo(lazy(()=>import('./ShelfModel.jsx').then(m=>({default:m.BookGroupPreview}))));
 export function Cover({ book, children }) {
   const url = useBookCover(book);
   return <span className="shelf-cover" style={{ '--cover-hue': coverHue(book) }}>{url ? <img src={url} alt=""/> : <><span className="cover-edition">{translate("i18n.cyberStudy")}</span><strong>{book.title}</strong><span className="cover-author">{book.author === '本地导入' ? '' : book.author}</span></>}{children}</span>;
@@ -25,6 +26,7 @@ export const shelfViews = [
 ];
 
 export default function LibraryShelf({ books, visibleBooks, readerState, openBook, renameBook, removeBook, canDelete, busy, onViewChange, searchActive=false, searchQuery='', searchHits=[], initialShelfView='all' }) {
+  const isPageBack = usePageBackMatcher();
   const [view, setView] = useState(()=>displayShelves.some((_, index) => String(index) === initialShelfView)?initialShelfView:'all');
   const matchesByBook=useMemo(()=>new Map(searchHits.map(hit=>[hit.book.id,hit.matches])),[searchHits]);
   const collection=useRef(null);
@@ -35,7 +37,31 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
   const previewBooks=useMemo(()=>(previewSelection?.ids||[]).map(id=>books.find(b=>b.id===id)).filter(Boolean),[books,previewSelection]);
   function selectBook(book){setSelection(s=>({...s,ids:s.ids.includes(book.id)?s.ids.filter(id=>id!==book.id):s.ids.length<10?[...s.ids,book.id]:s.ids}));}
   function placeSelection(){if(!selection?.ids.length)return;setBatch({...selection,token:Date.now()});setView(String(selection.shelf));setSelection(null);}
-  useEffect(()=>{if(!selection)return;const key=e=>{if(e.target.closest?.('input,textarea,select,[contenteditable]'))return;if(['ArrowLeft','ArrowRight','Enter','Escape'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();if(e.key==='Enter')placeSelection();else if(e.key==='Escape'){setView(String(selection.shelf));setSelection(null);}else{const modes=['flat','spine','cover'];setSelection(s=>({...s,orientation:modes[(modes.indexOf(s.orientation)+(e.key==='ArrowRight'?1:2))%3]}));}}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[selection]);
+  function cycleOrientation(direction) {
+    const modes = ['flat', 'spine', 'cover'];
+    setSelection(current => ({ ...current, orientation: modes[(modes.indexOf(current.orientation) + direction + modes.length) % modes.length] }));
+  }
+  useEffect(() => {
+    if (!selection) return;
+    const key = event => {
+      const back = isPageBack(event);
+      if (!back && (event.target.closest?.('input,textarea,select,[contenteditable]') ||
+        !['ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key))) return;
+      if (!back && event.key === 'Enter' && event.target.closest?.('.shelf-orientation-controls button')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (back) {
+        setView(String(selection.shelf));
+        setSelection(null);
+      } else if (event.key === 'Enter') {
+        placeSelection();
+      } else {
+        cycleOrientation(event.key === 'ArrowRight' ? 1 : -1);
+      }
+    };
+    window.addEventListener('keydown', key, true);
+    return () => window.removeEventListener('keydown', key, true);
+  }, [selection, isPageBack]);
   const order = useContentOrder();
   const shownBooks = orderType(selection ? visibleBooks.filter(book=>!selection.used.includes(book.id)) : visibleBooks, 'book', order);
   if (!selection) shownBooks.sort((a, b) =>
@@ -43,10 +69,10 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
   useResultSource({ scopeId: 'library', priority:30,enabled:view==='all',matches:resultEntities('book',shownBooks)});
   const [editing, setEditing] = useState(null);
   const editBook = book => <ContentCommand label={translate("i18n.edit02", book.title)} disabled={busy} run={() => setEditing(book)} />;
-  return <section ref={collection} className="library-shelves" data-selecting={selection?true:undefined} aria-label={translate("i18n.coverShelf")} style={selection?{width:collectionWidth}:undefined}>
+  return <section ref={collection} className="library-shelves" data-selecting={selection?true:undefined} aria-label={translate("i18n.library")} style={selection?{width:collectionWidth}:undefined}>
     <DisplayViewMenu label={translate("i18n.shelfView")} options={shelfViews} value={view} onChange={id => {if(selection&&id===String(selection.shelf))placeSelection();else if(!selection){if(id==='excerpts')onViewChange(id);else setView(id);}}}>{view === 'all' && <span>{shownBooks.length}{' '}{translate("i18n.books")}</span>}</DisplayViewMenu>
     <ActionWorkspace command={false} showTrigger={false} title={translate("i18n.addBooksToDisplay")} open={Boolean(selection)} onOpenChange={open=>{if(!open&&selection){setView(String(selection.shelf));setSelection(null);}}}>
-      {selection&&<><WorkspaceFields><div className="shelf-workspace-preview"><Suspense fallback={null}><GroupPreview books={previewBooks} orientation={previewSelection?.orientation||'flat'}/></Suspense></div>
+      {selection&&<><WorkspaceFields><ShelfBookPreview books={previewBooks} orientation={previewSelection?.orientation||'flat'} onTurn={cycleOrientation} disabled={!selection.ids.length}/>
       <ShelfBookRows books={selection.ids.map(id=>books.find(b=>b.id===id)).filter(Boolean)} onToggle={selectBook}/>
       </WorkspaceFields>
       <WorkspaceActions><button disabled={!selection.ids.length} onClick={placeSelection}>{translate("i18n.confirm2")}{selection.ids.length}/10）</button><button disabled={!selection.ids.length} onClick={()=>setSelection(s=>({...s,ids:[]}))}>{translate("i18n.clear")}</button></WorkspaceActions></>}

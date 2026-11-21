@@ -1,5 +1,6 @@
 import { formatDate, translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { orderType } from '../../data/contentOrder.js';
 import EditSurface from '../../ui/EditSurface.jsx';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
@@ -63,6 +64,7 @@ function DiaryCanvas({ entry, prefs, readOnly = false, query = '', onTextChange,
 }
 
 export default function DiaryPanel({ onClose, navigationItem, editItem }) {
+  const isPageBack = usePageBackMatcher();
   const [entries, setEntries] = useState(() => loadSpaceData('diary', []));
   const [draft, setDraft] = useState(() => {
     if (editItem) return { ...entries.find(entry => entry.id === editItem.id) };
@@ -74,7 +76,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   const editFromBook = useRef(false);
 
   const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write', { preferInitial:navigationItem?.type === 'diary' });
-  const search=useSearchScope({id:'diary',label:translate("i18n.diary"),priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:translate("i18n.mood"),options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
+  const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:translate("i18n.mood"),options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
   const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);
   useEffect(() => {
@@ -87,6 +89,27 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   const editingDiaryPage = mode === 'write' && editFromBook.current;
   useEditSession(editingDiaryPage, () => { if (!editorOpen) readDiary(); }, { editing: false });
   const [prefs, setPrefs] = useState(() => ({...loadSpaceData('diary-prefs', { pen: '钢笔', sound: false, animation: true }), ...editItem?.format}));
+  useEffect(() => {
+    const refresh = event => {
+      if (event.detail !== 'diary') return;
+      const next = loadSpaceData('diary', []);
+      setEntries(next);
+      const before = entries.find(entry => entry.id === editing);
+      if (!before) return;
+      const after = next.find(entry => entry.id === editing);
+      if (!after) {
+        setEditing(null);
+        setDraft({ text: '', mood: '', photo: '' });
+        setMode('read');
+      } else {
+        const changes = Object.entries(after).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key]));
+        setDraft(current => ({ ...current, ...Object.fromEntries(changes) }));
+        if (changes.some(([key]) => key === 'format')) setPrefs(current => ({ ...current, ...after.format }));
+      }
+    };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, [entries, editing, setMode]);
   const soundRef = useRef(null);
 
   useEffect(() => () => { soundRef.current?.close(); }, []);
@@ -133,7 +156,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   const pageIndex = opened ? filtered.findIndex(entry => entry.id === opened) : 0;
   const currentIndex = pageIndex < 0 ? 0 : pageIndex;
   const currentPage = filtered[currentIndex];
-  useResultSource({ scopeId: 'diary', priority:10,detail:true,label:translate("i18n.diary"),applications:{snapshot:resultEntities('diary',mode==='read'?[currentPage]:[{...draft,id:editing || draft.id}])},matches:resultEntities('diary',mode==='read'?filtered:[entries.find(e=>e.id===editing) || entries.find(e=>diaryDay(e.date)===diaryDay(draft.date ?? new Date()))])});
+  useResultSource({ scopeId: 'diary', priority:10,detail:true,label:translate("i18n.journal"),allowGroupRelations:mode==='read',applications:{selectAll:mode==='read'?resultEntities('diary',filtered):undefined,snapshot:resultEntities('diary',mode==='read'?[currentPage]:[{...draft,id:editing || draft.id}])},matches:resultEntities('diary',mode==='read'?filtered:[entries.find(e=>e.id===editing) || entries.find(e=>diaryDay(e.date)===diaryDay(draft.date ?? new Date()))])});
   const [turnDirection, setTurnDirection] = useState('next');
   const turnPage = direction => {
     const next = filtered[currentIndex + direction];
@@ -155,14 +178,14 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
     const navigate = event => {
       if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || document.querySelector('dialog[open]')) return;
       if (event.target.closest?.('input, select, textarea:not([readonly]), [contenteditable="true"]')) return;
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (isPageBack(event) || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!event.repeat) turnPage(event.key === 'ArrowRight' ? 1 : -1);
     };
     window.addEventListener('keydown', navigate, true);
     return () => window.removeEventListener('keydown', navigate, true);
-  }, [mode, currentIndex, filtered]);
+  }, [mode, currentIndex, filtered, isPageBack]);
 
   useSearchCount('diary', mode === 'write' ? diarySearchRanges(draft.text ?? '', search.query).length : filtered.length);
   const addEntry = () => {
@@ -255,7 +278,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
       <ContentCommand kind="create" label={translate("i18n.writeTodaySEntry")} run={writeToday} />
       <DisplayViewMenu label={translate("i18n.diaryView")} options={[[ 'write', translate("i18n.todaySEntry")], ['read', translate("i18n.readingMode")]]} value={mode} onChange={value => value === 'write' ? writeToday() : readDiary()} />
       {error && <p role="alert" className="form-error">{translateError(error)}</p>}
-      {mode === 'write' && <DiaryCanvas entry={draft} prefs={prefs} query={search.query} data-edit-active={editingDiaryPage || undefined} data-relation-gesture onContextMenu={event => showDiaryRelations(event, draft, true)} {...editActivationProps(() => toggleEditor(setEditorOpen))}
+      {mode === 'write' && <DiaryCanvas data-entity-key={editing || draft.id ? `diary:${editing || draft.id}` : undefined} entry={draft} prefs={prefs} query={search.query} data-edit-active={editingDiaryPage || undefined} data-relation-gesture onContextMenu={event => showDiaryRelations(event, draft, true)} {...editActivationProps(() => toggleEditor(setEditorOpen))}
         onDragOver={event => { if (event.dataTransfer.types.includes('application/x-diary-photo')) event.preventDefault(); }}
         onDrop={event => {
           const raw = event.dataTransfer.getData('application/x-diary-photo');
@@ -278,12 +301,12 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
         onPhotosChange={placements => setDraft(current => ({ ...current, placements }))} />}
       {editorOpen && <EditSurface inline>{fields}</EditSurface>}
       {mode === 'read' && <section className="diary-book" aria-label={translate("i18n.readDiary")}>
-        <SearchStatus id="diary" label={translate("i18n.diary")} />
+        <SearchStatus id="diary" label={translate("i18n.journal")} />
         {currentPage ? <>
           <div className="diary-book-cover">
             <div key={currentPage.id} className="diary-book-page" data-turn={turnDirection} data-content-target={navigationItem?.catalogCommand ? `diary:${currentPage.id}` : undefined}>
               {navigationItem?.catalogCommand && <ContentCommand label={translate("i18n.editDiaryEntry")} run={() => editPage(currentPage)} />}
-              <DiaryCanvas entry={currentPage} prefs={prefs} readOnly data-relation-gesture onContextMenu={event => showDiaryRelations(event, currentPage)} {...editActivationProps(() => editPage(currentPage))} />
+              <DiaryCanvas data-entity-key={`diary:${currentPage.id}`} entry={currentPage} prefs={prefs} readOnly data-relation-gesture onContextMenu={event => showDiaryRelations(event, currentPage)} {...editActivationProps(() => editPage(currentPage))} />
             </div>
           </div>
           <nav className="diary-book-pagination" aria-label={translate("i18n.diaryPageNavigation")}>

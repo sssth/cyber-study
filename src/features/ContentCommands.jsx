@@ -10,6 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { contentAt } from '../ui/contentTargets.js';
 import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
 import { currentScope } from '../search/searchStore.js';
+import { usePageBackMatcher } from '../ui/useEscapeBack.js';
 
 const commands = new Map();
 const itemSelector = '[data-edit-item], .reader-annotation-card, [data-content-target]';
@@ -77,6 +78,7 @@ function itemEntries(item) {
 }
 
 export default function ContentCommands({ shortcuts, disabled, viewKey, targetView = viewKey, pending, onPendingHandled }) {
+  const isPageBack = usePageBackMatcher();
   const dialog = useRef(null);
   const latest = useRef(null);
   const [selection, setSelection] = useState(null);
@@ -84,7 +86,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  latest.current = { shortcuts, disabled, viewKey, saving, selection };
+  latest.current = { shortcuts, disabled, viewKey, saving, selection, isPageBack };
 
   const close = () => {
     setItemEditing(false);
@@ -260,7 +262,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
     };
     const keys = event => {
       if (latest.current.disabled || event.isComposing) return;
-      if (event.key === 'Escape' && !event.defaultPrevented && commandTargetMode()) {
+      if (latest.current.isPageBack(event) && commandTargetMode()) {
         setCommandTargetMode(null);
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -273,6 +275,11 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
       if (!latest.current.disabled && !dialog.current?.open) openEdit(editTarget(event.target));
     };
     const editPresented = event => openEdit(event.detail?.item);
+    const exitItem = () => {
+      cancelClick();
+      if (dialog.current?.open && latest.current.selection?.kind === 'edit' && !latest.current.saving) close();
+    };
+    window.addEventListener('cyber-exit-item-edit', exitItem);
     window.addEventListener('cyber-edit-presented-item', editPresented);
     window.addEventListener(sharedCommands.create.event, create);
     window.addEventListener(sharedCommands.edit.event, toggleEdit);
@@ -283,6 +290,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
     window.addEventListener('cyber-edit-item', editItem, true);
     return () => {
       cancelClick();
+      window.removeEventListener('cyber-exit-item-edit', exitItem);
       window.removeEventListener('cyber-edit-presented-item', editPresented);
       window.removeEventListener(sharedCommands.create.event, create);
       window.removeEventListener(sharedCommands.edit.event, toggleEdit);

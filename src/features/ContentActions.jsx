@@ -6,7 +6,7 @@ import { contentElements } from '../ui/contentTargets.js';
 let draggedContent = null;
 const assets=globalThis.ContentAssets.repository('cyber-study-content-assets-v1');
 // Invisible registration: right-click belongs to the enclosing content, not a repeated toolbar.
-export default function ContentActions({type,id,title='',surface,preview=true,sortable,orderItem}) {
+export default function ContentActions({type,id,title='',surface,preview=true,sortable,orderItem,onReorder}) {
  const ref=useRef(null),[pictures,setPictures]=useState([]);
  const key=`${type}:${id}`;
  const createdAt = orderItem?.createdAt || orderItem?.importedAt || (type === 'diary' ? orderItem?.date : undefined);
@@ -52,7 +52,7 @@ export default function ContentActions({type,id,title='',surface,preview=true,so
     if (!source.startsWith(type + ':')) return;
     event.preventDefault(); event.stopPropagation();
     const siblings = [...element.parentElement.querySelectorAll('[data-content-target]')].map(node => contentElements.get(node)).filter(Boolean).filter(entry => entry.type === type && entry.element.parentElement === element.parentElement);
-    try { saveVisibleOrder(type, siblings, source, key); end(); }
+    try { (onReorder ?? saveVisibleOrder)(type, siblings, source, key); end(); }
     catch { window.dispatchEvent(new CustomEvent('cyber-order-error', { detail: "i18n.couldNotSaveTheOrderCheckYour" })); }
   };
   refreshOrder();
@@ -61,7 +61,7 @@ export default function ContentActions({type,id,title='',surface,preview=true,so
   element.addEventListener('dragstart', start); element.addEventListener('dragover', over); element.addEventListener('drop', drop); element.addEventListener('dragleave', clearDrop); element.addEventListener('dragend', end);
 
   return ()=>{window.removeEventListener('cyber-order-changed', refreshOrder); window.removeEventListener('cyber-edit-mode-changed', refreshOrder); element.removeEventListener('dragstart', start); element.removeEventListener('dragover', over); element.removeEventListener('drop', drop); element.removeEventListener('dragleave', clearDrop); element.removeEventListener('dragend', end); element.style.order = previousOrder; if(previousDraggable === null) element.removeAttribute('draggable'); else element.setAttribute('draggable', previousDraggable); if(element.dataset.contentTarget===key){delete element.dataset.contentTarget;contentElements.delete(element);if(previousTab===null)element.removeAttribute('tabindex');else element.setAttribute('tabindex',previousTab);}};
- },[key,type,id,title,surface,sortable,createdAt,orderedList]);
+ },[key,type,id,title,surface,sortable,createdAt,orderedList,onReorder]);
  useEffect(()=>{
   if(!preview)return;
   let alive=true,revision=0,urls=[];

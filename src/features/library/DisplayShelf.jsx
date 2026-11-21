@@ -1,17 +1,18 @@
 import { translate } from '../../i18n/index.js';
 import { editActivationProps } from '../../ui/editGesture.js';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import { useSearchScope, useSearchCount } from '../../search/useSearchScope.jsx';
 import { matchesItem, textMatches, hasSearch } from '../../search/searchCore.js';
 import { parseMarkdownContent } from './markdownReader.js';
 import ShelfBookRows from './ShelfBookRows.jsx';
+import ShelfBookPreview from './ShelfBookPreview.jsx';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import ModelLoading from '../../ui/ModelLoading.jsx';
 import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import ContentActions from '../ContentActions.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import { arrangementKey, displayShelves, loadArrangement, arrangeBooks, orientations, dropBook, dropStack, dropGroup, carriedBooks, filterShelfLayout } from './sceneShelfArrangement.js';
-const GroupPreview=lazy(()=>import('./ShelfModel.jsx').then(m=>({default:m.BookGroupPreview})));
 const ShelfModel=lazy(()=>import('./ShelfModel.jsx'));
 class ModelBoundary extends Component {
  state={error:false};
@@ -19,6 +20,7 @@ class ModelBoundary extends Component {
  render(){return this.state.error?<p role="alert">{translate("i18n.theShelfIsTemporarilyUnavailable")}<button onClick={()=>this.setState({error:false})}>{translate("i18n.retry")}</button></p>:this.props.children;}
 }
 export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, onBatchDone }) {
+ const isPageBack = usePageBackMatcher();
  const [loaded]=useState(()=>{try{return {shelves:loadArrangement(localStorage)};}catch(e){return {shelves:displayShelves.map(() => []),error:e.message};}});
  const [shelves,setShelves]=useState(loaded.shelves),[error,setError]=useState(loaded.error||'');
  const [queue,setQueue]=useState([]),[picked,setPicked]=useState(null),[ghost,setGhost]=useState(null),[message,setMessage]=useState('');
@@ -70,15 +72,19 @@ export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, 
   else {pick(selection.bookId,selection.orientation);setMessage(translate("i18n.positionSavedYouCanMoveAnotherBook"));}
  }catch(e){setGhost(null);setMessage(translateError(e.message));}}
  function turn(mode){const selection=pick(picked.bookId,mode),old=displayLayout.items.find(e=>e.bookId===selection.bookId);if(!old)return;try{if(persist({x:old.position[0],y:old.position[1]},selection))setMessage(translate("i18n.orientationSavedYouCanKeepMovingThe"));}catch(e){setMessage(translate("i18n.0DragTheBookIntoPlaceTo", translateError(e.message)));}}
+ function cycleOrientation(direction){
+  const modes = Object.keys(orientations);
+  turn(modes[(modes.indexOf(picked.orientation) + direction + modes.length) % modes.length]);
+ }
  function finish(){const old=displayLayout.items.find(e=>e.bookId===picked?.bookId);if(old&&old.orientation!==picked.orientation){try{if(!persist({x:old.position[0],y:old.position[1]},picked))return;}catch(e){setMessage(translateError(e.message));return;}}stop();}
  const dragApi={allowClickPlacement:queue.length>0,hover:(point,moving)=>{if(moving||queue.length)hover(point,moving);},drop,cancel:stop,
  select:entry=>{pick(pickedRef.current?.bookId===entry.bookId?null:entry.bookId);},
  start:entry=>({...entry,orientation:pickedRef.current?.bookId===entry.bookId?pickedRef.current.orientation:entry.orientation})};
  useEffect(()=>{if(!editing&&!picked)return;const key=event=>{
+  if(isPageBack(event)){event.preventDefault();event.stopImmediatePropagation();stop();return;}
   if(event.target.closest?.('input,textarea,select,[contenteditable]'))return;
-  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();stop();}
-  else if(picked&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();event.stopImmediatePropagation();const modes=Object.keys(orientations);turn(modes[(modes.indexOf(picked.orientation)+(event.key==='ArrowRight'?1:modes.length-1))%modes.length]);}
- };window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[editing,picked,entries]);
+  if(picked&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();event.stopImmediatePropagation();cycleOrientation(event.key==='ArrowRight'?1:-1);}
+ };window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[editing,picked,entries,isPageBack]);
  const relay=(id,type)=>targets.current.get(id)?.dispatchEvent(new MouseEvent(type,{bubbles:true,cancelable:true,button:type==='contextmenu'?2:0}));
  return <section className="display-arrangement">
   <ContentCommand kind="create" label={translate("i18n.chooseBooksFromTheLibrary")} disabled={Boolean(loaded.error)} run={beginCreate}/>
@@ -87,7 +93,7 @@ export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, 
   <ActionWorkspace command={false} showTrigger={false} kind={queue.length ? "create" : "edit"} title={queue.length?translate("i18n.addBooksToDisplay"):translate("i18n.editDisplay")} open={editing||Boolean(picked)} onOpenChange={open=>{if(!open)stop();}}>
    {!picked&&<><WorkspaceFields><p className="shelf-book-count">{visibleActive.length}{' '}{translate("i18n.thisBook")}</p><ShelfBookRows books={visibleActive.map(e=>lookup.get(e.bookId))} onToggle={book=>pick(book.id)} actionLabel={translate("i18n.edit")}/></WorkspaceFields>
    <WorkspaceActions><button onClick={finish}>{translate("i18n.done")}</button></WorkspaceActions></>}
-   {picked&&lookup.has(picked.bookId)&&<><WorkspaceFields><div className="shelf-workspace-preview"><Suspense fallback={null}><GroupPreview books={selectedBooks} orientation={picked.orientation}/></Suspense></div>
+   {picked&&lookup.has(picked.bookId)&&<><WorkspaceFields><ShelfBookPreview books={selectedBooks} orientation={picked.orientation} onTurn={cycleOrientation}/>
    <ShelfBookRows books={selectedBooks}/>
    </WorkspaceFields>
    <WorkspaceActions><button onClick={queue.length?()=>{if(ghost?.valid)drop({x:ghost.position[0],y:ghost.position[1]},picked);}:finish} disabled={queue.length>0&&!ghost?.valid}>{translate("i18n.confirm")}</button><button onClick={()=>{if(queue.length)stop();else if(commit(entries.filter(e=>!selectedIds.includes(e.bookId))))pick(null);}}>{queue.length?translate("i18n.cancel"):translate("i18n.removeFromShelf")}</button></WorkspaceActions>

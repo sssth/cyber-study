@@ -8,6 +8,36 @@ app.whenReady().then(async()=>{
  await w.loadURL('http://127.0.0.1:5173/tests/ui/content-interactions.html');
  await new Promise(r=>setTimeout(r,5000));
  console.log('UI',await w.webContents.executeJavaScript(`JSON.stringify({text:document.body.innerText.slice(0,2200),buttons:[...document.querySelectorAll('button')].map(e=>({text:e.innerText,label:e.getAttribute('aria-label')}))})`));
+ // Exercise the item gesture with real pointer events, including both preceding clicks.
+ const evaluate = code => w.webContents.executeJavaScript(code);
+ const pause = () => new Promise(resolve => setTimeout(resolve, 300));
+ async function doubleClickBook(index) {
+   const point = await evaluate(`(() => {
+     const card = document.querySelectorAll('.shelf-read')[${index}];
+     card.scrollIntoView({block:'nearest'});
+     const rect = card.getBoundingClientRect();
+     return {x: Math.round(rect.left + rect.width/2), y: Math.round(rect.top + rect.height/2)};
+   })()`);
+   for (const clickCount of [1, 2]) {
+     for (const type of ['mouseDown', 'mouseUp']) w.webContents.sendInputEvent({ type, ...point, button: 'left', clickCount });
+   }
+   await pause();
+ }
+ const selectAll = async () => {
+   const modifiers = [process.platform === 'darwin' ? 'meta' : 'control'];
+   for (const type of ['keyDown', 'keyUp']) w.webContents.sendInputEvent({type, keyCode:'A', modifiers});
+   await pause();
+ };
+ w.focus();
+ await selectAll();
+ await doubleClickBook(1);
+ if (!await evaluate("!!document.querySelector('dialog[data-bulk-editor][open]:not(:modal)')")) throw Error('Double-click did not open the batch sidebar');
+ if (await evaluate("!!document.querySelector('[data-bulk-editor] input[type=file], .shelf-book[draggable=true]')")) throw Error('Batch mode enabled file editing or rearrangement');
+ await doubleClickBook(0);
+ if (await evaluate("!!document.querySelector('[data-bulk-editor]') || document.querySelectorAll('.shelf-book[data-bulk-selected]').length !== 3")) throw Error('Closing the sidebar changed the selection');
+ await doubleClickBook(2);
+ await selectAll();
+ if (await evaluate("!!document.querySelector('[data-bulk-editor], [data-bulk-selected]')")) throw Error('Select all did not cancel the batch selection');
  w.focus();
  w.webContents.sendInputEvent({type:'keyDown',keyCode:'A',modifiers:['meta','shift']});
  w.webContents.sendInputEvent({type:'keyUp',keyCode:'A',modifiers:['meta','shift']});

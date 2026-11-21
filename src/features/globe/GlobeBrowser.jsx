@@ -1,6 +1,6 @@
 import { translate } from '../../i18n/index.js';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
-import useEscapeBack, { blocksPageBack } from '../../ui/useEscapeBack.js';
+import useEscapeBack, { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { filterGlobeMemories } from './filterMemories.js';
 import { useSearchCount } from '../../search/useSearchScope.jsx';
 import { matchesItem, textMatches } from '../../search/searchCore.js';
@@ -16,6 +16,7 @@ import '../../styles/globe.css';
 const GlobeScene = lazy(() => import('./GlobeScene.jsx'));
 
 export default function GlobeBrowser({ photos, loading, initialView, onRememberView, onBrowsePlace, onOrganize, onOpenPhoto, journeys = [], journeyId, setJourneyId, projection = false, workspaceHost }) {
+  const isPageBack = usePageBackMatcher();
   const [controlsOpen, setControlsOpen] = useState(false);
   const [selectedId, setSelectedId] = useNavigationState(projection?'projection':'globe','selectedId',null), [photoIndex, setPhotoIndex] = useNavigationState(projection?'projection':'globe','photoIndex',0);
   const livePointIds = useMemo(() => new Set(photos.filter(p => !p.deletedAt).map(p => p.id)), [photos]);
@@ -86,14 +87,17 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
   });
   const onKeys = event => {
     if (event.isComposing || event.target.matches('input, textarea') || event.target.closest('.globe-photo-viewer')) return;
-    if (event.key === 'Escape' && selected) { event.preventDefault(); event.stopPropagation(); closeCard(); }
+    if (isPageBack(event)) {
+      if (selected) { event.preventDefault(); event.stopPropagation(); closeCard(); }
+      return;
+    }
     if (selected && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); setPhotoIndex(i => (i + (event.key === 'ArrowRight' ? 1 : -1) + selected.photos.length) % selected.photos.length); }
   };
   return <section className="memory-atlas" data-visible-memory-ids={visiblePhotos.map(p=>p.id).join(",")} data-reduced-motion={reduced} data-highlight-ids={[...highlighted].join(",")} aria-label={translate("i18n.3dMemoryGlobe")} onKeyDown={onKeys}>
     <div className="atlas-heading"><div><p className="atlas-eyebrow">{translate("i18n.myTravels")}</p><h3>{translate("i18n.revisitThePlacesYouRemember")}</h3></div><span>{places.length}{' '}{translate("i18n.places")}{' '}{places.reduce((sum, p) => sum + p.photos.length, 0)}{' '}{translate("i18n.memories")}</span></div>
 
     <div className="atlas-layout">
-      <div className="atlas-stage" data-edit-item tabIndex={0} aria-label={translate("i18n.rotatable3dGlobeDoubleClickForControls")} {...editActivationProps(() => toggleEditor(setControlsOpen))} onKeyDown={e => { if (e.target === e.currentTarget && e.key === 'Enter') setControlsOpen(true); }}>
+      <div className="atlas-stage" data-edit-item tabIndex={0} aria-label={translate("i18n.rotatable3dGlobeDoubleClickForControls")} {...editActivationProps(() => toggleEditor(setControlsOpen))} onKeyDown={e => { if (e.target === e.currentTarget && e.key === 'Enter' && !isPageBack(e)) setControlsOpen(true); }}>
         <ContentCommand label={translate("i18n.editGlobeView")} run={() => setControlsOpen(true)} />
         {!failed && <Suspense fallback={null}><GlobeScene cameraPosition={cameraPosition} initialView={initialView} highlighted={highlighted} geography={geography} key={retry} places={places} selected={null} onSelect={choose} command={command} rotating={rotating} reduced={reduced} onInteract={stopRotation} onReady={readyScene} onFailure={failScene} /></Suspense>}
         {!ready && !failed && <ModelLoading />}

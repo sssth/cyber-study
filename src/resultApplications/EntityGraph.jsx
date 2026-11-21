@@ -182,7 +182,7 @@ export default function EntityGraph({items, matches, search, edges, editing, onO
             <defs>{['direct','contains'].map(kind=><marker key={kind} id={'graph-arrow-'+kind} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="none" stroke={colors[kind]}/></marker>)}</defs>
             {renderedPaths.map(({edge,d})=><path key={edge.id} data-relation={edge.kind} d={d} fill="none" stroke={colors[edge.kind]} strokeWidth="1.7" opacity={!selected||edge.from===selection||edge.to===selection?1:.2} strokeDasharray={edge.kind==='related'?'5 4':undefined} markerEnd={edge.kind==='related'?undefined:`url(#graph-arrow-${edge.kind})`}/>)}
           </svg>
-          {renderedNodes.map(item=>{const p=layout.positions.get(item.key);return <button key={item.key} className="entity-graph-node" data-relation-gesture onContextMenu={event => showRelations(event, item)} data-instant-selection aria-pressed={item.key===selection} data-dim={Boolean(selected&&!nearby.has(item.key))} title={item.title}
+          {renderedNodes.map(item=>{const p=layout.positions.get(item.key);return <button key={item.key} className="entity-graph-node" data-entity-key={item.key} data-relation-gesture onContextMenu={event => showRelations(event, item)} data-instant-selection aria-pressed={item.key===selection} data-dim={Boolean(selected&&!nearby.has(item.key))} title={item.title}
             style={{left:p.x,top:p.y,width:nodeWidth,height:nodeHeight}} onClick={()=>selectNode(item)} {...editActivationProps(()=>{
               if (!editing) { select(item.key); onEdit(item); }
             })}>
@@ -193,7 +193,7 @@ export default function EntityGraph({items, matches, search, edges, editing, onO
     <div className="entity-graph-detail-slot">
       {selected && <aside className="entity-graph-detail" aria-label={translate("i18n.linksToSelectedItem")}>
         <header>
-          <button type="button" className="entity-graph-detail-title" data-relation-gesture onContextMenu={event => showRelations(event, selected)} onClick={()=>onOpen(selected)}>
+          <button type="button" className="entity-graph-detail-title" data-entity-key={selected.key} data-relation-gesture onContextMenu={event => showRelations(event, selected)} onClick={()=>onOpen(selected)}>
             <strong>{selected.title}</strong><small>{translate(contentTypes[selected.type])}</small>
           </button>
         </header>
@@ -201,7 +201,7 @@ export default function EntityGraph({items, matches, search, edges, editing, onO
           {adjacent.length ? <ul>{adjacent.map(edge=>{
             const out=edge.from===selection, other=lookup.get(out?edge.to:edge.from);
             const label=edge.kind==='direct'?(out?translate("i18n.directChildren"):translate("i18n.directParents")):edge.kind==='contains'?(out?translate("i18n.contains"):translate("i18n.collection")):translate("i18n.link");
-            return <li key={edge.id}><button type="button" data-relation-gesture onContextMenu={event => showRelations(event, other)} onClick={()=>{selectNode(other);reveal(other.key);}}><small>{label} · {translate(contentTypes[other.type])}</small> {other.title}</button></li>;
+            return <li key={edge.id}><button type="button" data-entity-key={other.key} data-relation-gesture onContextMenu={event => showRelations(event, other)} onClick={()=>{selectNode(other);reveal(other.key);}}><small>{label} · {translate(contentTypes[other.type])}</small> {other.title}</button></li>;
           })}</ul>:<small>{translate("i18n.noLinkedItems")}</small>}
         </div>
       </aside>}

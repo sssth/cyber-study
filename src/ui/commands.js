@@ -1,6 +1,7 @@
 import { matchesShortcut } from '../data/shortcuts.js';
 
 export const commands = {
+  selectAll: { event: 'cyber-select-entities', shortcut: 'selectAll' },
   search: { event: 'cyber-toggle-search', shortcut: 'search' },
   create: { event: 'cyber-toggle-create', shortcut: 'createContent' },
   edit: { event: 'cyber-toggle-edit' },

@@ -38,11 +38,13 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   },
   version: '0.1.0',
   stage: 'desktop-skeleton',
+  deleteBooks: (ids, count) => ipcRenderer.invoke('books:delete-many', ids, count),
   deleteBook: (id) => ipcRenderer.invoke('books:delete', id),
   migrateLegacyBooks: (payload) => ipcRenderer.invoke('books:migrate-legacy', payload),
   listBooks: (options) => ipcRenderer.invoke('books:list', options),
   getBookImportState: () => ipcRenderer.invoke('books:import-state'),
   importBooks: (folder) => ipcRenderer.invoke('books:import', folder),
+  patchBook: (id, fields) => ipcRenderer.invoke('books:patch', id, fields),
   renameBook: (id, title) => ipcRenderer.invoke('books:rename', id, title),
   saveBookMarkdown: (book, previousContent) => ipcRenderer.invoke('books:save', book, previousContent),
   onBookImportProgress: (callback) => {

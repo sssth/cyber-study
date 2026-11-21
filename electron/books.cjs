@@ -256,6 +256,29 @@ function registerBooks(getWindow) {
     await atomicWrite(path.join(migrationDirectory, 'latest-report.json'), JSON.stringify(report, null, 2));
     return report;
   });
+  handle('delete-many', async (window, ids, count) => {
+    if (!Array.isArray(ids) || !ids.length || new Set(ids).size !== ids.length ||
+        ids.some(id => typeof id !== 'string' || !/^(file:[a-f0-9]{64}$|local:.+)/.test(id)) ||
+        !Number.isSafeInteger(count) || count < ids.length) throw new Error('只能删除已导入的书籍。');
+    if (deleting || ['selecting', 'scanning', 'processing'].includes(importState.phase)) throw new Error('请等待当前书库操作完成。');
+    deleting = true;
+    const deleted = [];
+    try {
+      await pendingSave;
+      for (const id of ids) await readBook(bookDirectory(id));
+      const { response } = await dialog.showMessageBox(window, {
+        type: 'warning', message: nativeText(window.webContents, 'i18n.bulkDeleteFinal', count),
+        detail: nativeText(window.webContents, 'i18n.nativeBookTrashDetail'),
+        buttons: [nativeText(window.webContents, 'i18n.cancel'), nativeText(window.webContents, 'i18n.delete')],
+        defaultId: 0, cancelId: 0
+      });
+      if (response !== 1) return { canceled: true };
+      for (const id of ids) { await shell.trashItem(bookDirectory(id)); deleted.push(id); }
+      return { deleted };
+    } catch (error) { return { deleted, error: error.message }; }
+    finally { deleting = false; }
+  });
+
   handle('delete', async (window, id) => {
     if (typeof id !== 'string' || !/^(file:[a-f0-9]{64}$|local:.+)/.test(id)) {
       throw new Error('只能删除已导入的书籍。');
@@ -305,6 +328,15 @@ function registerBooks(getWindow) {
     }
     return publishBook(directory, { id, title, author, source, createdAt:book.createdAt ?? book.importedAt }, content);
   }
+  handle('patch', async (_window, id, fields) => {
+    if (deleting || ['selecting', 'scanning', 'processing'].includes(importState.phase)) throw new Error('请等待当前书库操作完成。');
+    if (typeof id !== 'string' || !/^(file:|local:)/.test(id) || !fields || typeof fields !== 'object' ||
+        !Object.keys(fields).length || Object.keys(fields).some(key => !['title', 'author'].includes(key)) ||
+        Object.values(fields).some(value => typeof value !== 'string' || value.length > 500) ||
+        ('title' in fields && !fields.title.trim())) throw new Error('书名或作者无效。');
+    await pendingSave;
+    return renameBook(bookDirectory(id), fields.title?.trim(), fields.author);
+  });
   handle('rename', (_window, id, title) => {
     const fields = typeof title === 'object' && title ? title : null;
     if (fields) title = fields.title;

@@ -10,7 +10,7 @@ export default function ManualOperations({ shortcuts }) {
       <ul>
         <li><strong>{translate("i18n.switchPanels")}</strong></li>
         <li><strong>{translate("i18n.returnToStudy")}</strong></li>
-        <li><strong><kbd>Esc</kbd>{' '}{translate("i18n.goBack")}</strong></li>
+        <li><strong><kbd>{manualShortcutLabel(shortcuts.back) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.goBack")}</strong></li>
       </ul>
     </section>
     <section>
@@ -52,6 +52,10 @@ export default function ManualOperations({ shortcuts }) {
           ? <>{translate("i18n.press")}{' '}<kbd>{manualShortcutLabel(shortcuts.showOnGlobe)}</kbd></>
           : translate("i18n.assignAKeyInKeyboardShortcutsThen2")}{' '}{translate("i18n.openTheGlobeAndShowMemoryPins2")}</li>
       </ul>
+    </section>
+    <section>
+      <h3><kbd>{shortcuts.selectAll?.join(' / ')}</kbd>{' '}{translate('i18n.selectEntities')}</h3>
+      <p>{translate('i18n.selectionGuide')}</p>
     </section>
     <section>
       <h3><kbd>{manualShortcutLabel(shortcuts.snapshot) ?? translate("i18n.unassigned")}</kbd>{' '}{translate("i18n.saveASnapshotOfItems")}</h3>

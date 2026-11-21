@@ -11,14 +11,13 @@ import { ContentCommand } from '../ContentCommands.jsx';
 import { useSearchCount, useSearchScope, SearchStatus } from '../../search/useSearchScope.jsx';
 import { matchesItem } from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
-import { matchesShortcut } from '../../data/shortcuts.js';
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { memoPosition, mergeMemoChanges, memoSize, clickedTodo } from './memoLayout.js';
 import { ActionWorkspace, FeaturePanel } from '../ui.jsx';
 import { contentDataChangeEvent, createId, loadSpaceData, readImageFile, saveContentData } from '../../data/spaceStorage.js';
 
 
-export default function MemoBoard({ onClose, shortcuts, editItem }) {
+export default function MemoBoard({ onClose, editItem }) {
   const [view, setView] = useNavigationState('memo','view','board');
   const [showOnBoard, setShowOnBoard] = useState(true);
   const [stickyMode, setStickyMode] = useState('text');
@@ -26,7 +25,7 @@ export default function MemoBoard({ onClose, shortcuts, editItem }) {
   const [items, setItems] = useState(() => loadSpaceData('memo', []));
   const [editingMemo, setMemo] = useState(() => editItem ? items.find(item => item.id === editItem.id) : null);
   const setEditingMemo = value => { setMemo(value); if (!value && editItem) onClose(); };
-  const search=useSearchScope({id:'memo',label:translate("i18n.notesAndToDos"),priority:10,filters:[{key:'type',label:translate("i18n.type"),options:[['memo',translate("i18n.note")],['todo',translate("i18n.toDo")]]},{key:'status',label:translate("i18n.toDoStatus"),options:[['open',translate("i18n.incomplete")],['done',translate("i18n.completed")]]}]});
+  const search=useSearchScope({id:'memo',label:translate("i18n.memoBoard"),priority:10,filters:[{key:'type',label:translate("i18n.type"),options:[['memo',translate("i18n.note")],['todo',translate("i18n.toDo")]]},{key:'status',label:translate("i18n.toDoStatus"),options:[['open',translate("i18n.incomplete")],['done',translate("i18n.completed")]]}]});
 
   useEffect(() => {
     const refresh = event => {
@@ -96,6 +95,7 @@ export default function MemoBoard({ onClose, shortcuts, editItem }) {
   const onPointerDown = (event, item, resize = false) => {
     if (event.button !== 0) return;
     const element = event.currentTarget.closest('.memo-item');
+    if (element.hasAttribute('data-bulk-selected')) return;
     draggingRef.current = {
       item, baseline: items, next: null, resize, startX: event.clientX, startY: event.clientY,
       x: element.offsetLeft, y: element.offsetTop, width: element.offsetWidth, height: element.offsetHeight
@@ -168,12 +168,7 @@ export default function MemoBoard({ onClose, shortcuts, editItem }) {
             <input ref={imageInputRef} aria-label={translate("i18n.chooseImage")} type="file" accept="image/*" disabled={adding} onChange={event => setImageFile(event.target.files?.[0] || null)} />
           </label> : <label>{translate("i18n.text")}<textarea rows="4" value={memoType === 'todo' ? todoText : stickyText}
             placeholder={memoType === 'todo' ? translate("i18n.enterAToDo") : translate("i18n.enterYourNote")}
-            onChange={event => memoType === 'todo' ? setTodoText(event.target.value) : setStickyText(event.target.value)}
-            onKeyDown={event => {
-              if (memoType !== 'todo' || event.nativeEvent.isComposing || !matchesShortcut(event, shortcuts.addTodo)) return;
-              event.preventDefault();
-              if (!event.repeat) addTodo();
-            }} /></label>}
+            onChange={event => memoType === 'todo' ? setTodoText(event.target.value) : setStickyText(event.target.value)} /></label>}
           <label><input type="checkbox" checked={showOnBoard} onChange={event => setShowOnBoard(event.target.checked)} />{translate("i18n.showOnBoard")}</label>
           <label>{translate("i18n.color")}<select value={tone} disabled={adding} onChange={event => setTone(event.target.value)}><option value="violet">{translate("i18n.purple")}</option><option value="cyan">{translate("i18n.cyan")}</option><option value="amber">{translate("i18n.amber")}</option></select></label>
           {error && <p role="alert" className="form-error">{translateError(error)}</p>}
@@ -182,7 +177,7 @@ export default function MemoBoard({ onClose, shortcuts, editItem }) {
           disabled={adding || (memoType === 'sticky' && stickyMode === 'image' ? !imageFile : !(memoType === 'todo' ? todoText : stickyText).trim())}>{adding ? translate("i18n.adding") : translate("i18n.add")}</button></WorkspaceActions>
       </div></ActionWorkspace>
       {error && <p className="form-error">{translateError(error)}</p>}
-      <SearchStatus id="memo" label={translate("i18n.notesAndToDos")}/>
+      <SearchStatus id="memo" label={translate("i18n.memoBoard")}/>
       {items.length>0&&!items.some(item=>matchesItem(item.type==='todo'?'todo':'memo',item,search))&&<></>}
       {editor}
       <div className={view === 'board' ? "memo-board" : `memo-all-list memo-collection ${view === 'todo' ? 'memo-todo-collection' : 'memo-note-collection'}`} data-scroll-memory={view === 'board' ? 'memo-canvas' : undefined} ref={boardRef} onPointerMove={onPointerMove} onPointerUp={finishDrag} onPointerCancel={finishDrag}>

@@ -1456,7 +1456,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
   gap: 12px;
   align-content: start;
 }
-.entity-catalog > button {
+:is(.entity-catalog, .catalog-column-items) > button {
   display: grid;
   align-content: center;
   gap: 8px;
@@ -1469,7 +1469,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
   border: 1px solid rgba(115, 202, 215, .25);
   border-radius: 10px;
 }
-.entity-catalog > button:is(:hover, :focus-visible) { border-color: var(--cyan, #72dce8); }
+:is(.entity-catalog, .catalog-column-items) > button:is(:hover, :focus-visible) { border-color: var(--cyan, #72dce8); }
 .entity-catalog strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .entity-catalog small { color: var(--muted); font-size: 12px; }
 
@@ -1502,3 +1502,8 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .entity-graph-detail-title small { flex:none; }
 .entity-graph-relations { min-height:0; overflow:auto; overscroll-behavior:contain; }
 .entity-graph-detail ul { display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; list-style:none; }
+
+.entity-selection-status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 21000; display: flex; gap: 12px; align-items: center; background: #17323c; color: white; padding: 8px 14px; border-radius: 8px; }
+.bulk-entity-list { max-height: 8em; overflow: auto; }
+
+[data-bulk-selected] { outline: 2px solid #83cbd1; outline-offset: -2px; }

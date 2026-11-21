@@ -1,7 +1,9 @@
 import { translate } from '../i18n/index.js';
 import { useState } from 'react';
 
-import { shortcutKey, translateShortcutLabel } from '../data/shortcuts.js';
+import { defaultShortcuts, shortcutKey, translateShortcutLabel } from '../data/shortcuts.js';
+
+const displayKey = key => key.replace(/^Shift\+Cmd\+/, 'Command+Shift+').replace(/^Cmd\+/, 'Command+');
 
 export default function ShortcutSettings({ groups, bindings, onChange, onBack }) {
   const [recording, setRecording] = useState(null);
@@ -12,11 +14,6 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
     if (!key || event.repeat) return;
     event.preventDefault();
     event.stopPropagation();
-
-    if (id === 'search' && key === 'Esc') {
-      setMessage(["i18n.escGoesBackAndCannotBeAssigned"]);
-      return;
-    }
 
     const globalActions = groups.find(([, scope]) => scope === 'global')[2];
     const isGlobal = action => globalActions.some(([actionId]) => actionId === action);
@@ -55,14 +52,14 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
                   {(keys.length ? keys : [translate("i18n.assignKey")]).map((key, index) => {
                     const active = recording?.id === id && recording.index === index;
                     return (
-                      <button type="button" key={index} aria-label={`${name} · ${active ? translate("i18n.pressAKey") : key}`}
+                      <button type="button" key={index} aria-label={`${name} · ${active ? translate("i18n.pressAKey") : displayKey(key)}`}
                         onBlur={() => setRecording(null)}
                         onClick={() => {
                           setMessage(null);
                           setRecording(active ? null : { id, index });
                         }}
                         onKeyDown={active ? event => record(event, id, index, actions) : undefined}>
-                        {active ? translate("i18n.pressAKey2") : key}
+                        {active ? translate("i18n.pressAKey2") : displayKey(key)}
                       </button>
                     );
                   })}
@@ -79,8 +76,7 @@ export default function ShortcutSettings({ groups, bindings, onChange, onBack })
       ))}
       <button type="button" onClick={() => {
         setMessage(null);
-        onChange(Object.fromEntries(groups.flatMap(([, , actions]) =>
-          actions.map(([id, , defaults]) => [id, defaults]))));
+        onChange(defaultShortcuts(groups));
       }}>{translate("i18n.restoreDefaultShortcuts")}</button>
     </section>
   );

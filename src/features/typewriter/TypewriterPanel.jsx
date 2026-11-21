@@ -4,6 +4,7 @@ import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import { useNavigationState } from '../../ui/useNavigationState.js';
+import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../../search/useSearchScope.jsx';
@@ -66,6 +67,7 @@ function makePhoto(work, heading, paper) {
 }
 
 export default function TypewriterPanel({ onClose, importedBooks = [], initialSource = null, editItem }) {
+  const isPageBack = usePageBackMatcher();
   const search=useSearchScope({id:'typewriter',label:translate("i18n.typingWork"),priority:10,filters:[{key:'status',label:translate("i18n.typingStatus"),options:[['not_started',translate("i18n.notStarted")],['in_progress',translate("i18n.inProgress")],['completed',translate("i18n.completed")]]}]});
   const [showCompleted, setShowCompleted] = useNavigationState('typewriter','showCompleted',false);
   const [writing, setWriting] = useState(false);
@@ -78,6 +80,26 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   const setEditorOpen = open => { setOpen(open); if (!open && editItem) onClose(); };
   const order = useContentOrder();
   const [works, setWorks] = useState(() => loadSpaceData('typewriter', []));
+  useEffect(() => {
+    const refresh = event => {
+      if (event.detail !== 'typewriter') return;
+      const records = loadSpaceData('typewriter', []);
+      setWorks(records);
+      setWork(current => current ? records.find(item => item.id === current.id) ?? null : null);
+      if (!draftRef.current) return;
+      const current = records.find(item => item.id === draftRef.current);
+      if (current) { setSource(previous => ({ ...previous, ...current })); setTyped(current.typedText ?? ''); }
+      else {
+        latestSave.current = null;
+        setWriting(false);
+        setOpen(false);
+        setDraftId(null);
+      }
+    };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, []);
+
   useSearchCount('typewriter',works.filter(item=>matchesItem('typing_work',item,search)).length);
   const books = importedBooks;
   const [bookId,setBookId]=useState(editItem?.bookId || initialSource?.bookId || books[0]?.id || '');
@@ -210,7 +232,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   };
   useResultSource({ scopeId: writing ? 'typewriter-original' : 'typewriter', priority:10,detail:Boolean(writing || work),label:translate("i18n.typingWork"),matches:resultEntities('typing_work',writing?[{...works.find(item=>item.id===draftId),...selected,title:storedTitle,...CyberContentSchema.copyState(selected.text,typed),id:draftId}]:work?[work]:works.filter(item=>(item.status==='completed'||item.complete===true)===showCompleted&&matchesItem('typing_work',item,search)))});
   const leaveWriting = () => {if(save())setWriting(false);};
-  if (writing) return createPortal(<section data-command-scope="typewriter-original" className="typewriter-immersive" role="dialog" aria-modal="true" aria-label={translate("i18n.immersiveTyping")} onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();leaveWriting();}}}>
+  if (writing) return createPortal(<section data-entity-key={draftId ? `typing_work:${draftId}` : undefined} data-command-scope="typewriter-original" className="typewriter-immersive" role="dialog" aria-modal="true" aria-label={translate("i18n.immersiveTyping")} onKeyDown={event=>{if(isPageBack(event)){event.preventDefault();event.stopPropagation();leaveWriting();}}}>
     <header><h2>{selectedTitle}</h2><button type="button" onClick={leaveWriting}>{translate("i18n.backToTypingLibrary")}</button></header>
     <main>
         <div className="copying-spread">
@@ -281,7 +303,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
         <h3>{translate("i18n.createWorkImage")}</h3>
         <label>{translate("i18n.imageTitle")}{' '}<input value={heading} onChange={(event) => setHeading(event.target.value)} /></label>
         <label>{translate("i18n.paperColor")}{' '}<select value={paper} onChange={(event) => setPaper(event.target.value)}><option value="#f6e8ca">{translate("i18n.cream")}</option><option value="#fbf8ef">{translate("i18n.warmWhite")}</option></select></label>
-        <img className="preview-image" src={makePhoto(work, heading, paper)} alt={translate("i18n.workImagePreview")} />
+        <img data-entity-key={`typing_work:${work.id}`} className="preview-image" src={makePhoto(work, heading, paper)} alt={translate("i18n.workImagePreview")} />
         <div className="card-actions">
           <button type="button" onClick={() => deliver('download')}>{translate("i18n.downloadJpg")}</button>
           <button type="button" onClick={() => deliver('diary')}>{translate("i18n.saveToDiary")}</button>

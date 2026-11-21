@@ -17,18 +17,18 @@ export default function ManualOverview() {
       </ul>
     </section>
     <section>
-      <h3>{translate("i18n.discPlayerAndScreen")}</h3>
+      <h3>{translate("i18n.discPlayer")}</h3>
       <ul><li>{translate("i18n.addFilmsToYourStudyUsingA")}</li></ul>
     </section>
     <section>
-      <h3>{translate("i18n.diary")}</h3>
+      <h3>{translate("i18n.journal")}</h3>
       <ul>
         <li>{translate("i18n.todaySEntryIsWhereYouRecord")}</li>
         <li>{translate("i18n.readingModeLetsYouBrowsePastDiary")}</li>
       </ul>
     </section>
     <section>
-      <h3>{translate("i18n.notesAndToDos")}</h3>
+      <h3>{translate("i18n.memoBoard")}</h3>
       <ul>
         <li>{translate("i18n.theMemoBoardShowsNotesAndTo")}</li>
         <li>{translate("i18n.useNotesToJotDownIdeas")}</li>
@@ -57,20 +57,20 @@ export default function ManualOverview() {
       </ul>
     </section>
     <section>
-      <h3>{translate("i18n.personalKnowledgeBase")}</h3>
+      <h3>{translate("i18n.knowledgeBase")}</h3>
       <ul>
         <li>{translate("i18n.allItemsListsTheItemsFromAcross")}</li>
         <li>{translate("i18n.theRelationshipGraphShowsTheLinksBetween")}</li>
       </ul>
     </section>
     <section>
-      <h3>{translate("i18n.studyCat")}</h3>
+      <h3>{translate("i18n.pet")}</h3>
       <ul>
         <li>{translate("i18n.clickTheCatToSeeItsMood")}</li>
       </ul>
     </section>
     <section>
-      <h3>{translate("i18n.studyPlant")}</h3>
+      <h3>{translate("i18n.plant")}</h3>
       <ul>
         <li>{translate("i18n.clickThePlantToSeeItsMoisture")}</li>
       </ul>

@@ -110,21 +110,6 @@ button.active {
   gap: 6px;
 }
 
-.interaction-buttons [role="switch"] {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.interaction-buttons .switch-state {
-  color: var(--muted);
-}
-
-.interaction-buttons [aria-checked="true"] .switch-state {
-  color: var(--cyan);
-}
-
 .reader-kicker {
   margin: 0 0 4px;
   color: var(--muted);

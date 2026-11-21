@@ -5,8 +5,8 @@ const roomActions = [
   ['desk', 'i18n.desk', 'i18n.openTheKnowledgeBaseAndWorkspace'],
   ['window', 'i18n.window', 'i18n.toggleOutdoorRain'], ['lamp', 'i18n.lamp', 'i18n.toggleLights'],
   ['knowledge', 'i18n.knowledgeBase', 'i18n.openTheKnowledgeBaseAndWorkspace'],
-  ['cat', 'i18n.cat', 'i18n.clickToViewTheCatDoubleClick'],
-  ['crystal', 'i18n.crystalChat', 'i18n.openAiChat'],
+  ['cat', 'i18n.pet', 'i18n.clickToViewTheCatDoubleClick'],
+  ['crystal', 'i18n.aiChat', 'i18n.openAiChat'],
   ['plant', 'i18n.plant', 'i18n.clickToViewThePlantDoubleClick']
 ].map(([id, label, description]) => ({ id, label, description }));
 const [library, ...panels] = features;

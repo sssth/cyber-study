@@ -36,8 +36,9 @@ export function bookReaderSettings(state, bookId) {
 export function saveReaderState(state) {
   try {
     globalThis.localStorage?.setItem(READER_STORAGE_KEY, JSON.stringify(state));
+    return true;
   } catch {
-    // 阅读进度保存失败时不打断当前阅读。
+    return false;
   }
 }
 

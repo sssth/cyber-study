@@ -2,8 +2,8 @@ import { entityTypes } from './registry.js';
 import { contentDataChangeEvent } from '../data/spaceStorage.js';
 import { translate } from '../i18n/index.js';
 import useContentOrder from '../ui/useContentOrder.js';
-import { orderCatalog } from '../data/contentOrder.js';
-import { useEffect, useMemo, useState } from 'react';
+import { orderCatalog, orderType, reorderVisible } from '../data/contentOrder.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { contentTypes } from './registry.js';
 import { readCatalog } from './readCatalog.js';
 import { hasSearch, queryEntities } from '../search/searchCore.js';
@@ -24,7 +24,11 @@ const createTypes = Object.entries(entityTypes).filter(([, definition]) => defin
 
 
 export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate, onClose, ...editorProps }) {
-  const [view,setView] = useNavigationState('entity-catalog','view','list');
+  const [view,setView] = useNavigationState('entity-catalog','view','grouped', { preferInitial: true });
+  const [columnOrder, setColumnOrder] = useNavigationState('entity-catalog', 'columns', Object.keys(contentTypes));
+  const [columnSlots, setColumnSlots] = useNavigationState('entity-catalog', 'columnSlots', {});
+  const [dragColumn, setDragColumn] = useState(null);
+  const [dropColumn, setDropColumn] = useState(null);
   const [catalog, setCatalog] = useState(null);
   const [revision, setRevision] = useState(0);
   const editingOpen = Boolean(editing);
@@ -56,22 +60,90 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   const order = useContentOrder();
   const ordered = useMemo(() => orderCatalog(catalog ?? [], order), [catalog,order]);
   const results = useMemo(() => hasSearch(search) ? queryEntities(ordered, search) : ordered, [ordered,search]);
+  const grouped = view === 'grouped';
+  const layoutOrder = useMemo(() => {
+    const slots = { ...order.slots };
+    for (const [type, positions] of Object.entries(columnSlots)) {
+      slots[type] = { ...slots[type], ...positions };
+    }
+    return { ...order, slots };
+  }, [order, columnSlots]);
+  const reorderCard = useCallback((type, siblings, source, target) => {
+    const next = reorderVisible(layoutOrder, type, siblings, source, target);
+    const overrides = { ...columnSlots[type] };
+    for (const item of siblings) {
+      const key = type + ':' + item.id;
+      if (next.slots[type][key] !== layoutOrder.slots[type]?.[key]) overrides[key] = next.slots[type][key];
+    }
+    setColumnSlots(previous => ({ ...previous, [type]: overrides }));
+  }, [layoutOrder, columnSlots, setColumnSlots]);
+  const groups = useMemo(() => {
+    const byType = new Map();
+    if (grouped) for (const item of results) {
+      if (!byType.has(item.type)) byType.set(item.type, []);
+      byType.get(item.type).push(item);
+    }
+    return byType;
+  }, [results, grouped]);
+  const types = [...new Set([...columnOrder, ...Object.keys(contentTypes)])];
+  function finishDrag() {
+    setDragColumn(null);
+    setDropColumn(null);
+  }
+  function moveColumn(target) {
+    if (dragColumn && dragColumn !== target && document.body.hasAttribute('data-item-editing')) {
+      const next = types.slice();
+      next.splice(next.indexOf(dragColumn), 1);
+      next.splice(types.indexOf(target), 0, dragColumn);
+      setColumnOrder(next);
+    }
+    finishDrag();
+  }
   const edges = useMemo(() => view === 'graph' ? graphEdges(catalog ?? [], loadSpaceData('content-relations', [])) : [], [view,catalog,revision]);
   useSearchCount(searchId, catalog ? results.length : null);
-  const resultSet = { priority: 55, scopeId: searchId, matches: results, loading: !catalog };
+  const resultSet = { allowGroupRelations: true, priority: 55, scopeId: searchId, matches: results, loading: !catalog };
   useResultSource(resultSet);
 
-  return <FeaturePanel scopeId="catalog" hasMenu wide title="i18n.personalKnowledgeBase" scrollContext={view} onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
-    <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")]]} value={view} onChange={setView}/>
+  function renderCard(item) {
+    return <button type="button" data-item-open key={item.key} title={item.title} onClick={() => onOpen(item)}>
+        <ContentActions surface="button" type={item.type} id={item.id} title={item.title} preview={false} sortable orderItem={item} onReorder={grouped ? reorderCard : undefined} />
+        <ContentCommand label={translate("i18n.edit0", translate(contentTypes[item.type]))} run={() => onEdit(item)} />
+        <strong>{item.title}</strong>{!grouped && <small>{translate(contentTypes[item.type])}</small>}
+      </button>;
+  }
+
+  return <FeaturePanel scopeId="catalog" hasMenu wide title="i18n.knowledgeBase" scrollContext={view} onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
+    <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['grouped',translate('i18n.groupByType')],['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")]]} value={view} onChange={setView}/>
     {createTypes.map(([type, definition]) => <ContentCommand key={type} kind="create" label={translate(definition.create === true ? definition.label : definition.create)} run={() => onCreate(type)} />)}
     {view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :
-    <section className="entity-catalog" aria-label={translate("i18n.items")}>
+    <section className={grouped ? "entity-catalog catalog-columns" : "entity-catalog"} data-scroll-memory={grouped ? "catalog-columns" : undefined} aria-label={translate("i18n.items")}>
     {!catalog ? <p role="status">{translate("i18n.loadingItems")}</p> : <>
-      {results.map(item => <button type="button" data-item-open key={item.key} title={item.title} onClick={() => onOpen(item)}>
-        <ContentActions surface="button" type={item.type} id={item.id} title={item.title} preview={false} sortable orderItem={item} />
-        <ContentCommand label={translate("i18n.edit0", translate(contentTypes[item.type]))} run={() => onEdit(item)} />
-        <strong>{item.title}</strong><small>{translate(contentTypes[item.type])}</small>
-      </button>)}
+      {grouped ? types.filter(type => groups.has(type)).map(type => (
+        <section className="catalog-column" key={type} aria-labelledby={`catalog-column-${type}`}
+          data-column-target={dropColumn === type || undefined}
+          onDragOver={event => {
+            if (dragColumn && dragColumn !== type) {
+              event.preventDefault();
+              setDropColumn(type);
+            }
+          }}
+          onDrop={event => {
+            if (!dragColumn) return;
+            event.preventDefault();
+            moveColumn(type);
+          }}>
+          <h3 id={`catalog-column-${type}`} draggable onDragEnd={finishDrag}
+            onDragStart={event => {
+              if (!document.body.hasAttribute('data-item-editing')) { event.preventDefault(); return; }
+              event.dataTransfer.setData('application/x-study-catalog-column', type);
+              event.dataTransfer.effectAllowed = 'move';
+              setDragColumn(type);
+            }}>{translate(contentTypes[type])}</h3>
+          <div className="catalog-column-items" data-scroll-memory={`catalog-items-${type}`}>
+            {orderType(groups.get(type), type, layoutOrder).map(renderCard)}
+          </div>
+        </section>
+      )) : results.map(renderCard)}
     </>}
     </section>}
     {editing && <CatalogEditor key={editing.key} item={editing} catalog={catalog ?? []} books={books} {...editorProps} onClose={() => onEdit(null)}/>}

@@ -39,6 +39,12 @@ function movieFields(movie) { return { ...movieDraft, ...movie, region: splitMov
 
 export default function MovieCollection({ onClose, editItem }) {
   const [movies, setMovies] = useState(() => loadSpaceData('movies', []));
+  useEffect(() => {
+    const refresh = event => { if (event.detail === 'movies') setMovies(loadSpaceData('movies', [])); };
+    window.addEventListener('cyber-bulk-updated', refresh);
+    return () => window.removeEventListener('cyber-bulk-updated', refresh);
+  }, []);
+
   const filmStrip = useRef(null);
   useEffect(() => {
     const strip = filmStrip.current;
@@ -266,9 +272,9 @@ export default function MovieCollection({ onClose, editItem }) {
       </WorkspaceActions>
     </form></ActionWorkspace>);
   if (editItem) return editor;
-  return <FeaturePanel scopeId="movie" wide title="i18n.discPlayerAndScreen" kicker="Movie Shelf" onClose={onClose}>
+  return <FeaturePanel scopeId="movie" wide title="i18n.discPlayer" kicker="Movie Shelf" onClose={onClose}>
     {editor}
-    <div className="movie-collection" data-editor-open={editorOpen}>
+    <div className="movie-collection">
 
       <div className="movie-posters" data-scroll-memory="film-strip" ref={filmStrip}>
         {visibleMovies.map((movie) => {

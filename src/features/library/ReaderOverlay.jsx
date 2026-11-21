@@ -5,7 +5,7 @@ import { translate, translateError } from '../../i18n/index.js';
 import { contentElements } from '../../ui/contentTargets.js';
 import { persistExcerptChange } from './excerptPersistence.js';
 import useEditSession from '../../ui/useEditSession.js';
-import useEscapeBack, { blocksPageBack } from '../../ui/useEscapeBack.js';
+import useEscapeBack, { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import KnowledgeWorkspace from './KnowledgeWorkspace.jsx';
 import { DisplayMenuToggle, DisplayCloseButton } from '../../ui/DisplayControls.jsx';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
@@ -60,6 +60,7 @@ function ReaderOverlay({
   bookLoadWarnings = [],
   onNoteCreated = () => {}
 }) {
+  const isPageBack = usePageBackMatcher();
   const [mode, setMode] = useState('library');
   const [libraryView,setLibraryView] = useNavigationState('reader','libraryView',['excerpt','annotation'].includes(navigationItem?.type)?'excerpts':'all', { preferInitial:Boolean(navigationItem) });
   const [pagedChapter,setPagedChapter]=useState(null);
@@ -304,21 +305,18 @@ function ReaderOverlay({
     element.scrollLeft = Math.max(0,Math.min(max,(spread + direction) * element.clientWidth));
   };
 
-  useEscapeBack(event => {
-    if (event.repeat) return;
+  useEscapeBack(() => {
     if (selectionQuote || selectedExcerpt) dismissNote();
     else if (paged) changeReadingMode(false);
     else if (mode === 'reading') showLibrary();
     else closeOverlay();
   }, {
-    matches: event => matchesShortcut(event, shortcuts.readerBack),
-    blocked: event => (mode === 'library' && libraryView === 'excerpts') || savingNote || blocksPageBack(event) ||
-      (event.key !== 'Escape' && typingTarget(event.target))
+    blocked: event => (mode === 'library' && libraryView === 'excerpts') || savingNote || blocksPageBack(event)
   });
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
+      if (event.defaultPrevented || isPageBack(event) || document.querySelector('dialog[open]')) return;
       if (!paged || typingTarget(event.target)) return;
       const direction = matchesShortcut(event, shortcuts.previousPage) ? -1
         : matchesShortcut(event, shortcuts.nextPage) ? 1 : 0;
@@ -615,7 +613,7 @@ function ReaderOverlay({
   }
 
   return (
-    <section data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.localReader")}
+    <section data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.library")}
       onDoubleClick={event => {
         if (!selectedExcerpt || savingNote || event.defaultPrevented ||
             event.target.closest('button, input, select, textarea, a, [contenteditable]')) return;
@@ -646,7 +644,7 @@ function ReaderOverlay({
             {mode === 'reading' && <>
               <button type="button" disabled={savingNote} aria-pressed={paged} onClick={() => changeReadingMode(!paged)}>{paged ? translate("i18n.exitFullScreenReading") : translate("i18n.fullScreenReading")}</button>
               {paged&&<button type="button" className="reader-fullscreen-close" aria-label={translate("i18n.close")} disabled={savingNote} onClick={closeOverlay}>×</button>}
-              <button type="button" onClick={showLibrary}>{translate("i18n.bookshelf")}</button>
+              <button type="button" onClick={showLibrary}>{translate("i18n.library")}</button>
             </>}
 
           </div>
@@ -793,7 +791,7 @@ function ReaderOverlay({
                 const fragments=retainedRanges?contiguousReadingRanges(retainedRanges.get(block.id)||[]):[null];
                 return fragments.map(fragment=><Element key={`${block.id}:${fragment?.start??0}`} data-block={block.id} data-chapter-start={block.id===chapterByBlock.get(block.id)||undefined} tabIndex={-1}>
                   {block.prefix}
-                  {renderBlockParts(block, highlights.get(block.id) ?? [], excerpts, openExcerpt, readingHighlights.get(block.id) ?? [], fragment?[fragment]:null)}
+                  {renderBlockParts(block, highlights.get(block.id) ?? [], excerpts, openExcerpt, readingHighlights.get(block.id) ?? [], fragment?[fragment]:null, isPageBack)}
                 </Element>);
               })}
               {paged&&<div data-reader-padding hidden aria-hidden="true"/>}
@@ -863,7 +861,7 @@ function loadReaderNotes() {
   return loadKnowledge().notes;
 }
 
-function renderBlockParts(block, ranges, excerpts, onOpen, searchRanges = [], retained = null) {
+function renderBlockParts(block, ranges, excerpts, onOpen, searchRanges, retained, isPageBack) {
   let offset = 0;
   return block.parts.map((part, index) => {
     const start = offset;
@@ -903,7 +901,7 @@ function renderBlockParts(block, ranges, excerpts, onOpen, searchRanges = [], re
           onOpen(keys, event);
         }}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ' || event.key === 'F2') {
+          if (!isPageBack(event) && (event.key === 'Enter' || event.key === ' ' || event.key === 'F2')) {
             event.preventDefault();
             onOpen(keys, event);
           }
