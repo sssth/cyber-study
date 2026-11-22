@@ -1,3 +1,4 @@
+import useActivityTime from '../../ui/useActivityTime.js';
 import { translate, translateError } from '../../i18n/index.js';
 import { persistExcerptChange } from './excerptPersistence.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -13,7 +14,7 @@ import ContentActions from '../ContentActions.jsx';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FeaturePanel, ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
-import ExcerptAnnotations from './ExcerptAnnotations.jsx';
+import ExcerptAnnotations, { ExcerptTypeField } from './ExcerptAnnotations.jsx';
 import { parseMarkdownContent } from './markdownReader.js';
 import { highlightRanges, indexChapters } from './readerPosition.js';
 import { loadKnowledge, groupExcerpts, excerptAppearance, excerptTypes, excerptKey } from './knowledgeStore.js';
@@ -61,6 +62,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   }, [detailKey, editItem]);
   const editingEntry=entries.find(e=>e.key===editKey);
   const detail = entries.find((entry) => entry.key === detailKey);
+  useActivityTime('reading', !suspended && Boolean(detail));
   useResultSource({ scopeId: 'knowledge', priority:shelfMenu?40:10,enabled:!suspended&&!detail,matches:resultEntities('excerpt',filtered.map(({note,chapter,items})=>({...note,chapterTitle:chapter,notes:items})))});
 
   function mutateExcerpt(note, selection) {
@@ -82,6 +84,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
 
   const editor = (<ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editExcerpt")} open={Boolean(editingEntry)} onOpenChange={open=>{if(!open)setEditKey(null);}}>
       {editingEntry&&<><WorkspaceFields><blockquote className="excerpt-edit-preview">{editingEntry.note.quote}</blockquote><p>{[editingEntry.note.bookTitle,editingEntry.chapter].filter(Boolean).join(' · ')}</p>
+      <ExcerptTypeField note={editingEntry.note} saving={editBusy} onChange={() => setRevision(v => v + 1)} onError={setEditError} />
       <button type="button" onClick={()=>{setEditKey(null);onStartCopy?.({bookId:editingEntry.note.bookId,bookTitle:editingEntry.note.bookTitle,chapterTitle:editingEntry.chapter||translate("i18n.excerpt"),text:editingEntry.note.quote});}}>{translate("i18n.startTypingPractice")}</button>
       <button type="button" disabled={!editingEntry.source} onClick={()=>{setRangeEditing(true);setDetailKey(editKey);setLocalEditKey(null);}}>{translate("i18n.adjustExcerptRange")}</button>
       {editError&&<p role="alert">{translateError(editError)}</p>}

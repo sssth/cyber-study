@@ -1,3 +1,4 @@
+import useActivityTime from '../../ui/useActivityTime.js';
 import { formatDate, translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
@@ -76,6 +77,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   const editFromBook = useRef(false);
 
   const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write', { preferInitial:navigationItem?.type === 'diary' });
+  useActivityTime('diary', mode === 'write' || Boolean(editItem));
   const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:translate("i18n.mood"),options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
   const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);

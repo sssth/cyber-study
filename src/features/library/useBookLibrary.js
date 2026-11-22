@@ -1,3 +1,4 @@
+import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteLegacyBook, loadBooks } from './bookStore.js';
 
@@ -74,6 +75,7 @@ export default function useBookLibrary() {
   const removeBook = useCallback(id => {
     if (loading.current) deletedDuringLoad.current.add(id);
     setBooks(current => current.filter(book => book.id !== id));
+    removeEntityRelations('book:' + id);
   }, []);
 
   return { books, warnings, updateBooks, removeBook };

@@ -45,24 +45,34 @@ export default function ExcerptAnnotations({ notes, annotationId, onChange, onDe
       setDraft('');
       setAdding(false);
     })}>{translate("i18n.saveAnnotation")}</button><button type="button" onClick={() => setAdding(false)}>{translate("i18n.cancel")}</button></>}
-    <div className="excerpt-edit-actions">
-      <label className="excerpt-type-setting">
-        {translate("i18n.type")}
-        <select aria-label={translate("i18n.excerptType")} disabled={saving} value={excerptAppearance(notes[0]).excerptType}
-          onChange={event => {
-            const excerptType = event.target.value;
-            if (excerptType === 'hidden' &&
-                !window.confirm(translate("i18n.hiddenMarkersDisappearFromTheTextYou"))) return;
-            mutate(() => {
-              updateExcerptAppearance(notes[0], { excerptType });
-              if (excerptType === 'hidden') onHide?.();
-            });
-          }}>
-          {Object.entries(excerptTypes).map(([type, label]) => <option key={type} value={type}>{translate(label)}</option>)}
-        </select>
-      </label>
-      {onDeleteExcerpt && <button type="button" disabled={saving} onClick={onDeleteExcerpt}>{translate("i18n.deleteExcerpt")}</button>}
-    </div>
+    {onDeleteExcerpt && <div className="excerpt-edit-actions">
+      <ExcerptTypeField note={notes[0]} saving={saving} onChange={onChange} onHide={onHide} onError={setError} />
+      <button type="button" disabled={saving} onClick={onDeleteExcerpt}>{translate("i18n.deleteExcerpt")}</button>
+    </div>}
     {error && <p role="alert">{translateError(error)}</p>}
   </div>;
+}
+
+export function ExcerptTypeField({ note, saving, onChange, onHide, onError }) {
+  return (
+    <label className="excerpt-type-setting">
+      {translate("i18n.type")}
+      <select aria-label={translate("i18n.excerptType")} disabled={saving} value={excerptAppearance(note).excerptType}
+        onChange={event => {
+          const excerptType = event.target.value;
+          if (excerptType === 'hidden' &&
+              !window.confirm(translate("i18n.hiddenMarkersDisappearFromTheTextYou"))) return;
+          try {
+            updateExcerptAppearance(note, { excerptType });
+            onError('');
+            onChange();
+            if (excerptType === 'hidden') onHide?.();
+          } catch (error) {
+            onError(error.message);
+          }
+        }}>
+        {Object.entries(excerptTypes).map(([type, label]) => <option key={type} value={type}>{translate(label)}</option>)}
+      </select>
+    </label>
+  );
 }

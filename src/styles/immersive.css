@@ -82,7 +82,7 @@ dialog.action-workspace.edit-sidebar, .edit-sidebar {
 body[data-item-editing] .display-menu-toggle { visibility:hidden; }
 body[data-item-editing] [data-content-target] img { -webkit-user-drag:none; }
 body[data-item-editing] [data-content-target][draggable="true"] { user-select:none; }
-[data-content-target][data-drop-before] { box-shadow:inset 4px 0 #9cd7cb !important; background-color:#9cd7cb15 !important; }
+:is([data-content-target], .stat-items > button)[data-drop-before] { box-shadow:inset 4px 0 #9cd7cb !important; background-color:#9cd7cb15 !important; }
 @media(max-width:600px) {
  :root { --edit-rail-width: min(280px, 60vw); --edit-rail-gap:12px; }
 }

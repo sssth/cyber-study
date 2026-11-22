@@ -14,7 +14,7 @@ function registerGlobe(getWindow) {
   let busy = false;
   const snapshot = async () => {
     const data = await repo.load();
-    return { journeys: data.journeys ?? [], photos: data.photos.map(p => ({
+    return { deletedJourneys: data.deletedJourneys ?? [], journeys: data.journeys ?? [], photos: data.photos.map(p => ({
       ...p, visitStatus: p.visitStatus ?? 'visited',
       photo: p.hash ? `study-memory://photo/${p.hash}.preview` : '',
       thumbnail: p.hash ? `study-memory://photo/${p.hash}.thumb` : ''
@@ -29,6 +29,7 @@ function registerGlobe(getWindow) {
     if (!reading) busy = true;
     try {
       if (reading) return await snapshot();
+      if (action === 'recycle') { await repo.recycle(input.type, input.id, input.action); return await snapshot(); }
       if (action === 'update') { await repo.update(input.ids, input.patch); return await snapshot(); }
       if (action === 'journey') { await repo.saveJourney(input); return await snapshot(); }
       if (action === 'point') {

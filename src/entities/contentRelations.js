@@ -29,6 +29,11 @@ export function removeRelations(ids) {
     throw Error('解除关联失败，请重试。');
   }
 }
+export function removeEntityRelations(key) {
+  const links = loadSpaceData('content-relations', []);
+  const ids = links.filter(link => link.fromId === key || link.toId === key).map(link => link.id);
+  if (ids.length) removeRelations(ids);
+}
 export const removeRelation = id => removeRelations([id]);
 
 export function commonNeighbors(sources, links) {

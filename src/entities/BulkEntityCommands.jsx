@@ -1,3 +1,4 @@
+import { currentResultSource } from '../results/activeResults.js';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { commands, handleCommandKey } from '../ui/commands.js';
@@ -110,6 +111,8 @@ export default function BulkEntityCommands({ shortcuts, disabled, projection, vi
     const select = () => {
       if (latest.current.disabled || running.current) return;
       setCommandTargetMode(null);
+      const selectVisible = currentResultSource('selectAll')?.selectVisible;
+      if (selectVisible) { selectVisible(); return; }
       validateSelection();
       setMessage(selectResults(latest.current.projection));
       if (getSelection()) window.dispatchEvent(new Event('cyber-exit-item-edit'));
@@ -134,6 +137,12 @@ export default function BulkEntityCommands({ shortcuts, disabled, projection, vi
     };
     function activate(event, kind) {
       if (latest.current.disabled) return;
+      const editSelected = currentResultSource('selectAll')?.editSelected;
+      if (kind === 'edit' && editSelected) {
+        event.stopImmediatePropagation();
+        editSelected();
+        return;
+      }
       validateSelection();
       const picked = getSelection();
       if (!picked) return;

@@ -1,3 +1,4 @@
+import useActivityTime from '../../ui/useActivityTime.js';
 import { captureExcerptSelection } from './excerptRange.js';
 import useLibrarySearch from './useLibrarySearch.js';
 import useReadingSession from './useReadingSession.js';
@@ -148,6 +149,7 @@ function ReaderOverlay({
   }, [importedBooks]);
   const { hits, visibleBooks } = useLibrarySearch(allBooks, initialLibraryBookIds, search, mode === 'library', parseBook);
   const activeBook = allBooks.find(book => book.id === activeBookId) ?? null;
+  useActivityTime('reading', mode === 'reading' && Boolean(activeBook));
   const activeContent = activeBook?.content;
   const blocks = useMemo(() => activeContent ? parseBook(activeContent) : [], [activeContent, parseBook]);
   const readingHighlights = useMemo(() => new Map(
@@ -819,12 +821,12 @@ function ReaderOverlay({
             onHide={dismissNote}
             onDeleteExcerpt={removeSelectedExcerpt} saving={savingNote} />
           {noteMessage && <p role="alert">{translateError(noteMessage)}</p>}
-        </> : <form aria-label={translate("i18n.saveExcerpt")} onSubmit={(event) => { event.preventDefault(); saveNote(event.nativeEvent.submitter?.value || 'excerpt'); }}>
+        </> : <form aria-label={translate("i18n.saveExcerpt")} onSubmit={(event) => { event.preventDefault(); saveNote(event.nativeEvent.submitter?.value || 'highlight'); }}>
           <blockquote>{selectionQuote}</blockquote>
           <textarea aria-label={translate("i18n.annotationOptional")} placeholder={translate("i18n.annotationOptional")} rows="3"
             value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} />
           {noteMessage && <p role="status">{translateError(noteMessage)}</p>}
-          <div className="reader-inline-actions" role="group" aria-label={translate("i18n.textSelectionActions")}>
+          <div className="reader-inline-actions reader-selection-actions" role="group" aria-label={translate("i18n.textSelectionActions")}>
             {Object.entries(creatableExcerptTypes).map(([type, label]) => <button key={type} type="submit" value={type} disabled={savingNote}>
               {translate(label)}
             </button>)}

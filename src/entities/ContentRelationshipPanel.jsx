@@ -116,10 +116,11 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   if (!source) return;
   const update = event => {
    if (event.detail === 'content-relations') setLinks(loadSpaceData('content-relations', []));
+   else refreshCatalog();
   };
   window.addEventListener(contentDataChangeEvent, update);
   return () => window.removeEventListener(contentDataChangeEvent, update);
- }, [source]);
+ }, [source, refreshCatalog]);
  async function connect(item){setError('');try{setStatus(addRelations(members,item)?'':translate("i18n.theseItemsAreAlreadyLinked"));}catch(e){setError(e.message);}}
  function create(){if(!text.trim()){setError(translate("i18n.enterSomeText"));return;}const key=target==='diary'?'diary':'memo',old=loadSpaceData(key,[]),now=new Date();let record;
   if(target==='diary'){const today=old.find(i=>new Date(i.date).toDateString()===now.toDateString());record=today?{...today,text:[today.text,text.trim()].filter(Boolean).join('\n\n'),updatedAt:now.toISOString()}:{id:createId('diary'),date:now.toISOString(),text:text.trim(),mood:'',photo:'',createdAt:now.toISOString()};}
@@ -130,7 +131,8 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
   if(!saveContentData(key,next)){setError(translate("i18n.couldNotSaveTheRecordCheckAvailable"));return;}
   try{addRelations(members,destination);setCatalog(items=>[...items.filter(i=>i.key!==destination.key),destination]);setText('');setStatus('');setError('');}catch(e){const rolledBack=saveContentData(key,old);setError(rolledBack?e.message:translate("i18n.theRecordWasSavedOpenItIn"));}
  }
- const common = commonNeighbors(members, links);
+ const liveKeys = new Set(catalog.map(item => item.key));
+ const common = commonNeighbors(members, links.filter(link => liveKeys.has(link.fromId) && liveKeys.has(link.toId)));
  const related = [...common].map(([key, group]) => {
    const link = group.values().next().value;
    const item = catalog.find(entry => entry.key === key);

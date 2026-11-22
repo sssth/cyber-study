@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   },
   version: '0.1.0',
   stage: 'desktop-skeleton',
+  bookTrash: (action, token) => ipcRenderer.invoke('books:trash', action, token),
   deleteBooks: (ids, count) => ipcRenderer.invoke('books:delete-many', ids, count),
   deleteBook: (id) => ipcRenderer.invoke('books:delete', id),
   migrateLegacyBooks: (payload) => ipcRenderer.invoke('books:migrate-legacy', payload),

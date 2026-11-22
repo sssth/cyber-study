@@ -1,3 +1,5 @@
+import useActivityTime from '../../ui/useActivityTime.js';
+import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError } from '../../i18n/index.js';
 import RecordShelf from './RecordShelf.jsx';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -16,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MusicSources, musicPlatformNames, musicRequest } from './MusicSources.jsx';
 import { ActionWorkspace, FeaturePanel } from '../ui.jsx';
 import { matchesShortcut, typingTarget } from '../../data/shortcuts.js';
-import { createId, loadSpaceData } from '../../data/spaceStorage.js';
+import { createId, loadSpaceData, recyclePlaylists } from '../../data/spaceStorage.js';
 
 import { alignNeteasePositions, mergeMusicPlaylist, neteasePlaylistTracks, nextQueuedTrack } from './musicCollection.js';
 
@@ -66,7 +68,7 @@ async function startOnlineAudio(audio) {
 }
 
 export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, open, onClose, shortcuts, shortcutsEnabled }) {
-  const [tracks, setTracks] = useState(() => loadSpaceData('music', []).map((track) => ({ ...track, kind: httpUrl(track.url) ? neteaseKind(httpUrl(track.url)) : '', playlists: track.playlists?.length ? track.playlists : [{ id: 'legacy-imports', title: '旧版导入' }] })));
+  const [tracks, setTracks] = useState(() => loadSpaceData('music', []).map((track) => ({ ...track, kind: httpUrl(track.url) ? neteaseKind(httpUrl(track.url)) : '', playlists: Array.isArray(track.playlists) ? track.playlists : [{ id: 'legacy-imports', title: '旧版导入' }] })));
   useEffect(() => {
     const refresh = event => {
       if (event.detail === 'music') setTracks(previous => [...previous.filter(track => track.local), ...loadSpaceData('music', [])]);
@@ -101,6 +103,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const [importNotice, setImportNotice] = useState('');
   const [playbackError, setPlaybackError] = useState('');
   const [playing, setPlaying] = useState(false);
+  useActivityTime('music', playing);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
   const pendingSeek = useRef(0);
@@ -172,8 +175,28 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const browserFilter=filteredLists.has(activeFilter)?activeFilter:filteredLists.keys().next().value??'';
   const displayedTracks=filteredLists.get(browserFilter)?.songs??[];
   useResultSource({ scopeId: 'music', priority:10,applications:{selectAll:musicView==='player'?undefined:resultEntities('music',displayedTracks)},label:musicView==='player'?translate("i18n.recordPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
-  const candidateIds=new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id)));
-  const candidateTracks=hasSearch(search)?tracks.filter(t=>candidateIds.has(t.id)):tracks;
+  const [songQuery, setSongQuery] = useState('');
+  const [existingIds, setExistingIds] = useState([]);
+  const candidateTracks = tracks.filter(track => textMatches([track.title, track.artist], songQuery));
+  const [importTarget, setImportTarget] = useState('');
+  const destination = playlists.has(importTarget) ? importTarget : activeFilter;
+  const selectedExisting = tracks.filter(track => existingIds.includes(track.id) &&
+    !track.playlists?.some(list => list.id === destination));
+  function addExistingTracks() {
+    const target = savedPlaylists.find(list => list.id === destination)
+      ?? tracks.flatMap(track => track.playlists ?? []).find(list => list.id === destination);
+    if (!target || !selectedExisting.length) return;
+    const ids = new Set(selectedExisting.map(track => track.id));
+    setTracks(items => {
+      let position = items.reduce((max, track) => Math.max(max,
+        track.playlists?.find(list => list.id === target.id)?.position ?? -1), -1);
+      return items.map(track => ids.has(track.id) && !track.playlists?.some(list => list.id === target.id)
+        ? { ...track, playlists: [...(track.playlists ?? []), {id:target.id,title:target.title,position:++position}] } : track);
+    });
+    setPlaylistFilter(destination);
+    setExistingIds([]);
+    setSongQuery('');
+  }
   useSearchCount('music',new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
   const queue = tracksInPlaylist(songPlaylist || activeFilter)
     .filter(track => !track.kind && (!track.cacheState || track.cacheState === 'ready'));
@@ -410,17 +433,9 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
 
   const removePlaylist = (id = activeFilter) => {
     if (!id) return;
-    setSavedPlaylists(items=>items.filter(p=>p.id!==id));
-    for (const track of tracksInPlaylist(id)) {
-      if (!track.playlists?.some(list => list.id === id) || track.playlists.length > 1) continue;
-      if (track.id === currentId) selectTrack(null);
-      if (track.local) URL.revokeObjectURL(track.url);
-    }
-    setTracks(items => items.flatMap(track => {
-      if (!track.playlists?.some(list => list.id === id)) return [track];
-      const remaining = track.playlists.filter(list => list.id !== id);
-      return remaining.length ? [{ ...track, playlists: remaining }] : [];
-    }));
+    try { recyclePlaylists(new Set([id])); }
+    catch (error) { setImportNotice(error.message); return; }
+    if (songPlaylist === id) setPlayingPlaylistId('');
     setPlaylistFilter('');
   };
 
@@ -553,6 +568,8 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
         ref={audioRef}
         onPlaying={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
+        onSeeking={() => setPlaying(false)}
+        onSeeked={event => setPlaying(!event.currentTarget.paused && event.currentTarget.readyState >= 3)}
         onWaiting={() => setPlaying(false)}
         onError={event => {
           setPlaying(false);
@@ -593,7 +610,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                 setMusicEditor(null);
               }} onDelete={()=>{
                 if(musicEditor.type==='playlist')removePlaylist(musicEditor.id);
-                else {if(currentId===musicEditor.id)selectTrack(null);if(musicEditor.local)URL.revokeObjectURL(musicEditor.url);setTracks(items=>items.filter(t=>t.id!==musicEditor.id));}
+                else {if(currentId===musicEditor.id)selectTrack(null);if(musicEditor.local)URL.revokeObjectURL(musicEditor.url);setTracks(items=>items.filter(t=>t.id!==musicEditor.id));removeEntityRelations('music:'+musicEditor.id);}
                 setMusicEditor(null);
               }} />}
       {open && (
@@ -658,8 +675,21 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                 <div className="music-create-kind"><select aria-label={translate("i18n.addMusicBy")} value={createMusicType} disabled={Boolean(stagedImport)} onChange={e=>setCreateMusicType(e.target.value)}>
                   <option value="playlist">{translate("i18n.newPlaylist")}</option><option value="local">{translate("i18n.importLocalTracks")}</option><option value="platform">{translate("i18n.connectAService")}</option>
                 </select></div>
-                {createMusicType==='playlist' && <div className="stack-form"><label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><fieldset className="music-create-song-picker"><legend>{translate("i18n.includeTracks")}{' '}<span>{translate("i18n.optional")}</span></legend><div className="music-create-song-options">{candidateTracks.length?candidateTracks.map(t=><label key={t.id}><input type="checkbox" checked={listSelection.includes(t.id)} onChange={e=>setListSelection(ids=>e.target.checked?[...ids,t.id]:ids.filter(id=>id!==t.id))}/><span>{t.title}</span></label>):<></>}</div></fieldset><WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>{translate("i18n.createPlaylist")}</button></WorkspaceActions></div>}
-                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label>{importNotice&&<p role="status">{importNotice}</p>}</div>}
+                {createMusicType==='playlist' && <div className="stack-form"><label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><fieldset className="music-create-song-picker"><legend>{translate("i18n.includeTracks")}{' '}<span>{translate("i18n.optional")}</span></legend><input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/><div className="music-create-song-options">{candidateTracks.length?candidateTracks.map(t=><label key={t.id}><input type="checkbox" checked={listSelection.includes(t.id)} onChange={e=>setListSelection(ids=>e.target.checked?[...ids,t.id]:ids.filter(id=>id!==t.id))}/><span>{t.title}</span></label>):<></>}</div></fieldset><WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>{translate("i18n.createPlaylist")}</button></WorkspaceActions></div>}
+                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label><fieldset className="music-create-song-picker">
+                  <legend>{translate("i18n.existingSongs")}</legend>
+                  <label>{translate("i18n.destinationPlaylist")}<select value={destination} onChange={e=>setImportTarget(e.target.value)}>
+                    {[...playlists].map(([id,title])=><option key={id} value={id}>{title}</option>)}
+                  </select></label>
+                  <input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/>
+                  <div className="music-create-song-options">{candidateTracks.map(track=>{
+                    const included = track.playlists?.some(list=>list.id===destination);
+                    return <label key={track.id}><input type="checkbox" disabled={included} checked={Boolean(included)||existingIds.includes(track.id)}
+                      onChange={e=>setExistingIds(ids=>e.target.checked?[...ids,track.id]:ids.filter(id=>id!==track.id))}/>
+                      <span>{[track.title,track.artist].filter(Boolean).join(' · ')}</span></label>;
+                  })}</div>
+                  <button type="button" disabled={!destination||!selectedExisting.length} onClick={addExistingTracks}>{translate("i18n.addToPlaylist")}</button>
+                </fieldset>{importNotice&&<p role="status">{importNotice}</p>}</div>}
                 {createMusicType==='platform'&&<MusicSources search={search} onImport={beginImport} importing={Boolean(stagedImport)}/>}
               </div></ActionWorkspace>}
             </section>

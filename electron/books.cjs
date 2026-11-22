@@ -1,6 +1,6 @@
 const { nativeText } = require('./i18n/native.cjs');
-const { app, dialog, ipcMain, shell } = require('electron');
-const { createHash } = require('node:crypto');
+const { app, dialog, ipcMain } = require('electron');
+const { createHash, randomUUID } = require('node:crypto');
 const { execFile } = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -256,6 +256,35 @@ function registerBooks(getWindow) {
     await atomicWrite(path.join(migrationDirectory, 'latest-report.json'), JSON.stringify(report, null, 2));
     return report;
   });
+  const trashRoot = () => path.join(app.getPath('userData'), 'deleted-books');
+  async function archiveBook(id) {
+    await fs.mkdir(trashRoot(), { recursive: true });
+    await fs.rename(bookDirectory(id), path.join(trashRoot(), randomUUID()));
+  }
+  handle('trash', async (_window, action, token) => {
+    await fs.mkdir(trashRoot(), { recursive: true });
+    if (action === 'list') {
+      const tokens = await fs.readdir(trashRoot());
+      return Promise.all(tokens.filter(token => /^[a-f0-9-]{36}$/.test(token)).map(async token => {
+        const folder = path.join(trashRoot(), token);
+        const metadata = JSON.parse(await fs.readFile(path.join(folder, 'book.json'), 'utf8'));
+        const { id, title, author } = metadata.book ?? metadata;
+        return { type: 'book', token, record: { id, title, author }, time: (await fs.stat(folder)).ctimeMs };
+      }));
+    }
+    if (typeof token !== 'string' || !/^[a-f0-9-]{36}$/.test(token)) throw Error('书籍记录无效。');
+    if (deleting || ['selecting', 'scanning', 'processing'].includes(importState.phase)) throw Error('请等待书库操作完成。');
+    deleting = true;
+    try {
+      await pendingSave;
+      const folder = path.join(trashRoot(), token);
+      if (action === 'purge') { await fs.rm(folder, { recursive: true }); return true; }
+      if (action !== 'restore') throw Error('书库操作无效。');
+      const book = await readBook(folder);
+      await fs.rename(folder, bookDirectory(book.id));
+      return book;
+    } finally { deleting = false; }
+  });
   handle('delete-many', async (window, ids, count) => {
     if (!Array.isArray(ids) || !ids.length || new Set(ids).size !== ids.length ||
         ids.some(id => typeof id !== 'string' || !/^(file:[a-f0-9]{64}$|local:.+)/.test(id)) ||
@@ -273,7 +302,7 @@ function registerBooks(getWindow) {
         defaultId: 0, cancelId: 0
       });
       if (response !== 1) return { canceled: true };
-      for (const id of ids) { await shell.trashItem(bookDirectory(id)); deleted.push(id); }
+      for (const id of ids) { await archiveBook(id); deleted.push(id); }
       return { deleted };
     } catch (error) { return { deleted, error: error.message }; }
     finally { deleting = false; }
@@ -300,7 +329,7 @@ function registerBooks(getWindow) {
         cancelId: 0
       });
       if (response !== 1) return false;
-      await shell.trashItem(directory);
+      await archiveBook(id);
       return true;
     } finally {
       deleting = false;

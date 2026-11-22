@@ -20,6 +20,8 @@ function validate(data) {
   const journeys = data.journeys ?? [];
   if (!Array.isArray(journeys) || new Set(journeys.map(j => j?.id)).size !== journeys.length ||
       journeys.some(j => !j || typeof j.id !== 'string' || typeof j.title !== 'string' || typeof j.note !== 'string' || !Array.isArray(j.pointIds) || j.pointIds.some(id => !ids.has(id)) || new Set(j.pointIds).size !== j.pointIds.length)) throw new Error('旅程记录损坏。');
+  const trashed = new Set(data.photos.filter(point => point.deletedAt).map(point => point.id));
+  for (const journey of journeys) journey.pointIds = journey.pointIds.filter(id => !trashed.has(id));
   return data;
 }
 class MemoryRepository {
@@ -95,7 +97,11 @@ class MemoryRepository {
     const data = await this.load();
     const journeys = data.journeys ?? [];
     if (input.id && !journeys.some(j => j.id === input.id)) throw new Error('找不到这段旅程。');
-    if (input.remove && input.id) data.journeys = journeys.filter(j => j.id !== input.id);
+    if (input.remove && input.id) {
+      data.deletedJourneys ??= [];
+      data.deletedJourneys.push({ ...journeys.find(j => j.id === input.id), deletedAt: new Date().toISOString() });
+      data.journeys = journeys.filter(j => j.id !== input.id);
+    }
     else {
       if (typeof input.title !== 'string' || !input.title.trim() || input.title.length > 200 || typeof input.note !== 'string' || input.note.length > 10000 || !Array.isArray(input.pointIds)) throw new Error('请填写有效的旅程名称和内容。');
       if(input.startDate&&input.endDate&&input.endDate<input.startDate)throw new Error('结束日期不能早于开始日期。');
@@ -104,6 +110,28 @@ class MemoryRepository {
       data.journeys = input.id ? journeys.map(j => j.id === input.id ? journey : j) : [...journeys, journey];
     }
     await this.commit(data);
+  }
+  async recycle(type, id, action) {
+    const data = await this.load();
+    const points = type === 'memory_point';
+    if (!points && type !== 'journey') throw Error('记录类型无效。');
+    const collection = points ? 'photos' : 'deletedJourneys';
+    const record = data[collection]?.find(item => item.id === id && item.deletedAt);
+    if (!record) throw Error('回收站记录不存在。');
+    if (action === 'purge' || !points) data[collection] = data[collection].filter(item => item !== record);
+    if (action === 'restore') {
+      delete record.deletedAt;
+      if (!points) {
+        data.journeys ??= [];
+        if (data.journeys.some(j => j.id === id)) throw Error('旅途已存在。');
+        record.pointIds = record.pointIds.filter(id => data.photos.some(p => p.id === id && !p.deletedAt));
+        data.journeys.push(record);
+      }
+    } else if (action !== 'purge') throw Error('回收站操作无效。');
+    await this.commit(data);
+    if (action === 'purge' && points && record.hash && !data.photos.some(p => p.hash === record.hash)) {
+      for (const kind of ['original','preview','thumb']) await fs.rm(this.asset(record.hash, kind), { force: true });
+    }
   }
   async backup(parent) {
     const data = await this.load();
@@ -137,6 +165,10 @@ class MemoryRepository {
     current.journeys ??= [];
     for (const journey of incoming.journeys ?? []) {
       if (!current.journeys.some(j => j.id === journey.id)) current.journeys.push(journey);
+    }
+    current.deletedJourneys ??= [];
+    for (const journey of incoming.deletedJourneys ?? []) {
+      if (![...current.journeys, ...current.deletedJourneys].some(j => j.id === journey.id)) current.deletedJourneys.push(journey);
     }
     current.migrations = [...new Set([...current.migrations, ...incoming.migrations])];
     await this.commit(current);

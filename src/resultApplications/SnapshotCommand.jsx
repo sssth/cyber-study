@@ -14,7 +14,9 @@ export default function SnapshotCommand({shortcuts,disabled,projection}){
     const save=async ()=>{
       if(disabled) return;
       try {
-        const source=currentResultInput('snapshot'),snapshot=captureEntities(projection && !source?.projection?undefined:source);
+        const source=currentResultInput('snapshot');
+        if (source?.scopeId === 'entity-trash') return;
+        const snapshot=captureEntities(projection && !source?.projection?undefined:source);
         if(!snapshot.entities.length){notice(translateError(snapshot.message));return;}
         const time=Date.now(),markdown=snapshotMarkdown({...snapshot,source,scope:source.scope,time});
         if(!window.cyberStudy?.snapshots) throw Error(translate("i18n.openTheDesktopAppToSaveA"));

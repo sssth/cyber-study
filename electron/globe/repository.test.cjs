@@ -106,7 +106,7 @@ test('photo-free points and ordered journeys survive trash, backup and restore',
   const restored = new MemoryRepository(path.join(root,'new-library'), decode);
   await restored.restore(backup);
   const data = await restored.load();
-  assert.deepEqual(data.journeys[0].pointIds, [point.id, record.id]);
+  assert.deepEqual(data.journeys[0].pointIds, [record.id]);
   assert.ok(data.photos.find(p => p.id === point.id).deletedAt);
   await restored.update([point.id], {deletedAt:null});
   await restored.saveJourney({id:data.journeys[0].id, remove:true});
@@ -125,4 +125,20 @@ test('memory titles persist independently of city and journey membership', async
   assert.equal(data.photos[0].title, '西湖黄昏');
   assert.equal(data.photos[0].location, '杭州');
   assert.deepEqual(data.journeys[0].pointIds, [point.id]);
+});
+
+test('recycle bin restores journeys with surviving points and purges only deleted records', async t => {
+  const { repo } = await fixture(t);
+  const { record } = await repo.add(Buffer.from('asset'));
+  await repo.saveJourney({ title: 'Journey', note: '', pointIds: [record.id] });
+  const [journey] = (await repo.load()).journeys;
+  await repo.saveJourney({ id: journey.id, remove: true });
+  await assert.rejects(repo.recycle('memory_point', record.id, 'purge'));
+  await repo.update([record.id], { deletedAt: true });
+  await repo.recycle('memory_point', record.id, 'purge');
+  await repo.recycle('journey', journey.id, 'restore');
+  const result = await repo.load();
+  assert.deepEqual(result.journeys, [{ ...journey, pointIds: [] }]);
+  assert.deepEqual(result.deletedJourneys, []);
+  await assert.rejects(fs.access(repo.asset(record.hash, 'original')));
 });

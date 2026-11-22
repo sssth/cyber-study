@@ -1,3 +1,5 @@
+import { excerptKey } from '../../data/excerptKey.js';
+export { excerptKey };
 import { createId, loadSpaceData, saveSpaceData } from '../../data/spaceStorage.js';
 
 const fallback = {
@@ -8,7 +10,9 @@ const fallback = {
 export function loadKnowledge() {
   const data = loadSpaceData('knowledge', fallback);
   return {
-    notes: Array.isArray(data.notes) ? data.notes : [],
+    notes: Array.isArray(data.notes) ? data.notes.map(note =>
+      Object.hasOwn(excerptTypes, note.excerptType) ? note : { ...note, excerptType: 'highlight' }
+    ) : [],
     projects: Array.isArray(data.projects) ? data.projects : []
   };
 }
@@ -17,7 +21,7 @@ export function saveKnowledge(data) {
   if (!saveSpaceData('knowledge', data)) throw new Error('保存失败，本地存储可能已满。');
 }
 
-export const creatableExcerptTypes = { excerpt: 'i18n.excerpt', underline: 'i18n.excerptUnderline', bookmark: 'i18n.excerptBookmark', highlight: 'i18n.excerptHighlight' };
+export const creatableExcerptTypes = { highlight: 'i18n.excerptHighlight', underline: 'i18n.excerptUnderline', bookmark: 'i18n.excerptBookmark' };
 export const excerptTypes = { ...creatableExcerptTypes, hidden: 'i18n.excerptHidden' };
 export const defaultExcerptColor = '#70c9bc';
 export const excerptColors = {
@@ -31,7 +35,7 @@ export const excerptColors = {
 
 export function excerptAppearance(note) {
   return {
-    excerptType: Object.hasOwn(excerptTypes, note?.excerptType) ? note.excerptType : 'excerpt',
+    excerptType: Object.hasOwn(excerptTypes, note?.excerptType) ? note.excerptType : 'highlight',
     color: /^#[0-9a-f]{6}$/i.test(note?.color) ? note.color : defaultExcerptColor
   };
 }
@@ -93,13 +97,11 @@ export function deleteKnowledgeNote(noteId) {
 
 export function editKnowledgeNote(id, annotation) {
   const data = loadKnowledge();
-  data.notes = data.notes.map((note) => note.id === id ? { ...note, annotation } : note);
+  data.notes = data.notes.map((note) => note.id === id ? { ...note, annotation, annotationCreatedAt: !note.annotation && annotation ? new Date().toISOString() : note.annotationCreatedAt } : note);
   saveKnowledge(data);
 }
 
-export function excerptKey(note) {
-  return JSON.stringify([note.bookId, note.blockId ?? note.progress, note.quote, note.ranges?.[0]?.start ?? null]);
-}
+
 
 export function removeExcerptAnnotation(note) {
   const related = loadKnowledge().notes.filter((item) => excerptKey(item) === excerptKey(note));

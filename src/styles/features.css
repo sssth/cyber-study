@@ -1456,7 +1456,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
   gap: 12px;
   align-content: start;
 }
-:is(.entity-catalog, .catalog-column-items) > button {
+:is(.entity-catalog, .catalog-column-items, .stat-items) > button {
   display: grid;
   align-content: center;
   gap: 8px;
@@ -1469,7 +1469,7 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
   border: 1px solid rgba(115, 202, 215, .25);
   border-radius: 10px;
 }
-:is(.entity-catalog, .catalog-column-items) > button:is(:hover, :focus-visible) { border-color: var(--cyan, #72dce8); }
+:is(.entity-catalog, .catalog-column-items, .stat-items) > button:is(:hover, :focus-visible) { border-color: var(--cyan, #72dce8); }
 .entity-catalog strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .entity-catalog small { color: var(--muted); font-size: 12px; }
 
@@ -1507,3 +1507,15 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .bulk-entity-list { max-height: 8em; overflow: auto; }
 
 [data-bulk-selected] { outline: 2px solid #83cbd1; outline-offset: -2px; }
+
+.entity-catalog.statistics-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.stat-group { background: rgba(15,34,48,.54); border: 1px solid rgba(115,202,215,.25); border-radius: 12px; padding: 16px; }
+.stat-group h3 { margin: 0 0 12px; }
+.stat-group h3 button { width: 100%; text-align: left; background: transparent; color: inherit; border: 0; font: inherit; }
+.stat-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 8px; }
+.stat-items > button { height: auto; min-height: 88px; place-content: center; justify-items: center; text-align: center; }
+.statistics-grid [draggable="true"], .stat-group[draggable="true"] h3 button { cursor: grab; }
+.statistics-grid [draggable="true"]:active { cursor: grabbing; }
+.stat-group[data-drop-before] { box-shadow: inset 0 4px #9cd7cb; }
+.stat-items > button > strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.stat-add-items { display: grid; gap: 6px; }

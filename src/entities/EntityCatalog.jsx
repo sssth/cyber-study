@@ -16,6 +16,8 @@ import { useNavigationState } from '../ui/useNavigationState.js';
 import { loadSpaceData } from '../data/spaceStorage.js';
 import { graphEdges } from './edges.js';
 import EntityGraph from '../resultApplications/EntityGraph.jsx';
+import StatisticsPage from './StatisticsPage.jsx';
+import RecycleBin from './RecycleBin.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
 import ContentActions from '../features/ContentActions.jsx';
 import { ContentCommand } from '../features/ContentCommands.jsx';
@@ -30,12 +32,16 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   const [dragColumn, setDragColumn] = useState(null);
   const [dropColumn, setDropColumn] = useState(null);
   const [catalog, setCatalog] = useState(null);
+  const [partial, setPartial] = useState(false);
   const [revision, setRevision] = useState(0);
   const editingOpen = Boolean(editing);
-  const searchId = view === 'graph' ? 'entity-graph' : 'entity-catalog';
+  const trash = view === 'trash';
+  const stats = view === 'statistics';
+  const entityView = !trash && !stats;
+  const searchId = stats ? 'entity-statistics' : trash ? 'entity-trash' : view === 'graph' ? 'entity-graph' : 'entity-catalog';
   const search = useSearchScope({
-    id: searchId, label: view === 'graph' ? translate("i18n.relationshipGraph") : translate("i18n.allItems"), priority: 55,
-    filters: [{ key: 'type', label: translate("i18n.itemType"), options: Object.entries(contentTypes) }]
+    id: searchId, label: stats ? translate("i18n.statistics") : trash ? translate("i18n.recycleBin") : view === 'graph' ? translate("i18n.relationshipGraph") : translate("i18n.allItems"), priority: 55,
+    filters: stats ? [] : [{ key: 'type', label: translate("i18n.itemType"), options: Object.entries(contentTypes) }]
   });
   useEffect(() => {
     const refresh = () => setRevision(value => value + 1);
@@ -49,11 +55,11 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   useEffect(() => {
     if (editingOpen) return;
     let active = true;
-    readCatalog(books).then(({ items }) => {
-      if (active) setCatalog(items);
+    readCatalog(books).then(({ items, partial }) => {
+      if (active) { setCatalog(items); setPartial(partial); }
     }).catch(error => {
       console.warn('个人知识库汇总失败', error);
-      if (active) setCatalog(previous => previous ?? []);
+      if (active) { setPartial(true); setCatalog(previous => previous ?? []); }
     });
     return () => { active = false; };
   }, [books, revision, editingOpen]);
@@ -100,8 +106,8 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
     finishDrag();
   }
   const edges = useMemo(() => view === 'graph' ? graphEdges(catalog ?? [], loadSpaceData('content-relations', [])) : [], [view,catalog,revision]);
-  useSearchCount(searchId, catalog ? results.length : null);
-  const resultSet = { allowGroupRelations: true, priority: 55, scopeId: searchId, matches: results, loading: !catalog };
+  useSearchCount(!entityView ? "entity-catalog" : searchId, catalog ? results.length : null);
+  const resultSet = { allowGroupRelations: true, priority: 55, scopeId: searchId, matches: entityView ? results : [], blocked: !entityView, loading: !catalog };
   useResultSource(resultSet);
 
   function renderCard(item) {
@@ -113,9 +119,9 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   }
 
   return <FeaturePanel scopeId="catalog" hasMenu wide title="i18n.knowledgeBase" scrollContext={view} onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
-    <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['grouped',translate('i18n.groupByType')],['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")]]} value={view} onChange={setView}/>
-    {createTypes.map(([type, definition]) => <ContentCommand key={type} kind="create" label={translate(definition.create === true ? definition.label : definition.create)} run={() => onCreate(type)} />)}
-    {view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :
+    <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['grouped',translate('i18n.groupByType')],['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")],['trash',translate("i18n.recycleBin")],['statistics',translate("i18n.statistics")]]} value={view} onChange={setView}/>
+    {entityView && createTypes.map(([type, definition]) => <ContentCommand key={type} kind="create" label={translate(definition.create === true ? definition.label : definition.create)} run={() => onCreate(type)} />)}
+    {stats ? <StatisticsPage catalog={catalog} partial={partial} search={search}/> : trash ? <RecycleBin search={search} revision={revision} onBooksChanged={editorProps.onBooksChanged}/> : view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :
     <section className={grouped ? "entity-catalog catalog-columns" : "entity-catalog"} data-scroll-memory={grouped ? "catalog-columns" : undefined} aria-label={translate("i18n.items")}>
     {!catalog ? <p role="status">{translate("i18n.loadingItems")}</p> : <>
       {grouped ? types.filter(type => groups.has(type)).map(type => (

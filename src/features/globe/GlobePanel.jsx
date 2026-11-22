@@ -1,3 +1,4 @@
+import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
@@ -57,6 +58,10 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
       if (result.error) throw new Error(result.error);
       if (result.photos) setPhotos(result.photos);
       if (result.journeys) setJourneys(result.journeys);
+      if (!result.canceled && action === 'update' && input?.patch?.deletedAt) {
+        for (const id of input.ids) removeEntityRelations('memory_point:' + id);
+      }
+      if (!result.canceled && action === 'journey' && input?.remove) removeEntityRelations('journey:' + input.id);
       if (result.report) { setReport(result.report); if (!result.report.length) setMessage(translate("i18n.noPhotosFoundJpegPngAndWebp")); }
       return result;
     } catch (err) { setError(err.message || translate("i18n.actionFailedTryAgain")); return null; }

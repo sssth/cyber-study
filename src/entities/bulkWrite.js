@@ -1,4 +1,4 @@
-import { loadSpaceData, saveContentData } from '../data/spaceStorage.js';
+import { loadSpaceData, saveContentData, recyclePlaylists } from '../data/spaceStorage.js';
 import { loadKnowledge, excerptKey } from '../features/library/knowledgeStore.js';
 import { loadReaderState, saveReaderState } from '../features/library/storage.js';
 import '../../shared/contentSchema.js';
@@ -49,14 +49,15 @@ function changeLocal(type, items, patch, remove) {
     if (matches.length !== ids.size) throw stale();
     write(key, records.flatMap(record => !ids.has(record.id) ? [record] : remove ? [] : [patchRecord(type, record, patch)]));
   } else if (type === 'playlist') {
+    if (remove) return recyclePlaylists(ids);
     const tracks = loadSpaceData('music', []);
     const playlists = new Map(tracks.flatMap(track => (track.playlists ?? []).map(list => [list.id, list])));
     for (const list of loadSpaceData('playlists', [])) playlists.set(list.id, list);
     if (items.some(item => !playlists.has(item.id))) throw stale();
-    write('playlists', [...playlists.values()].flatMap(list => !ids.has(list.id) ? [list] : remove ? [] : [{ ...list, ...patch }]));
+    write('playlists', [...playlists.values()].flatMap(list => !ids.has(list.id) ? [list] : [{ ...list, ...patch }]));
     write('music', tracks.flatMap(track => {
       if (!track.playlists?.some(list => ids.has(list.id))) return [track];
-      const playlists = track.playlists.flatMap(list => !ids.has(list.id) ? [list] : remove ? [] : [{ ...list, ...patch }]);
+      const playlists = track.playlists.flatMap(list => !ids.has(list.id) ? [list] : [{ ...list, ...patch }]);
       // Keep tracks outside the selection, including tracks whose last playlist was deleted.
       return [{ ...track, playlists }];
     }));

@@ -1,3 +1,4 @@
+import { initializeActivity } from './data/activityTime.js';
 import { featureViews, persistentFeatureViews } from './features/views.js';
 import { entityTypes } from './entities/registry.js';
 import useStudyNavigation from './ui/useStudyNavigation.js';
@@ -20,7 +21,7 @@ import { defaultPackage } from './scenes/packages/scenePackage.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { defaultSettings } from './data/defaultSettings.js';
 import useBookLibrary from './features/library/useBookLibrary.js';
-import { addFocusMinute, initializePlantClock, waterPlant } from './data/plantStore.js';
+import { initializePlantClock, waterPlant } from './data/plantStore.js';
 import { petCat } from './data/petStore.js';
 import { hotspots } from './scenes/sceneConfig.js';
 import { dispatchSceneFeature, featureCatalog } from './scenes/featureBindings.js';
@@ -40,7 +41,7 @@ const groups = shortcutGroups(defaultPackage);
 const lightsOn = defaultSettings.scene.lightsOn;
 const rainOn = hasOutdoorRain && !defaultPackage.appearance?.nightTheme;
 const audioOn = false;
-const focusFeatures = new Set(['knowledge', 'typewriter', 'diary']);
+
 
 function formatCareChange(label, before, after) {
   const from = Math.round(before);
@@ -166,51 +167,7 @@ function Study({ shortcuts, setShortcuts }) {
     audioManager.setScene(id, { mix: theme.mix, loop });
   }, [audioManager]);
 
-  useEffect(() => { initializePlantClock(); }, []);
-
-  const trackingFocus = readerOpen || focusFeatures.has(activeFeature);
-
-  useEffect(() => {
-    if (!trackingFocus) return;
-    let startedAt = null;
-
-    const flush = () => {
-      if (startedAt === null) return;
-      const elapsed = performance.now() - startedAt;
-      startedAt = null;
-      if (elapsed > 0) addFocusMinute(elapsed / 60000);
-    };
-
-    const sync = () => {
-      if (document.visibilityState === 'visible' && document.hasFocus()) {
-        startedAt ??= performance.now();
-      } else {
-        flush();
-      }
-    };
-
-    const checkpoint = () => {
-      flush();
-      sync();
-    };
-
-    sync();
-    const timer = window.setInterval(checkpoint, 15000);
-    document.addEventListener('visibilitychange', sync);
-    window.addEventListener('focus', sync);
-    window.addEventListener('blur', flush);
-    window.addEventListener('pagehide', flush);
-    window.addEventListener('pageshow', sync);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', sync);
-      window.removeEventListener('focus', sync);
-      window.removeEventListener('blur', flush);
-      window.removeEventListener('pagehide', flush);
-      window.removeEventListener('pageshow', sync);
-      flush();
-    };
-  }, [trackingFocus]);
+  useEffect(() => { initializePlantClock(); initializeActivity(); }, []);
 
   useEffect(() => {
     if (!menuOpen) return undefined;

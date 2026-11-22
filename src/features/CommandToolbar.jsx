@@ -10,7 +10,7 @@ const buttons = [
   ['search', 'i18n.search'], ['create', 'i18n.new'], ['selectAll', 'i18n.selectEntities'], ['edit', 'i18n.edit'],
   ['snapshot', 'i18n.snapshot'], ['relate', 'i18n.link']
 ];
-const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay';
+const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay, .statistics-grid, [data-recycle-bin]';
 const expandedKey = 'cyber-study.command-toolbar.expanded';
 
 export default function CommandToolbar({ shortcuts }) {
@@ -39,6 +39,9 @@ export default function CommandToolbar({ shortcuts }) {
         available: !modal || relate || projection,
         loading: projection && !modal.querySelector('.feature-overlay'),
         relationDialog: relate,
+        stats: !modal && Boolean(document.querySelector(".statistics-grid")),
+        trash: !modal && Boolean(document.querySelector("[data-recycle-bin]")),
+        binSelection: Boolean(document.querySelector("[data-recycle-bin][data-bin-selected]")),
         mode,
         search: Boolean(document.querySelector('.unified-search')),
         create: isCreating(),
@@ -54,7 +57,7 @@ export default function CommandToolbar({ shortcuts }) {
     });
     observer.observe(document.body, {
       subtree: true, childList: true, attributes: true,
-      attributeFilter: ['open', 'data-command-target', 'data-item-editing', 'data-create-active', 'data-edit-active', 'inert']
+      attributeFilter: ['open', 'data-command-target', 'data-item-editing', 'data-create-active', 'data-edit-active', 'data-bin-selected', 'inert']
     });
     document.addEventListener('fullscreenchange', sync);
     sync();
@@ -75,13 +78,15 @@ export default function CommandToolbar({ shortcuts }) {
       </button>
       <div id="page-command-buttons" hidden={!expanded}>
         {buttons.map(([id, label]) => {
+          const unavailable = (status.trash && !['search', 'selectAll', 'edit'].includes(id)) ||
+            (status.stats && !['search', 'create', 'edit'].includes(id));
           const { shortcut } = commands[id];
           const hint = shortcut ? shortcuts[shortcut]?.join(' / ') :
             id === 'edit' ? translate("i18n.doubleClickAnItem") : translate("i18n.rightClickAnItem");
           const selecting = status.mode === id;
           return <button key={id} type="button"
-            aria-pressed={id === 'selectAll' ? Boolean(selection) : id === 'snapshot' ? undefined : status[id]}
-            disabled={(id === 'relate' && selection?.canRelate === false) || id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
+            aria-pressed={id === 'selectAll' ? Boolean(selection || status.binSelection) : id === 'snapshot' ? undefined : status[id]}
+            disabled={unavailable || (id === 'relate' && selection?.canRelate === false) || id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
             title={selecting ? translate("i18n.selectAnItem") : [translate(label), hint].filter(Boolean).join(' · ')}
             onClick={click => invokeCommand(id, click.currentTarget)}>
             {translate(label)}

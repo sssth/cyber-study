@@ -1,3 +1,4 @@
+import { storeCollection, changeArchived, archivePlaylists } from './recycleStorage.js';
 const prefix = 'cyber-study.space.v1';
 
 export function loadSpaceData(key, fallback) {
@@ -17,7 +18,7 @@ export function loadSpaceData(key, fallback) {
 
 export function saveSpaceData(key, value) {
   try {
-    globalThis.localStorage.setItem(`${prefix}.${key}`, JSON.stringify(value));
+    storeCollection(globalThis.localStorage, prefix, key, value);
     return true;
   } catch {
     return false;
@@ -57,10 +58,25 @@ export function saveContentData(key, value) {
     const storageKey = `${prefix}.${key}`;
     const data = JSON.stringify(value);
     if (globalThis.localStorage.getItem(storageKey) === data) return true;
-    globalThis.localStorage.setItem(storageKey, data);
+    storeCollection(globalThis.localStorage, prefix, key, value);
   } catch {
     return false;
   }
   globalThis.window?.dispatchEvent(new CustomEvent(contentDataChangeEvent, { detail: key }));
   return true;
+}
+
+export function changeRecycledItem(token, action, collection) {
+  changeArchived(globalThis.localStorage, prefix, token, action);
+  window.dispatchEvent(new CustomEvent(contentDataChangeEvent, { detail: collection }));
+  if (action === 'restore' && collection === 'playlists') window.dispatchEvent(new CustomEvent('cyber-bulk-updated', { detail: 'music' }));
+  if (action === 'restore') window.dispatchEvent(new CustomEvent('cyber-bulk-updated', { detail: collection }));
+}
+
+export function recyclePlaylists(ids) {
+  archivePlaylists(globalThis.localStorage, prefix, ids);
+  for (const detail of ['music', 'playlists']) {
+    window.dispatchEvent(new CustomEvent('cyber-bulk-updated', { detail }));
+  }
+  window.dispatchEvent(new CustomEvent(contentDataChangeEvent, { detail: 'playlists' }));
 }

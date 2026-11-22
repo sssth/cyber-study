@@ -235,7 +235,7 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
       }
     };
     const create = event => {
-      if (latest.current.disabled) return;
+      if (latest.current.disabled || currentScope()?.id === 'entity-trash') return;
       setCommandTargetMode(null);
       if (dialog.current?.open && latest.current.selection?.kind === 'create') {
         if (!latest.current.saving) close();

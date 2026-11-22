@@ -1,3 +1,4 @@
+import useActivityTime from '../../ui/useActivityTime.js';
 import { deliverCopy } from '../../data/copyDelivery.js';
 import { formatDate, translate } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -71,6 +72,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   const search=useSearchScope({id:'typewriter',label:translate("i18n.typingWork"),priority:10,filters:[{key:'status',label:translate("i18n.typingStatus"),options:[['not_started',translate("i18n.notStarted")],['in_progress',translate("i18n.inProgress")],['completed',translate("i18n.completed")]]}]});
   const [showCompleted, setShowCompleted] = useNavigationState('typewriter','showCompleted',false);
   const [writing, setWriting] = useState(false);
+  useActivityTime('copying', writing);
   const writingSearch=useSearchScope({id:'typewriter-original',label:translate("i18n.currentSourceText"),priority:30,enabled:writing,filters:[]});
   const [editorOpen, setOpen] = useState(Boolean(initialSource || editItem));
   const sourceSearch = useSearchScope({
