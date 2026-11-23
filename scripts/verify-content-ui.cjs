@@ -84,5 +84,27 @@ app.whenReady().then(async()=>{
  console.log('DELETE_PASS',count);
  await w.reload(); await new Promise(r=>setTimeout(r,1200));
  console.log('RELOAD_ORDER',await w.webContents.executeJavaScript(`JSON.stringify([...document.querySelectorAll('.shelf-book')].map(e=>({key:e.dataset.contentTarget,order:e.style.order,left:e.getBoundingClientRect().left})))`));
+ // The real toolbar changes the space available on both sides of the page.
+ for (const [feature, target] of [['music', '.record-deck'], ['', '.shelf-book']]) {
+   await w.loadURL('http://127.0.0.1:5173/tests/ui/content-interactions.html?feature=' + feature);
+   const measure = () => evaluate(`document.querySelector('${target}').getBoundingClientRect().toJSON()`);
+   const clickEdit = () => evaluate("document.querySelector('#page-command-buttons button:nth-child(4)').click()");
+   for (const width of [800, 1200, 1600]) {
+     w.setSize(width, 900);
+     await new Promise(resolve => setTimeout(resolve, 550));
+     const before = await measure();
+     await clickEdit();
+     await evaluate(`document.querySelector('${target}').click()`);
+     await new Promise(resolve => setTimeout(resolve, 550));
+     const after = await measure();
+     const railRight = await evaluate("document.querySelector('dialog.edit-sidebar[open]').getBoundingClientRect().right");
+     if (after.left <= before.left || after.left < railRight || after.width !== before.width)
+       throw Error(`Editing ${target} at ${width}px moved or resized it incorrectly`);
+     await clickEdit();
+     await new Promise(resolve => setTimeout(resolve, 550));
+     if ((await measure()).left !== before.left) throw Error(`${target} did not recenter`);
+   }
+ }
+ console.log('TOOLBAR_EDIT_LAYOUT_PASS');
  app.quit();
 }).catch(error=>{console.error(error);app.exit(1);});

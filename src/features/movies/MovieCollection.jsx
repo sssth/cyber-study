@@ -238,6 +238,7 @@ export default function MovieCollection({ onClose, editItem }) {
   useSearchCount('movie',visibleMovies.length);
   const editor = (<ActionWorkspace kind={editing ? "edit" : "create"} disabled={formBusy} onCreate={() => { if (editing) cancelEdit(); }} label={translate("i18n.newFilm")} title={editing ? translate("i18n.editFilm") : translate("i18n.newFilm")} open={editorOpen} onOpenChange={setEditorOpen}><form className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
       <WorkspaceFields>
+        <MovieField label={translate("i18n.tags")} {...field('tags')} hint="i18n.customTagsSeparatedByCommas" />
         <label>{translate("i18n.link2")}<input {...field('url')} placeholder={translate("i18n.bilibiliOrOtherSourceLinkOptional")} /></label>
         <input ref={titleInput} {...field('title')} placeholder={translate("i18n.filmTitleOptional")} />
         <div className="movie-poster-field">
@@ -257,7 +258,6 @@ export default function MovieCollection({ onClose, editItem }) {
         </div>
         <MovieField label={translate("i18n.type")} {...field('genres')} aria-label={translate("i18n.genres")} hint="i18n.genresSeparatedByCommas" />
         <div className="panel-toolbar">
-          <MovieField label={translate("i18n.tags")} {...field('tags')} hint="i18n.customTagsSeparatedByCommas" />
           <select {...field('status')} aria-label={translate("i18n.watchStatus")}><option value="想看">{translate("i18n.wantToWatch")}</option><option value="在看">{translate("i18n.watching")}</option><option value="看过">{translate("i18n.watched")}</option></select>
         </div>
         <label>{translate("i18n.personalRating")}<input {...field('personalScore')} type="number" min="0" max="10" step="0.1" placeholder={translate("i18n.optional010")} /></label>

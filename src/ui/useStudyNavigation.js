@@ -176,6 +176,7 @@ export default function useStudyNavigation({ audioManager, audioOn }) {
       setLastBookId(ids[0]);
       openReader('last');
     } else if (ids.length) {
+      clearRestoredViews();
       openReader('library');
       setSceneBookIds(ids);
     }

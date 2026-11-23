@@ -1,4 +1,5 @@
 {
+  "i18n.entityTagSeparator": "Separate tags with commas",
   "i18n.statsGroup_focus": "Focus time",
   "i18n.statsGroup_entities": "Entity overview",
   "i18n.statsGroup_reading": "Reading and notes",
@@ -97,6 +98,7 @@
   "i18n.binNoMatches": "No matching items.",
   "i18n.time": "Time",
   "i18n.bulkExcerptDelete": "Deleting excerpts also deletes their annotations.",
+  "i18n.selectionModeActive": "Select-all mode active",
   "i18n.selectEntities": "Select all",
   "i18n.selectedCount": "{0} items selected",
   "i18n.bulkEdit": "Edit selected items",

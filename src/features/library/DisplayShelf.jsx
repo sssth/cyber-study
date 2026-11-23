@@ -1,3 +1,4 @@
+import { entityTags } from '../../entities/tags.js';
 import { translate } from '../../i18n/index.js';
 import { editActivationProps } from '../../ui/editGesture.js';
 import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
@@ -40,7 +41,7 @@ export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, 
   const book = lookup.get(entry.bookId);
   return book ? [[book.id, parseMarkdownContent(book.content || '').map(block => block.text).join('\n')]] : [];
  }) : []), [entries, lookup, needsText]);
- const visibleIds=new Set(shelfBooks.filter(book=>matchesItem('book',book,{...search,query:''})&&textMatches([book.title,book.author,book.tags,textByBook.get(book.id)],search.query)).map(b=>b.id));
+ const visibleIds=new Set(shelfBooks.filter(book=>matchesItem('book',book,{...search,query:''})&&textMatches([book.title,book.author,entityTags('book',book),textByBook.get(book.id)],search.query)).map(b=>b.id));
  const visibleActive=active.filter(e=>visibleIds.has(e.bookId));
  useResultSource({ scopeId: scopeId, priority:35,matches:resultEntities('book',visibleActive.map(e=>lookup.get(e.bookId)))});
  const displayLayout=useMemo(()=>{try{return {items:hasSearch(search)?filterShelfLayout(shelf,active,visibleIds):layout.items};}catch(e){return {items:[],error:e.message};}},[layout,shelf,search,books]);

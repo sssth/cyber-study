@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate } from '../../i18n/index.js';
 import { ContentCommand, ContentEditButton } from '../ContentCommands.jsx';
 import ContentActions from '../ContentActions.jsx';
@@ -21,7 +22,7 @@ export default function Annotation({ note, onSaved, onDelete, inlineEdit = false
 
   return <div className="annotation-entry" data-edit-active={editing && !editOnly || undefined}>
     <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleString('zh-CN')}</time>
-    {editing ? <div className="stack-form">
+    {editing ? <div className="stack-form"><EntityTagsField type="annotation" item={note}/>
       <textarea autoFocus aria-label={translate("i18n.editAnnotation")} value={value} onChange={(event) => setValue(event.target.value)} />
       <button type="button" aria-label={translate("i18n.saveChanges")} onClick={() => {
         try {

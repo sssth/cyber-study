@@ -1,3 +1,5 @@
+import { toggleVisibleIds } from '../../entities/entitySelection.js';
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { displayShelves } from './sceneShelfArrangement.js';
 import { translate, translateError } from '../../i18n/index.js';
 import { bookActivityTime, bookReadingStatus, loadReaderState, readingStatusLabels } from './storage.js';
@@ -66,10 +68,17 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
   const shownBooks = orderType(selection ? visibleBooks.filter(book=>!selection.used.includes(book.id)) : visibleBooks, 'book', order);
   if (!selection) shownBooks.sort((a, b) =>
     bookActivityTime(b, readerState.books[b.id]) - bookActivityTime(a, readerState.books[a.id]));
-  useResultSource({ scopeId: 'library', priority:30,enabled:view==='all',matches:resultEntities('book',shownBooks)});
+  useResultSource({
+    scopeId: 'library', priority: 30, enabled: view === 'all', matches: resultEntities('book', shownBooks),
+    selectVisible: selection ? () => setSelection(current => {
+      if (!current) return current;
+      const ids = toggleVisibleIds(current.ids, shownBooks.map(book => book.id), 10);
+      return { ...current, ids };
+    }) : undefined
+  });
   const [editing, setEditing] = useState(null);
   const editBook = book => <ContentCommand label={translate("i18n.edit02", book.title)} disabled={busy} run={() => setEditing(book)} />;
-  return <section ref={collection} className="library-shelves" data-selecting={selection?true:undefined} aria-label={translate("i18n.library")} style={selection?{width:collectionWidth}:undefined}>
+  return <section ref={collection} className="library-shelves" data-local-selection={Boolean(selection?.ids.length) || undefined} data-selecting={selection?true:undefined} aria-label={translate("i18n.library")} style={selection?{width:collectionWidth}:undefined}>
     <DisplayViewMenu label={translate("i18n.shelfView")} options={shelfViews} value={view} onChange={id => {if(selection&&id===String(selection.shelf))placeSelection();else if(!selection){if(id==='excerpts')onViewChange(id);else setView(id);}}}>{view === 'all' && <span>{shownBooks.length}{' '}{translate("i18n.books")}</span>}</DisplayViewMenu>
     <ActionWorkspace command={false} showTrigger={false} title={translate("i18n.addBooksToDisplay")} open={Boolean(selection)} onOpenChange={open=>{if(!open&&selection){setView(String(selection.shelf));setSelection(null);}}}>
       {selection&&<><WorkspaceFields><ShelfBookPreview books={previewBooks} orientation={previewSelection?.orientation||'flat'} onTurn={cycleOrientation} disabled={!selection.ids.length}/>
@@ -121,7 +130,7 @@ export function BookEditor({editing, readingRecord = loadReaderState().books[edi
           onClose();
         } catch (e) { setError(e.message); } finally { setSaving(false); }
       }}>
-        <WorkspaceFields>
+        <WorkspaceFields><EntityTagsField type="book" item={editing}/>
           <label>{translate("i18n.title")}<input name="title" required maxLength={500} defaultValue={editing.title}/></label>
           <label>{translate("i18n.author")}<input name="author" maxLength={500} defaultValue={editing.author === '本地导入' ? '' : editing.author || ''} /></label>
           <label>{translate("i18n.readingStatus")}<select name="readingStatus" defaultValue={readingRecord?.readingStatus || ''}>

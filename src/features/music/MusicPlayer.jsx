@@ -1,3 +1,5 @@
+import { entityTags } from '../../entities/tags.js';
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError } from '../../i18n/index.js';
@@ -167,8 +169,8 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     if (search.filters.playlistId && id !== search.filters.playlistId) continue;
     const songs=tracksInPlaylist(id);
     const list=savedPlaylists.find(p=>p.id===id)??songs.find(t=>t.playlists?.some(p=>p.id===id))?.playlists?.find(p=>p.id===id)??{title};
-    const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&textMatches([list.title],search.query);
-    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&textMatches(search.filters?.musicTarget==='artist'?[t.artist]:search.filters?.musicTarget==='song'?[t.title]:[t.title,t.artist],search.query))||!search.query.trim()));
+    const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&textMatches([list.title, entityTags('playlist', {...list,id})],search.query);
+    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&textMatches(search.filters?.musicTarget==='artist'?[t.artist]:search.filters?.musicTarget==='song'?[t.title]:[t.title,t.artist,entityTags('music',t)],search.query))||!search.query.trim()));
     const provider=list.provider||(['qq','netease','spotify'].includes(id.split(':')[0])?id.split(':')[0]:null);
     if(!hasSearch(search)||(search.filters.playlistId && !search.query.trim() && !search.filters.provider)||matching.length||(titleHit&&(!search.filters?.provider||provider===search.filters.provider))) filteredLists.set(id,{title,songs:matching,record:{...list,id,trackNames:songs.map(track=>track.title)}});
   }
@@ -757,7 +759,7 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
       await onSave({...values,coverAssetId});
       if(coverFile)window.dispatchEvent(new Event('cyber-content-changed'));
     }catch(failure){setError(failure.message);}finally{setBusy(false);}}}>
-      <WorkspaceFields>
+      <WorkspaceFields><EntityTagsField type={entity.type === 'playlist' ? 'playlist' : 'music'} item={entity}/>
         {field('title',translate("i18n.name"))}
         <label>{translate("i18n.cover")}<input type="file" accept="image/*" disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setError('');}}/></label>
         {coverFile?<p className="card-meta">{translate("i18n.selected")}{coverFile.name}{translate("i18n.saveToReplace")}</p>:cover&&<img className="music-editor-cover" src={cover} alt={translate("i18n.currentCover")}/>}

@@ -25,7 +25,7 @@ export default function StatisticsPage({ catalog, partial, search }) {
     const timer = window.setInterval(() => setNow(Date.now()), 15000);
     return () => window.clearInterval(timer);
   }, []);
-  useEscapeBack(() => { setEditing(null); setCreating(false); }, { blocked: () => !editing && !creating, capture: true, stop: true });
+  useEscapeBack(() => setCreating(false), { blocked: () => !creating, capture: true, stop: true });
   const language = useLanguage();
   const metrics = useMemo(() => catalog && entityMetrics(catalog, now), [catalog, now, language]);
   const activity = useMemo(() => loadActivity(now), [now]);

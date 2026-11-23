@@ -1,7 +1,7 @@
+import { toggleVisibleIds } from './entitySelection.js';
 import { ContentCommand } from '../features/ContentCommands.jsx';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../features/ui.jsx';
 import useResultSource from '../results/useResultSource.js';
-import useEscapeBack from '../ui/useEscapeBack.js';
 import { useEffect, useRef, useState } from 'react';
 import { changeRecycledItem, loadSpaceData } from '../data/spaceStorage.js';
 import { queryEntities } from '../search/searchCore.js';
@@ -44,7 +44,6 @@ export default function RecycleBin({ search, revision, onBooksChanged }) {
   const targets = visible.filter(row => editorTokens.includes(row.token));
   const editing = targets.length > 0;
   const closeEditor = () => { if (!lock.current) edit([]); };
-  useEscapeBack(closeEditor, { blocked: () => !editing, capture: true, stop: true });
   function openEditor(row) {
     if (lock.current) return;
     setError('');
@@ -58,7 +57,7 @@ export default function RecycleBin({ search, revision, onBooksChanged }) {
     selectVisible() {
       if (lock.current) return;
       edit([]);
-      select(picked.length === visible.length ? [] : visible.map(row => row.token));
+      select(toggleVisibleIds(picked.map(row => row.token), visible.map(row => row.token)));
     },
     editSelected: picked.length && !editing ? () => openEditor() : undefined
   });
@@ -91,7 +90,7 @@ export default function RecycleBin({ search, revision, onBooksChanged }) {
   }
   return <>
     {error && !editing && <p role="alert">{error}</p>}
-    <section className="entity-catalog" data-recycle-bin data-bin-selected={picked.length > 0 || undefined} aria-label={t('i18n.recycleBin')}>
+    <section className="entity-catalog" data-recycle-bin data-local-selection={picked.length > 0 || undefined} aria-label={t('i18n.recycleBin')}>
       {visible.map(row => <button key={row.token} type="button" data-edit-item disabled={busy}
         data-bulk-selected={selected.includes(row.token) || undefined} aria-pressed={selected.includes(row.token)}>
         <ContentCommand label={t('i18n.edit')} run={() => openEditor(row)} />

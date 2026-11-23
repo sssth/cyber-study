@@ -8,7 +8,7 @@ import { clearSelection, getSelection, selectResults, subscribeSelection, valida
 import { sharedFields } from './bulkFields.js';
 import { writeSelection } from './bulkWrite.js';
 import { translate, translateError } from '../i18n/index.js';
-import { usePageBackMatcher } from '../ui/useEscapeBack.js';
+import { catalogHandlesPageBack, usePageBackMatcher } from '../ui/useEscapeBack.js';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../features/ui.jsx';
 
 function BulkEditor({ items, close, running, host, books, updateBooks, removeBook }) {
@@ -120,6 +120,7 @@ export default function BulkEntityCommands({ shortcuts, disabled, projection, vi
     const key = event => {
       if (latest.current.disabled) return;
       if (latest.current.editor && latest.current.back(event)) {
+        if (!running.current && catalogHandlesPageBack()) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         close();

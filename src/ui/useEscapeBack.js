@@ -3,8 +3,14 @@ import { defaultBackKeys, matchesShortcut, typingTarget } from '../data/shortcut
 
 export const PageBackKeys = createContext(defaultBackKeys);
 
+export function catalogHandlesPageBack() {
+  return Boolean(document.querySelector('.feature-overlay[data-command-scope="catalog"]:not([inert])')) &&
+    !document.querySelector('dialog:modal, [inert] .feature-overlay[data-command-scope="catalog"]');
+}
+
 export function blocksPageBack() {
-  return Boolean(document.querySelector('dialog[open]:not(.edit-sidebar), dialog[data-bulk-editor][open]'));
+  return Boolean(document.querySelector('dialog[open]:not(.edit-sidebar)')) ||
+    Boolean(document.querySelector('dialog[data-bulk-editor][open]') && !catalogHandlesPageBack());
 }
 
 export function matchesPageBack(event, keys = defaultBackKeys) {

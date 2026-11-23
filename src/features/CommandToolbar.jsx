@@ -10,7 +10,7 @@ const buttons = [
   ['search', 'i18n.search'], ['create', 'i18n.new'], ['selectAll', 'i18n.selectEntities'], ['edit', 'i18n.edit'],
   ['snapshot', 'i18n.snapshot'], ['relate', 'i18n.link']
 ];
-const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay, .statistics-grid, [data-recycle-bin]';
+const tracked = 'dialog, [data-create-active], [data-edit-active], .unified-search, .feature-overlay, .statistics-grid, [data-recycle-bin], [data-local-selection]';
 const expandedKey = 'cyber-study.command-toolbar.expanded';
 
 export default function CommandToolbar({ shortcuts }) {
@@ -41,7 +41,7 @@ export default function CommandToolbar({ shortcuts }) {
         relationDialog: relate,
         stats: !modal && Boolean(document.querySelector(".statistics-grid")),
         trash: !modal && Boolean(document.querySelector("[data-recycle-bin]")),
-        binSelection: Boolean(document.querySelector("[data-recycle-bin][data-bin-selected]")),
+        localSelection: [...document.querySelectorAll("[data-local-selection]")].some(node => !node.closest("[inert]") && node.checkVisibility()),
         mode,
         search: Boolean(document.querySelector('.unified-search')),
         create: isCreating(),
@@ -57,7 +57,7 @@ export default function CommandToolbar({ shortcuts }) {
     });
     observer.observe(document.body, {
       subtree: true, childList: true, attributes: true,
-      attributeFilter: ['open', 'data-command-target', 'data-item-editing', 'data-create-active', 'data-edit-active', 'data-bin-selected', 'inert']
+      attributeFilter: ['open', 'data-command-target', 'data-item-editing', 'data-create-active', 'data-edit-active', 'data-local-selection', 'inert']
     });
     document.addEventListener('fullscreenchange', sync);
     sync();
@@ -70,6 +70,7 @@ export default function CommandToolbar({ shortcuts }) {
   if (!status?.available) return null;
 
   return createPortal(
+    <>
     <nav className="command-toolbar" aria-label={translate("i18n.pageActions")}>
       <button className="command-toolbar-toggle" type="button" aria-expanded={expanded}
         aria-controls="page-command-buttons" aria-label={expanded ? translate("i18n.collapseToolbar") : translate("i18n.expandToolbar")}
@@ -85,7 +86,7 @@ export default function CommandToolbar({ shortcuts }) {
             id === 'edit' ? translate("i18n.doubleClickAnItem") : translate("i18n.rightClickAnItem");
           const selecting = status.mode === id;
           return <button key={id} type="button"
-            aria-pressed={id === 'selectAll' ? Boolean(selection || status.binSelection) : id === 'snapshot' ? undefined : status[id]}
+            aria-pressed={id === 'selectAll' ? Boolean(selection || status.localSelection) : id === 'snapshot' ? undefined : status[id]}
             disabled={unavailable || (id === 'relate' && selection?.canRelate === false) || id !== 'snapshot' && (status.loading || (id === 'edit' && status.relationDialog))}
             title={selecting ? translate("i18n.selectAnItem") : [translate(label), hint].filter(Boolean).join(' · ')}
             onClick={click => invokeCommand(id, click.currentTarget)}>
@@ -96,6 +97,8 @@ export default function CommandToolbar({ shortcuts }) {
       {expanded && status.mode && <span className="command-target-hint" role="status">
         {status.mode === 'edit' ? translate("i18n.selectAnItemToEdit") : translate("i18n.selectAnItemToLink")}
       </span>}
-    </nav>, status.host
+    </nav>
+    {(selection || status.localSelection) && <span className="selection-mode-label" role="status">{translate("i18n.selectionModeActive")}</span>}
+    </>, status.host
   );
 }

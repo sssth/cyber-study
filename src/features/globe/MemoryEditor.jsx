@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
@@ -47,7 +48,7 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
   const [journeyEditorOpen, setOpen] = useState(Boolean(editJourney));
   const setJourneyEditorOpen = open => {setOpen(open); if (!open && editJourney) onClose();};
   if (mode === 'journey') { const editor = (<ActionWorkspace kind={journey.id ? "edit" : "create"} portalHost={workspaceHost} disabled={busy} onCreate={() => { setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); }} label={translate("i18n.newTrip")} title={journey.id ? translate("i18n.editTrip") : translate("i18n.newTrip")} open={journeyEditorOpen} onOpenChange={setJourneyEditorOpen}><form className="stack-form" onSubmit={async e => { e.preventDefault(); if (await request('journey', journey)) setJourneyEditorOpen(false); }}>
-      <WorkspaceFields>
+      <WorkspaceFields><EntityTagsField type="journey" item={journey}/>
         {error && <p role="alert">{translateError(error)}</p>}
         <h3>{journey.id ? translate("i18n.editTrip") : translate("i18n.newTrip")}</h3>
         <label>{translate("i18n.tripName")}<input required maxLength={200} value={journey.title} onChange={e => setJourney({ ...journey, title: e.target.value })} /></label>
@@ -105,7 +106,7 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
   const search = searching ? query.trim().toLowerCase() : '';
   const matches = search ? cities.filter(c => [c.name, c.name_ascii, c.aliases].some(name => name?.toLowerCase().includes(search))).slice(0, 10) : [];
   return <form className="stack-form memory-point-form" onSubmit={e => { e.preventDefault(); savePoint(false); }}>
-    <WorkspaceFields>
+    <WorkspaceFields><EntityTagsField type="memory_point" item={point}/>
       {!point.id && <div className="globe-toolbar"><button type="button" disabled={busy} onClick={() => request('import', { folder: false })}>{translate("i18n.importPhotos")}</button><button type="button" disabled={busy} onClick={() => request('import', { folder: true })}>{translate("i18n.importFolder")}</button></div>}
       <h3>{point.id ? translate("i18n.editMemoryPin") : translate("i18n.newMemoryPin")}</h3>
       <label>{translate("i18n.memoryName")}<input maxLength={200} value={point.title || ''} onChange={e => set('title', e.target.value)} placeholder={translate("i18n.giveThisMemoryAName")} /></label>

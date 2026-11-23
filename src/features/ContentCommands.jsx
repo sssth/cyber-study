@@ -10,7 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { contentAt } from '../ui/contentTargets.js';
 import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
 import { currentScope } from '../search/searchStore.js';
-import { usePageBackMatcher } from '../ui/useEscapeBack.js';
+import { catalogHandlesPageBack, usePageBackMatcher } from '../ui/useEscapeBack.js';
 
 const commands = new Map();
 const itemSelector = '[data-edit-item], .reader-annotation-card, [data-content-target]';
@@ -263,7 +263,9 @@ export default function ContentCommands({ shortcuts, disabled, viewKey, targetVi
     const keys = event => {
       if (latest.current.disabled || event.isComposing) return;
       if (latest.current.isPageBack(event) && commandTargetMode()) {
+        const navigate = commandTargetMode() === 'edit' && catalogHandlesPageBack();
         setCommandTargetMode(null);
+        if (navigate) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         return;

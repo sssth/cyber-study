@@ -1,3 +1,4 @@
+import { entityTags } from '../entities/tags.js';
 import { entityTypes } from '../entities/registry.js';
 
 export const emptySearch = Object.freeze({query:'', filters:{}});
@@ -5,7 +6,7 @@ export const normalize = value => String(value ?? '').normalize('NFKC').toLocale
 export const termsOf = query => Array.from(normalize(query).matchAll(/"([^"]+)"|([^\s"]+)/g), m=>m[1]||m[2]);
 export const textMatches = (values, query) => { const text=values.flat(Infinity).filter(v=>v!=null).map(normalize).join('\n');return termsOf(query).every(term=>text.includes(term)); };
 export const searchValues = (type, item, definitions = entityTypes) =>
- [item.title, item.tags, ...(definitions[type]?.search ?? []).map(key => item[key])];
+ [item.title, entityTags(type,item), ...(definitions[type]?.search ?? []).map(key => item[key])];
 export function matchesItem(type,item,state=emptySearch, definitions=entityTypes){
  if(item.deletedAt||!textMatches(searchValues(type,item,definitions),state.query))return false;
  const f=state.filters||{};

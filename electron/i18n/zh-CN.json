@@ -1,4 +1,5 @@
 {
+  "i18n.entityTagSeparator": "多个标签用逗号分隔",
   "i18n.statsGroup_focus": "专注时间",
   "i18n.statsGroup_entities": "实体概览",
   "i18n.statsGroup_reading": "阅读与笔记",
@@ -97,6 +98,7 @@
   "i18n.binNoMatches": "没有符合检索条件的实体。",
   "i18n.time": "时间",
   "i18n.bulkExcerptDelete": "删除摘录也会删除其下的批注。",
+  "i18n.selectionModeActive": "当前处于全选模式",
   "i18n.selectEntities": "全选",
   "i18n.selectedCount": "已选 {0} 个实体",
   "i18n.bulkEdit": "批量编辑",

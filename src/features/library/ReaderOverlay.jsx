@@ -24,7 +24,7 @@ import ContentActions from '../ContentActions.jsx';
 import { useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { formatProgress, parseMarkdownContent } from './markdownReader.js';
 import { chapterLabel, chapterMarkdown, goToReaderBlock, readingAnchor, goToReadingAnchor, highlightRanges, indexChapters, readerPosition } from './readerPosition.js';
-import { bookReaderSettings } from './storage.js';
+import { applyReaderSettings, bookReaderSettings } from './storage.js';
 import ExcerptAnnotations from './ExcerptAnnotations.jsx';
 import { addKnowledgeNote, defaultExcerptColor, excerptAppearance, excerptColors, creatableExcerptTypes, groupExcerpts, loadKnowledge, updateExcerptAppearance } from './knowledgeStore.js';
 
@@ -63,7 +63,8 @@ function ReaderOverlay({
 }) {
   const isPageBack = usePageBackMatcher();
   const [mode, setMode] = useState('library');
-  const [libraryView,setLibraryView] = useNavigationState('reader','libraryView',['excerpt','annotation'].includes(navigationItem?.type)?'excerpts':'all', { preferInitial:Boolean(navigationItem) });
+  const [allBookSettings, setAllBookSettings] = useState(false);
+  const [libraryView,setLibraryView] = useNavigationState('reader','libraryView',!initialLibraryBookIds?.length && ['excerpt','annotation'].includes(navigationItem?.type)?'excerpts':'all', { preferInitial:Boolean(initialLibraryBookIds?.length || navigationItem) });
   const [pagedChapter,setPagedChapter]=useState(null);
   const [paged, setPaged] = useState(initialView === 'paged');
   const [notesOpen, setNotesOpen] = useState(false);
@@ -241,7 +242,7 @@ function ReaderOverlay({
 
   const excerpts = useMemo(() => groupExcerpts(activeNotes), [activeNotes]);
   const selectedNote = excerpts.get(selectedExcerpt)?.[0];
-  const activeExcerptColor = selectedNote ? excerptAppearance(selectedNote).color : excerptColor;
+  const activeExcerptColor = selectedNote && !allBookSettings ? excerptAppearance(selectedNote).color : excerptColor;
   const highlights = useMemo(() => highlightRanges(blocks, excerpts, { maskLegacyUnderlines: true }), [blocks, excerpts]);
 
   useLayoutEffect(() => {
@@ -295,6 +296,7 @@ function ReaderOverlay({
     setDismissedImportRevision(importState.revision);
     setImportError('');
     flushPosition();
+    setAllBookSettings(false);
     setMode('library');
   };
 
@@ -438,12 +440,8 @@ function ReaderOverlay({
   const updateReaderSettings = (adjust) => {
     if (!activeBookId) return;
     setReaderState(state => {
-      const book = state.books[activeBookId];
-      const current = bookReaderSettings(state, activeBookId);
-      return {
-        ...state,
-        books: { ...state.books, [activeBookId]: { ...book, settings: { ...book?.settings, ...adjust(current) } } }
-      };
+      const changes = adjust(bookReaderSettings(state, activeBookId));
+      return applyReaderSettings(state, activeBookId, changes, allBookSettings);
     });
   };
 
@@ -607,6 +605,7 @@ function ReaderOverlay({
   ] : [], [activeBook, blocks, chapters, displayedChapter, chapterTitle, chapterNotes]);
   useResultSource({ scopeId: scopeId, 
     priority: 30, detail: true, label: translate("i18n.readBook"), position: chapterTitle, enabled: mode === 'reading',
+    selectVisible: () => setAllBookSettings(current => !current),
     matches: resultEntities('book', [activeBook]), applications: { snapshot: snapshotEntities }
   });
 
@@ -615,7 +614,7 @@ function ReaderOverlay({
   }
 
   return (
-    <section data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.library")}
+    <section data-local-selection={mode === 'reading' && allBookSettings || undefined} data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.library")}
       onDoubleClick={event => {
         if (!selectedExcerpt || savingNote || event.defaultPrevented ||
             event.target.closest('button, input, select, textarea, a, [contenteditable]')) return;
@@ -706,7 +705,7 @@ function ReaderOverlay({
                   <button key={color} type="button" aria-label={translate(label)} title={translate(label)}
                     aria-pressed={activeExcerptColor === color} style={{ '--swatch-color': color }} disabled={savingNote}
                     onClick={() => {
-                      if (!selectedNote) {
+                      if (!selectedNote || allBookSettings) {
                         updateReaderSettings(() => ({ excerptColor: color }));
                         return;
                       }

@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { deliverCopy } from '../../data/copyDelivery.js';
 import { formatDate, translate } from '../../i18n/index.js';
@@ -253,7 +254,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     {message && <div role="alert">{translate(message)}</div>}</main>
   </section>,document.body);
   const editor = (<ActionWorkspace kind={draftId ? "edit" : "create"} onCreate={startNew} label={translate("i18n.newTypingSession")} title={draftId ? translate("i18n.editWork") : translate("i18n.newWorkChooseSourceText")} open={editorOpen} onOpenChange={setEditorOpen}><div className="stack-form">
-        <WorkspaceFields>
+        <WorkspaceFields><EntityTagsField type="typing_work" item={works.find(work => work.id === draftId)}/>
           <SourceOptions label={translate("i18n.sourceBook")} name="copy-source-book" options={visibleBooks} value={bookId} onChange={id => {
             setBookId(id); setChapterId('whole'); setSource(null); setTyped('');
           }} />

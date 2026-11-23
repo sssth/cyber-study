@@ -52,7 +52,7 @@ app.whenReady().then(async()=>{
   window.expectedExcerpt = expected;
  })()`);
  await wait(`document.querySelector('.reader-inline-note blockquote')?.textContent === window.expectedExcerpt`);
- await run(`document.querySelector('.reader-inline-note button[value="excerpt"]').click()`);
+ await run(`document.querySelector('.reader-inline-note button[value="highlight"]').click()`);
  await wait(`JSON.parse(localStorage.getItem('cyber-study.space.v1.knowledge'))?.notes.some(note => note.quote === window.expectedExcerpt && note.ranges.length === 1)`);
  console.log('EXCERPT_SELECTION_PASS: a captured text range can still be saved');
  console.log('NAVIGATION_RETURN_PASS: exact Memo menu, latest origin only, completed works, book → shelf → scene');app.quit();

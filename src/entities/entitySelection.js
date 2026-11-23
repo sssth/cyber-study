@@ -17,6 +17,16 @@ export function clearSelection() {
   if (selection) publish(null);
 }
 
+// Local pickers use the same select-all command while keeping their own item IDs.
+export function toggleVisibleIds(selected, visible, limit = Infinity) {
+  const next = new Set(selected);
+  for (const id of visible) {
+    if (next.size >= limit) break;
+    next.add(id);
+  }
+  return next.size === selected.length ? [] : [...next];
+}
+
 function selectionInput() {
   const source = currentResultInput('snapshot');
   return source && { ...source, entities: source.applications?.selectAll ?? source.entities };

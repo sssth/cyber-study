@@ -28,7 +28,7 @@ app.whenReady().then(async () => {
         await run("[...document.querySelectorAll('dialog[open] button')].find(b=>b.textContent==='调整摘录范围').click()");
         await wait("!!document.querySelector('dialog[open] .catalog-range-editor') && document.querySelector('.entity-catalog')===originalCatalog");
       }
-      await run("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}))");
+      await run("document.querySelector('dialog.edit-sidebar[open]').dispatchEvent(new Event('cancel',{cancelable:true}))");
     }
     await wait("!document.querySelector('dialog.edit-sidebar[open]')");
     console.log(key, 'OK');

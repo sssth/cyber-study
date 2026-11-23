@@ -1,3 +1,5 @@
+import { entityTags } from '../../entities/tags.js';
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { translate, translateError } from '../../i18n/index.js';
 import { persistExcerptChange } from './excerptPersistence.js';
@@ -55,7 +57,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   const bookId=search.filters.bookId||'';
   const filtered = entries.filter(({ note, items, chapter }) =>
     (!bookId || note.bookId === bookId) && (!search.filters.id||items.some(i=>i.id===search.filters.id)) &&
-    textMatches([note.bookTitle,chapter,note.quote,...items.flatMap(item=>[item.annotation,...(item.tags??[])])],search.query));
+    textMatches([note.bookTitle,chapter,note.quote,entityTags('excerpt',note),...items.flatMap(item=>[item.annotation,item.annotation ? entityTags('annotation',item) : []])],search.query));
   useSearchCount('knowledge',filtered.length);
   useLayoutEffect(() => {
     if (!editItem || detailKey) window.dispatchEvent(new Event('cyber-close-search'));
@@ -83,7 +85,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   }
 
   const editor = (<ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editExcerpt")} open={Boolean(editingEntry)} onOpenChange={open=>{if(!open)setEditKey(null);}}>
-      {editingEntry&&<><WorkspaceFields><blockquote className="excerpt-edit-preview">{editingEntry.note.quote}</blockquote><p>{[editingEntry.note.bookTitle,editingEntry.chapter].filter(Boolean).join(' · ')}</p>
+      {editingEntry&&<><WorkspaceFields><EntityTagsField type="excerpt" item={editingEntry.note}/><blockquote className="excerpt-edit-preview">{editingEntry.note.quote}</blockquote><p>{[editingEntry.note.bookTitle,editingEntry.chapter].filter(Boolean).join(' · ')}</p>
       <ExcerptTypeField note={editingEntry.note} saving={editBusy} onChange={() => setRevision(v => v + 1)} onError={setEditError} />
       <button type="button" onClick={()=>{setEditKey(null);onStartCopy?.({bookId:editingEntry.note.bookId,bookTitle:editingEntry.note.bookTitle,chapterTitle:editingEntry.chapter||translate("i18n.excerpt"),text:editingEntry.note.quote});}}>{translate("i18n.startTypingPractice")}</button>
       <button type="button" disabled={!editingEntry.source} onClick={()=>{setRangeEditing(true);setDetailKey(editKey);setLocalEditKey(null);}}>{translate("i18n.adjustExcerptRange")}</button>

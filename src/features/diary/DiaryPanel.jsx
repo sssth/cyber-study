@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { formatDate, translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -245,7 +246,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
     closeDiary();
   };
   const fields = (<div className="stack-form">
-        <WorkspaceFields>
+        <WorkspaceFields><EntityTagsField type="diary" item={entries.find(entry => entry.id === editing)}/>
           {editItem && <label>{translate("i18n.fullText")}<textarea value={draft.text} onChange={event => setDraft(current => ({...current, text:event.target.value}))} /></label>}
           <label>{translate("i18n.writingTool")}{' '}<select value={prefs.pen} onChange={(event) => setPreference('pen', event.target.value)}><option value="钢笔">{translate("i18n.fountainPen")}</option><option value="羽毛笔">{translate("i18n.quill")}</option></select></label>
           <label>{translate("i18n.writingSounds")}<input type="checkbox" checked={prefs.sound} onChange={(event) => setPreference('sound', event.target.checked)} /></label>

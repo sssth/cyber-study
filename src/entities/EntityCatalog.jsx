@@ -118,7 +118,7 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
       </button>;
   }
 
-  return <FeaturePanel scopeId="catalog" hasMenu wide title="i18n.knowledgeBase" scrollContext={view} onClose={onClose} onBack={editing ? () => window.dispatchEvent(new Event('cyber-exit-item-edit')) : onClose}>
+  return <FeaturePanel scopeId="catalog" hasMenu wide title="i18n.knowledgeBase" scrollContext={view} onClose={onClose}>
     <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['grouped',translate('i18n.groupByType')],['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")],['trash',translate("i18n.recycleBin")],['statistics',translate("i18n.statistics")]]} value={view} onChange={setView}/>
     {entityView && createTypes.map(([type, definition]) => <ContentCommand key={type} kind="create" label={translate(definition.create === true ? definition.label : definition.create)} run={() => onCreate(type)} />)}
     {stats ? <StatisticsPage catalog={catalog} partial={partial} search={search}/> : trash ? <RecycleBin search={search} revision={revision} onBooksChanged={editorProps.onBooksChanged}/> : view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :

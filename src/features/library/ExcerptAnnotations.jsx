@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
@@ -17,7 +18,7 @@ export default function ExcerptAnnotations({ notes, annotationId, onChange, onDe
   const scopeId=`annotations:${notes?.[0]?.id}`;
   const search=useSearchScope({id:scopeId,label:translate("i18n.annotationsForThisExcerpt"),priority:40,enabled:Boolean(notes?.length)});
   useSearchCount(scopeId,(notes||[]).filter(note=>note.annotation&&(!annotationId||note.id===annotationId)&&matchesItem('annotation',note,search)).length);
-  useResultSource({priority:40,scopeId,applications:{snapshot:onDeleteExcerpt ? false : undefined},enabled:Boolean(notes?.length),matches:[...resultEntities('excerpt',[notes?.[0]]),...resultEntities('annotation',(notes||[]).filter(n=>n.annotation&&(!annotationId||n.id===annotationId)&&matchesItem('annotation',n,search)))]});
+  useResultSource({priority:40,scopeId,applications:{snapshot:onDeleteExcerpt ? false : undefined, selectAll:onDeleteExcerpt ? false : undefined},enabled:Boolean(notes?.length),matches:[...resultEntities('excerpt',[notes?.[0]]),...resultEntities('annotation',(notes||[]).filter(n=>n.annotation&&(!annotationId||n.id===annotationId)&&matchesItem('annotation',n,search)))]});
   if (!notes?.length) return null;
 
   const mutate = (operation) => {
@@ -46,6 +47,7 @@ export default function ExcerptAnnotations({ notes, annotationId, onChange, onDe
       setAdding(false);
     })}>{translate("i18n.saveAnnotation")}</button><button type="button" onClick={() => setAdding(false)}>{translate("i18n.cancel")}</button></>}
     {onDeleteExcerpt && <div className="excerpt-edit-actions">
+      <EntityTagsField type="excerpt" item={notes[0]}/>
       <ExcerptTypeField note={notes[0]} saving={saving} onChange={onChange} onHide={onHide} onError={setError} />
       <button type="button" disabled={saving} onClick={onDeleteExcerpt}>{translate("i18n.deleteExcerpt")}</button>
     </div>}

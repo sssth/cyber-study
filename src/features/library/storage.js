@@ -33,6 +33,23 @@ export function bookReaderSettings(state, bookId) {
   return { ...fallbackReaderState.settings, ...state.settings, ...state.books[bookId]?.settings };
 }
 
+export function applyReaderSettings(state, bookId, changes, allBooks) {
+  if (!allBooks) {
+    const book = state.books[bookId];
+    return { ...state, books: { ...state.books, [bookId]: {
+      ...book, settings: { ...book?.settings, ...changes }
+    } } };
+  }
+  const books = { ...state.books };
+  for (const [id, book] of Object.entries(books)) {
+    if (!book.settings || !Object.keys(changes).some(key => Object.hasOwn(book.settings, key))) continue;
+    const settings = { ...book.settings };
+    for (const key of Object.keys(changes)) delete settings[key];
+    books[id] = { ...book, settings };
+  }
+  return { ...state, books, settings: { ...state.settings, ...changes } };
+}
+
 export function saveReaderState(state) {
   try {
     globalThis.localStorage?.setItem(READER_STORAGE_KEY, JSON.stringify(state));

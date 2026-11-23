@@ -1,3 +1,4 @@
+import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
@@ -133,7 +134,7 @@ export default function MemoBoard({ onClose, editItem }) {
           if (editingMemo.imageMode && !editingMemo.photo) { setError(translate("i18n.chooseAnImage")); return; }
           if (persist(items.map(item => item.id === editingMemo.id ? { ...editingMemo, type: editingMemo.type === 'image' ? 'sticky' : editingMemo.type } : item)) !== false) setEditingMemo(null);
         }}>
-          <WorkspaceFields>
+          <WorkspaceFields><EntityTagsField type={editingMemo.type === 'todo' ? 'todo' : 'memo'} item={editingMemo}/>
             <label><input type="checkbox" checked={editingMemo.showOnBoard !== false} onChange={event => setEditingMemo({ ...editingMemo, showOnBoard: event.target.checked, raisedAt: event.target.checked ? new Date().toISOString() : editingMemo.raisedAt })} />{translate("i18n.showOnBoard")}</label>
             {editingMemo.type !== 'todo' && <label>{translate("i18n.noteContent")}<select value={editingMemo.photo || editingMemo.imageMode ? 'image' : 'text'} onChange={event => setEditingMemo({ ...editingMemo, type: 'sticky', photo: event.target.value === 'text' ? '' : editingMemo.photo, imageMode: event.target.value === 'image' })}><option value="text">{translate("i18n.text")}</option><option value="image">{translate("i18n.imageOneOnly")}</option></select></label>}
             {!editingMemo.photo && !editingMemo.imageMode && <label>{translate("i18n.content")}<textarea value={editingMemo.text || ''} onChange={event => setEditingMemo({ ...editingMemo, text: event.target.value })} /></label>}
