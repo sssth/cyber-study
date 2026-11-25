@@ -2,7 +2,7 @@ import { BookEditor } from './LibraryShelf.jsx';
 import { loadReaderState, saveReaderState } from './storage.js';
 
 export default function CatalogBookEditor({ item, onClose, onBooksChanged, onBookDeleted }) {
-  return <BookEditor editing={item} onClose={onClose} canDelete={Boolean(window.cyberStudy?.deleteBook)}
+  return <BookEditor key={item.id} editing={item} onClose={onClose} canDelete={Boolean(window.cyberStudy?.deleteBook)}
       renameBook={async (book, values) => {
         const { readingStatus, ...metadata } = values;
         const storedLocally = !window.cyberStudy?.renameBook || !/^(file:|local:)/.test(book.id);

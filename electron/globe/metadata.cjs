@@ -21,14 +21,17 @@ function metadata(bytes) {
           if (count > 512 || offset + 2 + count * 12 > t.length) throw new Error();
           for (let i = 0; i < count; i++) {
             const p = offset + 2 + i * 12, tag = u16(p), type = u16(p + 2), n = u32(p + 4);
-            const size = ({ 1: 1, 2: 1, 3: 2, 4: 4, 5: 8 })[type];
+            const size = ({ 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 10: 8 })[type];
             if (!size || n > 4096) continue;
             const loc = n * size <= 4 ? p + 8 : u32(p + 8);
             if (loc + n * size > t.length) continue;
             if (type === 2) fields[tag] = t.toString('ascii', loc, loc + n).replace(/\0.*$/, '');
             if (type === 3) fields[tag] = u16(loc);
             if (type === 4) fields[tag] = u32(loc);
-            if (type === 5) fields[tag] = Array.from({ length: n }, (_, k) => u32(loc + k * 8) / u32(loc + k * 8 + 4));
+            if (type === 5 || type === 10) {
+              const read = type === 5 ? u32 : p => le ? t.readInt32LE(p) : t.readInt32BE(p);
+              fields[tag] = Array.from({ length: n }, (_, k) => read(loc + k * 8) / read(loc + k * 8 + 4));
+            }
           }
           return fields;
         };

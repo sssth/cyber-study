@@ -1,3 +1,4 @@
+import PhotoCrop, { cropStyle, useFilePreview } from '../PhotoCrop.jsx';
 import { entityTags } from '../../entities/tags.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
@@ -616,7 +617,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                 setMusicEditor(null);
               }} />}
       {open && (
-        <FeaturePanel scopeId="music" hasMenu title="i18n.recordPlayer" scrollContext={musicView} kicker="Music Deck" description={translate("i18n.playPlaylistsOrLocalAudioMusicKeeps")} onClose={onClose}>
+        <FeaturePanel scopeId="music" tipPage={`music-${musicView}`} hasMenu title="i18n.recordPlayer" scrollContext={musicView} kicker="Music Deck" description={translate("i18n.playPlaylistsOrLocalAudioMusicKeeps")} onClose={onClose}>
           {storageWarning}
           <nav className="globe-mode-switch" aria-label={translate("i18n.recordPlayerView")}>
             {[['player',translate("i18n.play")],['playlists',translate("i18n.playlist")]].map(([id,label]) => <button key={id} aria-pressed={musicView===id} onClick={()=>{setMusicView(id);setPlayerEditor(false);setMusicEditor(null);}}>{label}</button>)}
@@ -638,7 +639,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
 
             <section>
               <div data-entity-key={current && `music:${current.id}`} hidden={musicView!=='player'} {...editActivationProps(e => toggleEditor(setPlayerEditor, e, 'button,input,a,select'))} className={`record-deck ${playing ? 'playing' : ''}`}>
-                <div className="record-disc">{currentCover && <img src={currentCover} alt="" />}<span /></div>
+                <div className="record-disc">{currentCover && <img style={cropStyle(current?.photoCrop)} src={currentCover} alt="" />}<span /></div>
                 <div>
                   <p>{current?.title ?? translate("i18n.noRecordSelected")}{preview && translate("i18n.preview")}</p>
                   {songPlaylist && <p className="card-meta">{playlists.get(songPlaylist)}</p>}
@@ -717,8 +718,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                     <ContentCommand label={translate("i18n.editPlaylist0", title)} disabled={id===stagedImport?.id} run={()=>setMusicEditor({...entry,type:'playlist'})}/>
                     <button className="sleeve-button" data-item-open type="button" aria-label={title} aria-pressed={opened} onClick={activate}>
                       <span className="sleeve-vinyl" aria-hidden="true" />
-                      <span className="sleeve-art">{cover && <img src={cover} alt="" draggable={false} onError={e=>{e.currentTarget.hidden=true;}} key={cover}/>}
-                        <b>{record.title || title}</b></span>
+                      <PlaylistArt entry={entry} fallback={cover} title={record.title || title}/>
                     </button>
                   </article>;
                 }}
@@ -750,19 +750,21 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const [coverFile,setCoverFile]=useState(null);
   const cover=useMusicCover(entity);
+  const replacement=useFilePreview(coverFile);
+  const [photoCrop,setPhotoCrop]=useState(entity.photoCrop);
   const field=(key,label)=><label>{label}<input value={draft[key]} onChange={e=>setDraft(d=>({...d,[key]:e.target.value}))}/></label>;
   return <ActionWorkspace command={false} showTrigger={false} kind="edit" title={entity.type==='playlist'?translate("i18n.editPlaylist"):translate("i18n.editTrack")} open onOpenChange={v=>{if(!v&&!busy)onClose();}}>
     <form className="stack-form" onSubmit={async e=>{e.preventDefault();if(busy||!draft.title.trim())return;setBusy(true);setError('');try{
       let coverAssetId=entity.coverAssetId;
       if(coverFile){const record=await globalThis.ContentAssets.repository('cyber-study-content-assets-v1').add(`${entity.type}:${entity.id}`,[coverFile]);coverAssetId=record.imageAssetIds.at(-1);}
       const values=entity.type==='playlist'?{title:draft.title.trim(),description:draft.description,showSource:draft.showSource}:{title:draft.title.trim(),artist:draft.artist,note:draft.note,showSource:draft.showSource};
-      await onSave({...values,coverAssetId});
+      await onSave({...values,coverAssetId,photoCrop});
       if(coverFile)window.dispatchEvent(new Event('cyber-content-changed'));
     }catch(failure){setError(failure.message);}finally{setBusy(false);}}}>
       <WorkspaceFields><EntityTagsField type={entity.type === 'playlist' ? 'playlist' : 'music'} item={entity}/>
         {field('title',translate("i18n.name"))}
-        <label>{translate("i18n.cover")}<input type="file" accept="image/*" disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setError('');}}/></label>
-        {coverFile?<p className="card-meta">{translate("i18n.selected")}{coverFile.name}{translate("i18n.saveToReplace")}</p>:cover&&<img className="music-editor-cover" src={cover} alt={translate("i18n.currentCover")}/>}
+        <label>{translate("i18n.cover")}<input type="file" accept="image/*" disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setPhotoCrop(null);setError('');}}/></label>
+        {(replacement || cover) && <PhotoCrop src={replacement || cover} ratio={1} value={photoCrop} onChange={setPhotoCrop}/>}
         {entity.type==='playlist'?field('description',translate("i18n.description")):<>{field('artist',translate("i18n.artist"))}{field('note',translate("i18n.notes"))}</>}
         <label>{translate("i18n.showSourcePrefix")}<input type="checkbox" checked={draft.showSource} onChange={e=>setDraft(d=>({...d,showSource:e.target.checked}))}/></label>
         <label>{translate("i18n.source")}<span>{musicPlatformNames[entity.provider]||translate("i18n.localCollection")}</span></label>
@@ -778,13 +780,18 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
   </ActionWorkspace>;
 }
 
+function PlaylistArt({entry,fallback,title}) {
+  const cover=useMusicCover({...entry,fallbackCover:fallback});
+  return <span className="sleeve-art">{cover && <img style={cropStyle(entry.photoCrop)} src={cover} alt="" draggable={false}/>}<b>{title}</b></span>;
+}
+
 function SongListing({track, onPlay}) {
   const cover = useMusicCover(track);
   const [failedCover,setFailedCover] = useState(null);
   return <button className="music-song-open song-listing" type="button" data-item-open
     disabled={Boolean(track.cacheState && track.cacheState !== 'ready')} onClick={onPlay}>
     <span className="song-thumbnail" aria-hidden="true">
-      {cover && cover !== failedCover && <img src={cover} loading="lazy" draggable={false} alt="" onError={()=>setFailedCover(cover)}/>}
+      {cover && cover !== failedCover && <img style={cropStyle(track.photoCrop)} src={cover} loading="lazy" draggable={false} alt="" onError={()=>setFailedCover(cover)}/>}
     </span>
     <span className="song-credits"><strong>{track.title}</strong>{track.artist && <small>{track.artist}</small>}</span>
   </button>;

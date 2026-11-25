@@ -9,7 +9,7 @@ import useDismissDisplayMenu from '../ui/useDismissDisplayMenu.js';
 import { ContentCommand } from './ContentCommands.jsx';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-export function FeaturePanel({ title, scopeId = title, onClose, onBack = onClose, children, wide = false, hasMenu = false, scrollContext }) {
+export function FeaturePanel({ title, scopeId = title, tipPage = scopeId, onClose, onBack = onClose, children, wide = false, hasMenu = false, scrollContext }) {
   const panel = useRef(null);
   const [menuOpen, setMenuOpen] = useNavigationState(scopeId,'menuOpen',false,{ remember:false });
   useNavigationScroll(`${scopeId}.scroll`, panel, '.feature-body,.knowledge-results,.memo-board,[data-scroll-memory]');
@@ -18,7 +18,7 @@ export function FeaturePanel({ title, scopeId = title, onClose, onBack = onClose
     blocked: event => panel.current?.closest('[inert]') || blocksPageBack(event)
   });
   return (
-    <section ref={panel} data-command-scope={scopeId} data-menu-open={menuOpen} className={`feature-overlay ${wide ? 'feature-wide' : ''}`} role="dialog" aria-modal="true" aria-label={translate(title)}>
+    <section ref={panel} data-tip-page={tipPage} data-command-scope={scopeId} data-menu-open={menuOpen} className={`feature-overlay ${wide ? 'feature-wide' : ''}`} role="dialog" aria-modal="true" aria-label={translate(title)}>
       <div className="feature-shell">
         {hasMenu && <DisplayMenuToggle open={menuOpen} onToggle={() => setMenuOpen(value => !value)} />}
         <DisplayCloseButton onClose={onClose} />

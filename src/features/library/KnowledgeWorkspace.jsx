@@ -94,7 +94,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
       <WorkspaceActions><button onClick={()=>setEditKey(null)}>{translate("i18n.done")}</button><button disabled={editBusy} onClick={async()=>{if(!window.confirm(translate("i18n.deleteThisExcerptAndAllItsAnnotations")))return;setEditBusy(true);try{await mutateExcerpt(editingEntry.note,null);setEditKey(null);setRevision(v=>v+1);}catch(e){setEditError(e.message);}finally{setEditBusy(false);}}}>{translate("i18n.deleteExcerpt")}</button></WorkspaceActions></>}
     </ActionWorkspace>);
   if (editItem) return editor;
-  return <FeaturePanel scopeId="knowledge" hasMenu={Boolean(shelfMenu)} wide title="i18n.excerptsAndAnnotations" onClose={onClose}>
+  return <FeaturePanel scopeId="knowledge" tipPage="excerpts" hasMenu={Boolean(shelfMenu)} wide title="i18n.excerptsAndAnnotations" onClose={onClose}>
     {editor}
     {shelfMenu}
     <div className="knowledge-browser">

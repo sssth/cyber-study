@@ -1,4 +1,13 @@
 {
+  "crop.area": "Drag to frame, or use the arrow keys",
+  "crop.zoom": "Zoom",
+  "crop.center": "Center and reset",
+  "i18n.usageTips": "Usage tips",
+  "i18n.collapseUsageTips": "Collapse usage tips",
+  "i18n.expandUsageTips": "Expand usage tips",
+  "i18n.nextTip": "Next tip",
+  "i18n.tipsOn": "On",
+  "i18n.tipsOff": "Off",
   "i18n.entityTagSeparator": "Separate tags with commas",
   "i18n.statsGroup_focus": "Focus time",
   "i18n.statsGroup_entities": "Entity overview",

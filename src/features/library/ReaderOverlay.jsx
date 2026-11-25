@@ -1,3 +1,4 @@
+import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { captureExcerptSelection } from './excerptRange.js';
 import useLibrarySearch from './useLibrarySearch.js';
@@ -67,6 +68,7 @@ function ReaderOverlay({
   const [libraryView,setLibraryView] = useNavigationState('reader','libraryView',!initialLibraryBookIds?.length && ['excerpt','annotation'].includes(navigationItem?.type)?'excerpts':'all', { preferInitial:Boolean(initialLibraryBookIds?.length || navigationItem) });
   const [pagedChapter,setPagedChapter]=useState(null);
   const [paged, setPaged] = useState(initialView === 'paged');
+  const immersiveTools = useImmersiveTools(mode === 'reading' && paged);
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteAnchor, setNoteAnchor] = useState(null);
   const [selectedExcerpt, setSelectedExcerpt] = useState(null);
@@ -614,7 +616,7 @@ function ReaderOverlay({
   }
 
   return (
-    <section data-local-selection={mode === 'reading' && allBookSettings || undefined} data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.library")}
+    <section data-immersive-tools={immersiveTools} data-tip-page={mode === "reading" ? "reading" : libraryView === "all" ? "library" : "display-shelf"} data-local-selection={mode === 'reading' && allBookSettings || undefined} data-command-scope={scopeId} data-menu-open={displayMenuOpen} ref={overlayRef} className={`reader-overlay${paged ? " reader-immersive" : ""}`} role="dialog" aria-modal="true" aria-label={translate("i18n.library")}
       onDoubleClick={event => {
         if (!selectedExcerpt || savingNote || event.defaultPrevented ||
             event.target.closest('button, input, select, textarea, a, [contenteditable]')) return;

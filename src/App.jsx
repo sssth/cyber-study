@@ -7,6 +7,7 @@ import { blocksPageBack, PageBackKeys, usePageBackMatcher } from './ui/useEscape
 import CrystalChat from './features/CrystalChat.jsx';
 import ResultApplications from './resultApplications/ResultApplications.jsx';
 import BulkEntityCommands from './entities/BulkEntityCommands.jsx';
+import UsageTips, { useUsageTipsPreference } from './ui/UsageTips.jsx';
 import CommandToolbar from './features/CommandToolbar.jsx';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
@@ -135,6 +136,7 @@ function Study({ shortcuts, setShortcuts }) {
     try { localStorage.setItem('study-graphics', JSON.stringify(value)); setGraphicsError(''); }
     catch { setGraphicsError("i18n.graphicsSettingsWereAppliedButCouldNot2"); }
   };
+  const [tipsEnabled, setTipsEnabled] = useUsageTipsPreference();
   const [menuOpen, setMenuOpen] = useState(false);
   useLayoutEffect(() => {
     globalThis.clearTimeout(captionTimer.current);
@@ -348,6 +350,7 @@ function Study({ shortcuts, setShortcuts }) {
               <button type="button" onClick={() => setGraphicsOpen(true)}>{translate("i18n.graphicsAndPerformance")}</button>
               <div className="room-menu-preferences">
                 <button type="button" onClick={() => setShortcutsOpen(true)}>{translate("i18n.keyboardShortcuts")}</button>
+                <button type="button" role="switch" aria-checked={tipsEnabled} onClick={() => setTipsEnabled(!tipsEnabled)}>{translate("i18n.usageTips")} · {translate(tipsEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
                 <LanguageSelect />
               </div>
             </nav>
@@ -364,6 +367,8 @@ function Study({ shortcuts, setShortcuts }) {
       <ResultApplications shortcuts={shortcuts} disabled={manualOpen || shortcutsOpen || graphicsOpen || calibration}
         projection={mapOpen} onOpen={clearReturnPoint} onActiveChange={setMapOpen} />
       <UnifiedSearch viewKey={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}/>
+      <UsageTips enabled={tipsEnabled} paused={Boolean(menuOpen || manualOpen || calibration || !sceneSettled && !readerOpen && !activeFeature)}
+        roomPage={!readerOpen && !activeFeature && 'room'} />
       {showCommandToolbar && <CommandToolbar shortcuts={shortcuts} />}
       <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!manualOpen&&!shortcutsOpen&&!graphicsOpen&&!calibration} onOpen={openGlobalResult}/>
       <ContentRelationshipPanel books={importedBooks} onNavigate={visitRelation} />

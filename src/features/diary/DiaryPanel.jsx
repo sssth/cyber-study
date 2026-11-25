@@ -1,3 +1,4 @@
+import PhotoCrop, {cropStyle} from '../PhotoCrop.jsx';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { formatDate, translate, translateError } from '../../i18n/index.js';
@@ -31,7 +32,7 @@ const diaryPlacements = entry => entry.placements ?? diaryPhotos(entry).map((_, 
 
 function DiaryImages({ entry, onChange }) {
   return diaryPlacements(entry).map(item => <img key={item.id} className="diary-canvas-photo" src={diaryPhotos(entry)[item.photoIndex]} alt={translate("i18n.diaryPhoto")} draggable={Boolean(onChange)}
-    style={{ left: `${item.x}%`, top: item.y }}
+    style={{ ...cropStyle(entry.photoCrops?.[item.photoIndex]), aspectRatio:"4/3",objectFit:"cover", left: `${item.x}%`, top: item.y }}
     onDragStart={event => { event.stopPropagation(); event.dataTransfer.setData('application/x-diary-photo', JSON.stringify({ id: item.id, photoIndex: item.photoIndex })); }}
     onDoubleClick={event => { if (onChange) event.stopPropagation(); if (onChange && window.confirm(translate("i18n.removeThisPhotoFromTheCanvas"))) onChange(diaryPlacements(entry).filter(photo => photo.id !== item.id)); }} />);
 }
@@ -81,6 +82,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   useActivityTime('diary', mode === 'write' || Boolean(editItem));
   const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:translate("i18n.mood"),options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
   const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
+  const [cropIndex,setCropIndex]=useState(null);
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);
   useEffect(() => {
     if (editItem) return;
@@ -262,9 +264,10 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
               setError('');
             } catch (failure) { setError(failure.message); }
           }} /></label>
-          <div className="diary-photo-library">{diaryPhotos(draft).map((photo, index) => <img key={index} src={photo} alt={translate("i18n.image0", index + 1)} draggable
+          <div className="diary-photo-library">{diaryPhotos(draft).map((photo, index) => <img key={index} onClick={()=>setCropIndex(index)} style={cropStyle(draft.photoCrops?.[index])} src={photo} alt={translate("i18n.image0", index + 1)} draggable
             onDragStart={event => event.dataTransfer.setData('application/x-diary-photo', JSON.stringify({ photoIndex: index }))}
-            onDoubleClick={() => { if (window.confirm(translate("i18n.removeThisPhotoFromTheImageLibrary"))) setDraft(current => ({ ...current, photo: '', photos: diaryPhotos(current).filter((_, i) => i !== index), placements: diaryPlacements(current).filter(item => item.photoIndex !== index).map(item => ({ ...item, photoIndex: item.photoIndex > index ? item.photoIndex - 1 : item.photoIndex })) })); }} />)}</div>
+            onDoubleClick={() => { if (window.confirm(translate("i18n.removeThisPhotoFromTheImageLibrary"))) setDraft(current => ({ ...current, photo: '', photos: diaryPhotos(current).filter((_, i) => i !== index), photoCrops:diaryPhotos(current).map((_,i)=>current.photoCrops?.[i] || null).filter((_,i)=>i!==index), placements: diaryPlacements(current).filter(item => item.photoIndex !== index).map(item => ({ ...item, photoIndex: item.photoIndex > index ? item.photoIndex - 1 : item.photoIndex })) })); }} />)}</div>
+          {diaryPhotos(draft)[cropIndex] && <PhotoCrop src={diaryPhotos(draft)[cropIndex]} ratio={4/3} value={draft.photoCrops?.[cropIndex]} onChange={value=>setDraft(d=>({...d,photoCrops:diaryPhotos(d).map((_,i)=>i===cropIndex?value:d.photoCrops?.[i] || null)}))}/>}
           {editItem && error && <p role="alert">{translateError(error)}</p>}
         </WorkspaceFields>
         <WorkspaceActions>
@@ -276,7 +279,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
       </div>);
   if (editItem) return <ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editDiaryEntry")} open onOpenChange={open => { if (!open) onClose(); }}>{fields}</ActionWorkspace>;
   return (
-    <FeaturePanel scopeId="diary" hasMenu title="i18n.journal" scrollContext={mode} kicker="Private Diary"  onClose={closeDiary} onBack={backDiary}>
+    <FeaturePanel scopeId="diary" tipPage={`diary-${mode}`} hasMenu title="i18n.journal" scrollContext={mode} kicker="Private Diary"  onClose={closeDiary} onBack={backDiary}>
       {mode === 'write' && <ContentCommand kind="cancel-create" label={translate("i18n.switchToReadingMode")} run={readDiary} />}
       <ContentCommand kind="create" label={translate("i18n.writeTodaySEntry")} run={writeToday} />
       <DisplayViewMenu label={translate("i18n.diaryView")} options={[[ 'write', translate("i18n.todaySEntry")], ['read', translate("i18n.readingMode")]]} value={mode} onChange={value => value === 'write' ? writeToday() : readDiary()} />

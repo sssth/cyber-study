@@ -1,3 +1,4 @@
+import PhotoCrop, { cropStyle, useFilePreview } from '../PhotoCrop.jsx';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -48,6 +49,8 @@ export default function MemoBoard({ onClose, editItem }) {
   const [todoText, setTodoText] = useState('');
   const [stickyText, setStickyText] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [newCrop,setNewCrop]=useState(null);
+  const filePreview=useFilePreview(imageFile);
   const [error, setError] = useState('');
   const [tone, setTone] = useState('violet');
   const draggingRef = useRef(null);
@@ -88,7 +91,7 @@ export default function MemoBoard({ onClose, editItem }) {
     setAdding(true);
     try {
       const photo = await readImageFile(imageFile);
-      if (addItem({ type: 'sticky', photo, text: '', tone })) { setImageFile(null); if (imageInputRef.current) imageInputRef.current.value = ''; }
+      if (addItem({ type: 'sticky', photo, photoCrop:newCrop, text: '', tone })) { setImageFile(null); if (imageInputRef.current) imageInputRef.current.value = ''; }
     } catch (error) { setError(error.message); }
     finally { setAdding(false); }
   };
@@ -140,9 +143,9 @@ export default function MemoBoard({ onClose, editItem }) {
             {!editingMemo.photo && !editingMemo.imageMode && <label>{translate("i18n.content")}<textarea value={editingMemo.text || ''} onChange={event => setEditingMemo({ ...editingMemo, text: event.target.value })} /></label>}
             <label>{translate("i18n.color")}<select value={editingMemo.tone || 'violet'} onChange={event => setEditingMemo({ ...editingMemo, tone: event.target.value })}><option value="violet">{translate("i18n.purple")}</option><option value="cyan">{translate("i18n.cyan")}</option><option value="amber">{translate("i18n.amber")}</option></select></label>
             {editingMemo.type === 'todo' && <label><input type="checkbox" checked={Boolean(editingMemo.done)} onChange={event => setEditingMemo({ ...editingMemo, done: event.target.checked, completedAt: event.target.checked ? new Date().toISOString() : null })} />{translate("i18n.completed")}</label>}
-            {editingMemo.type !== 'todo' && (editingMemo.photo || editingMemo.imageMode) && <>{editingMemo.photo && <img className="preview-image" src={editingMemo.photo} alt={translate("i18n.imageNote")} />}<label>{translate("i18n.replaceImage")}<input type="file" accept="image/*" onChange={async event => {
+            {editingMemo.type !== 'todo' && (editingMemo.photo || editingMemo.imageMode) && <>{editingMemo.photo && <PhotoCrop src={editingMemo.photo} ratio={1} value={editingMemo.photoCrop} onChange={photoCrop=>setEditingMemo(m=>({...m,photoCrop}))}/>}<label>{translate("i18n.replaceImage")}<input type="file" accept="image/*" onChange={async event => {
               const file = event.target.files?.[0]; if (!file) return;
-              try { const photo = await readImageFile(file); setEditingMemo(current => current ? { ...current, type: 'sticky', photo, text: '', imageMode: false } : current); } catch (failure) { setError(failure.message); }
+              try { const photo = await readImageFile(file); setEditingMemo(current => current ? { ...current, type: 'sticky', photo, photoCrop:null, text: '', imageMode: false } : current); } catch (failure) { setError(failure.message); }
             }} /></label></>}
             {error && <p role="alert" className="form-error">{translateError(error)}</p>}
           </WorkspaceFields>
@@ -152,7 +155,7 @@ export default function MemoBoard({ onClose, editItem }) {
       </ActionWorkspace>);
   if (editItem) return editor;
   return (
-    <FeaturePanel scopeId="memo" hasMenu wide title="i18n.memoBoard" scrollContext={view} kicker="Wall & Tasks" description={translate("i18n.dragToArrangeToDosNotesAnd")} onClose={onClose}>
+    <FeaturePanel scopeId="memo" tipPage={`memo-${view}`} hasMenu wide title="i18n.memoBoard" scrollContext={view} kicker="Wall & Tasks" description={translate("i18n.dragToArrangeToDosNotesAnd")} onClose={onClose}>
       <nav className="globe-mode-switch" aria-label={translate("i18n.memoView")}>
         <button aria-pressed={view === 'board'} onClick={() => setView('board')}>{translate("i18n.memoBoard")}</button>
         <button aria-pressed={view === 'memo'} onClick={() => setView('memo')}>{translate("i18n.note")}</button>
@@ -166,10 +169,11 @@ export default function MemoBoard({ onClose, editItem }) {
           {memoType === 'sticky' && <label>{translate("i18n.noteContent")}<select value={stickyMode} disabled={adding} onChange={event => setStickyMode(event.target.value)}><option value="text">{translate("i18n.text")}</option><option value="image">{translate("i18n.imageOneOnly")}</option></select></label>}
           {memoType === 'sticky' && stickyMode === 'image' ? <label className="file-label memo-image-picker">
             <span>{imageFile?.name || translate("i18n.chooseImage")}</span>
-            <input ref={imageInputRef} aria-label={translate("i18n.chooseImage")} type="file" accept="image/*" disabled={adding} onChange={event => setImageFile(event.target.files?.[0] || null)} />
+            <input ref={imageInputRef} aria-label={translate("i18n.chooseImage")} type="file" accept="image/*" disabled={adding} onChange={event => {setImageFile(event.target.files?.[0] || null);setNewCrop(null);}} />
           </label> : <label>{translate("i18n.text")}<textarea rows="4" value={memoType === 'todo' ? todoText : stickyText}
             placeholder={memoType === 'todo' ? translate("i18n.enterAToDo") : translate("i18n.enterYourNote")}
             onChange={event => memoType === 'todo' ? setTodoText(event.target.value) : setStickyText(event.target.value)} /></label>}
+          {memoType==='sticky' && stickyMode==='image' && filePreview && <PhotoCrop src={filePreview} ratio={1} value={newCrop} onChange={setNewCrop}/>}
           <label><input type="checkbox" checked={showOnBoard} onChange={event => setShowOnBoard(event.target.checked)} />{translate("i18n.showOnBoard")}</label>
           <label>{translate("i18n.color")}<select value={tone} disabled={adding} onChange={event => setTone(event.target.value)}><option value="violet">{translate("i18n.purple")}</option><option value="cyan">{translate("i18n.cyan")}</option><option value="amber">{translate("i18n.amber")}</option></select></label>
           {error && <p role="alert" className="form-error">{translateError(error)}</p>}
@@ -187,7 +191,7 @@ export default function MemoBoard({ onClose, editItem }) {
             style={view !== 'board' ? { position: 'relative', left: 'auto', top: 'auto', width: '100%' } : { left: `clamp(0px, ${item.x}px, calc(100% - ${memoSize(item).width}px))`, top: `clamp(0px, ${item.y}px, calc(100% - ${memoSize(item).height}px))`, width: memoSize(item).width, height: memoSize(item).height, zIndex: layers.findIndex(entry => entry.id === item.id) + 1 }}>
             {view === 'board' && <span className="memo-magnet" title={translate("i18n.dragToMove")} onPointerDown={(event) => onPointerDown(event, item)} />}
             <button type="button" data-item-open data-scroll-memory={`memo-${view}-${item.id}`} className="memo-content-open" aria-label={item.type === 'todo' ? (item.done ? (view === 'board' ? translate("i18n.hideFromBoard") : translate("i18n.markIncomplete")) : translate("i18n.markComplete")) + item.text : item.text || translate("i18n.imageNote")} onClick={() => activateMemo(item)}>
-              {item.photo ? <img src={item.photo} alt={translate("i18n.memoBoardImage")} draggable="false" /> : <span className="memo-card-content">{item.type === 'todo' && <span className="memo-check" aria-hidden="true">{item.done ? '✓' : ''}</span>}<span className="memo-card-text">{item.text}</span></span>}
+              {item.photo ? <img style={{...cropStyle(item.photoCrop),aspectRatio:1,objectFit:"cover"}} src={item.photo} alt={translate("i18n.memoBoardImage")} draggable="false" /> : <span className="memo-card-content">{item.type === 'todo' && <span className="memo-check" aria-hidden="true">{item.done ? '✓' : ''}</span>}<span className="memo-card-text">{item.text}</span></span>}
             </button>
             <ContentActions orderItem={item} sortable={view !== 'board'} type={item.type==='todo'?'todo':'memo'} id={item.id} title={item.text}/><ContentCommand label={translate("i18n.delete03", item.text || item.photo?.name || translate('i18n.imageNote'))} confirm run={() => persist(items.filter((memo) => memo.id !== item.id))} />
             <ContentCommand label={translate("i18n.edit03", item.text || translate('i18n.imageNote'))} run={() => setEditingMemo({ ...item })} />

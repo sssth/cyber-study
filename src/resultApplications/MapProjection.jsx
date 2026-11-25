@@ -75,7 +75,7 @@ export default function MapProjection({shortcuts,disabled,onOpen,onActiveChange}
     }).catch(e=>{if(alive)setError(e.message||translate("i18n.couldNotLoadMemoryPins"));});return()=>{alive=false;};
   },[request,attempt]);
   if(!request)return null;
-  return createPortal(<dialog ref={dialog} className="map-projection" data-command-scope="projection" data-projection-mode={request.plain?"plain":"highlight"} aria-label={translate("i18n.showOnGlobe")} onCancel={e=>{if(e.target===dialog.current)e.preventDefault();}}>
+  return createPortal(<dialog ref={dialog} className="map-projection" data-tip-page="projection" data-command-scope="projection" data-projection-mode={request.plain?"plain":"highlight"} aria-label={translate("i18n.showOnGlobe")} onCancel={e=>{if(e.target===dialog.current)e.preventDefault();}}>
     {error?<div role="alert">{translateError(error)}<button onClick={()=>setAttempt(v=>v+1)}>{translate("i18n.retry")}</button><button onClick={close}>×</button></div>:!data?<ModelLoading/>:
       <GlobePanel workspaceHost={dialog.current} initialData={data} initialView={{selectedPoints:data.selectedPoints}} projection backRef={globeBack} onClose={close}/>}
     <ContentCommands shortcuts={shortcuts} disabled={!data} viewKey="projection"/>

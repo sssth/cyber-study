@@ -22,6 +22,10 @@ if (!app.isPackaged) {
 registerAudioScheme();
 
 let mainWindow = null;
+ipcMain.handle('ui:read-usage-tips', async event => {
+  if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) throw Error('Unavailable');
+  return require('node:fs/promises').readFile(path.join(app.getAppPath(), '使用建议.md'), 'utf8');
+});
 ipcMain.on('ui:set-language', (event, language) => {
   if (event.sender === mainWindow?.webContents && event.senderFrame === event.sender.mainFrame) {
     setWindowLanguage(event.sender, language);

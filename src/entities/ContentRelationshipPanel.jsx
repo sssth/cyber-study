@@ -159,7 +159,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
    if (item?.isConnected) window.dispatchEvent(new CustomEvent('cyber-edit-presented-item', { detail: { item } }));
  };
 
- return createPortal(<dialog ref={dialog} className="content-relation-dialog" data-command-scope="relations" aria-labelledby="content-relation-title"
+ return createPortal(<dialog ref={dialog} className="content-relation-dialog" data-tip-page="relations" data-command-scope="relations" aria-labelledby="content-relation-title"
    onCancel={event => { event.preventDefault(); if (tab === 'view') close(); else changeTab('view'); }}
    onClick={event => event.stopPropagation()}>
    <header>

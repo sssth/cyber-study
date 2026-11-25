@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import CommandToolbar from '../../src/features/CommandToolbar.jsx';
+import UsageTips from '../../src/ui/UsageTips.jsx';
 import { PanelLoading } from '../../src/ui/LoadingScreen.jsx';
 import { FeaturePanel } from '../../src/features/ui.jsx';
 import ReaderOverlay from '../../src/features/library/ReaderOverlay.jsx';
@@ -16,6 +18,7 @@ function Preview() {
   window.navigatePreview = () => setPage(value => value + 1);
   window.openPreviewBook = () => setReader(true);
   return <main className="app-shell" style={{background:'#ae352e'}}>
+    {reader && <><CommandToolbar shortcuts={{}}/><UsageTips enabled /></>}
     <PanelLoading key={reader ? 'reader' : page} title="加载中">
       {reader ? <ReaderOverlay importedBooks={sampleBooks} initialBookId={sampleBooks[0]?.id} initialView="last" shortcuts={{}} onClose={() => setReader(false)}/> :
         <FeaturePanel title={`页面${page}`} onClose={() => {}}>

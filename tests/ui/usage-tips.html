@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><base href="/"><meta charset="utf-8"><link rel="stylesheet" href="/src/styles/global.css"></head>
+<body>
+  <div id="root"><strong data-startup-label></strong><progress data-startup-progress></progress></div>
+  <script>
+    localStorage.setItem('cyber-study-language', 'zh-CN');
+    // The author can rewrite or remove every real tip without changing this interaction test.
+    window.cyberStudy = { readUsageTips: async () => [
+      '### 全局 [global]', '- 全局示例',
+      '### 书房 [room]', '- 首页示例',
+      '### 影碟机 [movie]', '- 首条示例', '- 第二条示例'.repeat(12).replaceAll('示例- ', '示例'), '- 第三条示例'
+    ].join('\n') };
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body></html>

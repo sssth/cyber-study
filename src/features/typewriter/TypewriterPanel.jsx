@@ -1,3 +1,4 @@
+import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { deliverCopy } from '../../data/copyDelivery.js';
@@ -234,8 +235,9 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     setMessage('');setWriting(immersive);setEditorOpen(!immersive);
   };
   useResultSource({ scopeId: writing ? 'typewriter-original' : 'typewriter', priority:10,detail:Boolean(writing || work),label:translate("i18n.typingWork"),matches:resultEntities('typing_work',writing?[{...works.find(item=>item.id===draftId),...selected,title:storedTitle,...CyberContentSchema.copyState(selected.text,typed),id:draftId}]:work?[work]:works.filter(item=>(item.status==='completed'||item.complete===true)===showCompleted&&matchesItem('typing_work',item,search)))});
+  const immersiveTools = useImmersiveTools(Boolean(writing));
   const leaveWriting = () => {if(save())setWriting(false);};
-  if (writing) return createPortal(<section data-entity-key={draftId ? `typing_work:${draftId}` : undefined} data-command-scope="typewriter-original" className="typewriter-immersive" role="dialog" aria-modal="true" aria-label={translate("i18n.immersiveTyping")} onKeyDown={event=>{if(isPageBack(event)){event.preventDefault();event.stopPropagation();leaveWriting();}}}>
+  if (writing) return createPortal(<section data-immersive-tools={immersiveTools} data-entity-key={draftId ? `typing_work:${draftId}` : undefined} data-tip-page="typewriter-original" data-command-scope="typewriter-original" className="typewriter-immersive" role="dialog" aria-modal="true" aria-label={translate("i18n.immersiveTyping")} onKeyDown={event=>{if(isPageBack(event)){event.preventDefault();event.stopPropagation();leaveWriting();}}}>
     <header><h2>{selectedTitle}</h2><button type="button" onClick={leaveWriting}>{translate("i18n.backToTypingLibrary")}</button></header>
     <main>
         <div className="copying-spread">

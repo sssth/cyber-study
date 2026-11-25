@@ -165,8 +165,15 @@ async function main() {
 
   console.log('\n[3/7] 复制应用运行代码...');
   await fs.copyFile(path.join(projectRoot, 'package.json'), path.join(appPayloadDir, 'package.json'));
+  await fs.copyFile(path.join(projectRoot, '使用建议.md'), path.join(appPayloadDir, '使用建议.md'));
   await copyTo(path.join(projectRoot, 'dist'), path.join(appPayloadDir, 'dist'));
   await copyTo(path.join(projectRoot, 'electron'), path.join(appPayloadDir, 'electron'));
+  const regionDir = 'assets/geography/runtime/regions';
+  if (await fs.stat(path.join(projectRoot, regionDir)).catch(() => null)) {
+    await copyTo(path.join(projectRoot, regionDir), path.join(appPayloadDir, regionDir));
+  }
+  const geographyMath = 'src/features/globe/geographyMath.js';
+  await copyTo(path.join(projectRoot, geographyMath), path.join(appPayloadDir, geographyMath));
   await copyMusicDependencies(projectRoot, appPayloadDir);
   await copyTo(path.join(projectRoot, 'assets', 'default-samples'), path.join(appPayloadDir, 'assets', 'default-samples'));
 

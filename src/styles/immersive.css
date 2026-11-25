@@ -407,13 +407,19 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .reader-library {
  margin-left:var(--shelf-edit-left);
  margin-right:calc(2 * var(--shelf-margin) - var(--shelf-edit-left));
 }
+/* Reserve the open rail's slot even when only its toggle is visible. */
+:root {
+  --rail-top: max(8px, calc(50dvh - 212px));
+  --rail-slot: min(264px, 58dvh);
+  --tips-top: calc(var(--rail-top) + var(--rail-slot) + 8px);
+}
 .command-toolbar {
   position: fixed;
   box-sizing: border-box;
   width: var(--command-toolbar-width);
   z-index: 10001;
-  inset: 50% 8px auto auto;
-  transform: translateY(-50%);
+  inset: var(--rail-top) 8px auto auto;
+  max-height: var(--rail-slot);
   display: grid;
   justify-items: stretch;
   gap: 4px;
@@ -427,6 +433,8 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .reader-library {
 .command-toolbar > div:not([hidden]) {
   display: grid;
   gap: 3px;
+  overflow-y: auto;
+  min-height: 0;
 }
 .command-toolbar button {
   min-width: 44px;
@@ -472,7 +480,7 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .reader-library {
 }
 @media (max-height: 320px) {
   .command-toolbar {
-    max-height: calc(100dvh - 72px);
+    max-height: var(--rail-slot);
     overflow-y: auto;
   }
   .command-target-hint { display: none; }
@@ -518,5 +526,45 @@ body[data-item-editing] .catalog-column h3 { cursor: grab; user-select: none; }
   background: #17323cf2;
   color: #e4f3f3;
   font-size: 12px;
+  pointer-events: none;
+}
+
+.usage-tip {
+  position: fixed;
+  z-index: 10001;
+  top: var(--tips-top);
+  right: 8px;
+  width: min(220px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid #ffffff24;
+  border-radius: 9px;
+  background: #10171df5;
+  color: #d9e4e8;
+  box-shadow: 0 4px 18px #0005;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.usage-tip header { display: flex; align-items: center; gap: 4px; }
+.usage-tip header { justify-content: flex-end; }
+.usage-tip header strong { margin: 0 auto 0 7px; }
+.usage-tip[data-expanded="false"] { width: var(--command-toolbar-width); }
+.usage-tip button.usage-tip-toggle { width: calc(var(--command-toolbar-width) - 10px); }
+.usage-tip button.usage-tip-next { width: auto; font-size: 12px; }
+.usage-tip button {
+  width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer; font-size: 19px;
+}
+.usage-tip button:hover:not(:disabled), .usage-tip button:focus-visible { background: #24434a; }
+.usage-tip button:disabled { opacity: .35; cursor: default; }
+.usage-tip p {
+  margin: 4px 7px 7px;
+  max-height: min(24dvh, calc(100dvh - var(--tips-top) - 60px));
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+body:has([data-immersive-tools="hidden"]):not(:has(dialog:modal)) :is(.command-toolbar, .usage-tip, .selection-mode-label) {
+  visibility: hidden;
   pointer-events: none;
 }

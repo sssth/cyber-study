@@ -2,6 +2,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
 const { metadata } = require('./metadata.cjs');
+const { readablePhoto } = require('./photoInput.cjs');
+const { photoRegion } = require('./photoRegion.cjs');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const validHash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const coordinates = (lat, lon) => typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
@@ -40,10 +42,12 @@ class MemoryRepository {
     const key = hash(bytes);
     const duplicate = data.photos.find(p => p.hash === key);
     if (duplicate && !migrationKey) return { skipped: true, duplicate: duplicate.id, inTrash: Boolean(duplicate.deletedAt) };
-    const pictures = await this.decode(bytes);
+    const readable = await readablePhoto(bytes);
+    const pictures = await this.decode(readable);
     for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
-    const meta = metadata(bytes);
-    const record = { id: randomUUID(), hash: key, location: '', caption: '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: 'pending', createdAt: new Date().toISOString(), deletedAt: null, ...details };
+    const meta = metadata(readable);
+    const area = migrationKey ? {} : await photoRegion(meta);
+    const record = { id: randomUUID(), hash: key, location: '', caption: '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: meta.latitude != null ? 'confirmed' : 'pending', ...area, createdAt: new Date().toISOString(), deletedAt: null, ...details };
     // Never accept legacy random longitude as a coordinate.
     if (migrationKey) Object.assign(record, { latitude: null, longitude: null, locationSource: 'unknown', locationStatus: 'pending' });
     data.photos.push(record);
@@ -80,14 +84,14 @@ class MemoryRepository {
     if (bytes) {
       if (!bytes.length || bytes.length > 80 * 1024 * 1024) throw new Error('请选择 80 MB 以内的照片。');
       key = hash(bytes);
-      const pictures = await this.decode(bytes);
+      const pictures = await this.decode(await readablePhoto(bytes));
       for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
     }
-    const point = { ...previous, ...fields, id: previous?.id ?? randomUUID(), hash: key,
-      dateSource: fields.date === previous?.date ? previous.dateSource : fields.date ? 'user' : 'unknown',
+    const point = { ...previous, ...fields, photoCrop: bytes ? null : input.photoCrop === undefined ? previous?.photoCrop : input.photoCrop, id: previous?.id ?? randomUUID(), hash: key,
+      dateSource: previous && fields.date === previous.date ? previous.dateSource : fields.date ? 'user' : 'unknown',
       latitude: input.latitude ?? null, longitude: input.longitude ?? null,
       visitStatus: input.visitStatus, locationStatus: hasCoords ? 'confirmed' : 'pending',
-      locationSource: hasCoords ? (fields.cityId ? 'city-center' : 'manual') : 'unknown',
+      locationSource: hasCoords && previous?.latitude === input.latitude && previous?.longitude === input.longitude && (previous?.cityId || '') === (input.cityId || '') ? previous.locationSource : hasCoords ? (fields.cityId ? 'city-center' : 'manual') : 'unknown',
       createdAt: previous?.createdAt ?? new Date().toISOString(), deletedAt: null };
     if (previous) data.photos = data.photos.map(p => p.id === point.id ? point : p);
     else data.photos.push(point);
@@ -152,7 +156,7 @@ class MemoryRepository {
       if (!info.isFile() || info.size > 80 * 1024 * 1024) throw new Error('备份图片无效。');
       const bytes = await fs.readFile(file);
       if (hash(bytes) !== key) throw new Error('备份图片校验失败，现有记录未改变。');
-      const pictures = await this.decode(bytes);
+      const pictures = await this.decode(await readablePhoto(bytes));
       // Rebuild derivatives rather than trusting external preview files.
       for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
       prepared.push(key);

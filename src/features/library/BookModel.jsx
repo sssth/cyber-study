@@ -7,7 +7,7 @@ import { invokeCommand } from '../../ui/commands.js';
 import { commandTargetMode, setCommandTargetMode } from '../../ui/commandTarget.js';
 import { itemClickDelay } from '../../ui/editGesture.js';
 import { bookSize } from './shelfArrangement.js';
-import { coverHue, useBookCover } from './bookCover.js';
+import { coverHue, useBookArtwork } from './bookCover.js';
 
 export default function Book({ book, position, orientation, onRead, onEdit, onRelate, organizing, onDrag, selected, preview=false, onActivate }) {
   const timer = useRef(null);
@@ -45,7 +45,7 @@ export default function Book({ book, position, orientation, onRead, onEdit, onRe
     cancelRead();
     onRelate?.();
   };
-  const cover = useBookCover(book);
+  const {url:cover,crop} = useBookArtwork(book);
   const invalidate = useThree(state => state.invalidate);
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 720;
@@ -56,7 +56,9 @@ export default function Book({ book, position, orientation, onRead, onEdit, onRe
     ctx.font = '22px serif'; ctx.fillText((book.author || translate("i18n.appTitle")).slice(0,18),60,610);
     const t = new CanvasTexture(canvas); t.colorSpace = SRGBColorSpace; return t;
   }, [book.id, book.title, book.author, cover]);
-  useEffect(() => { let alive=true; if (cover) { const image = new Image(); image.onload=()=>{ if(alive) { texture.image.getContext('2d').drawImage(image,0,0,512,720); texture.needsUpdate=true; invalidate(); } }; image.src=cover; } return ()=>{alive=false;}; }, [cover,texture,invalidate]);
+  useEffect(() => { let alive=true; if (cover) { const image = new Image(); image.onload=()=>{ if(alive) { const w=image.naturalWidth,h=image.naturalHeight;
+      const sw=crop ? w*crop.width/100 : Math.min(w,h*.7), sh=crop ? h*crop.height/100 : Math.min(h,w/.7);
+      texture.image.getContext('2d').drawImage(image,crop?w*crop.left/100:(w-sw)/2,crop?h*crop.top/100:(h-sh)/2,sw,sh,0,0,512,720); texture.needsUpdate=true; invalidate(); } }; image.src=cover; } return ()=>{alive=false;}; }, [cover,crop,texture,invalidate]);
   useEffect(() => () => texture.dispose(), [texture]);
   const spine = useMemo(() => {
     const canvas=document.createElement('canvas');canvas.width=96;canvas.height=1024;

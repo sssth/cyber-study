@@ -1,3 +1,4 @@
+import PhotoCrop, {cropStyle,useFilePreview} from '../PhotoCrop.jsx';
 import { toggleVisibleIds } from '../../entities/entitySelection.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { displayShelves } from './sceneShelfArrangement.js';
@@ -15,11 +16,11 @@ import DisplayShelf from './DisplayShelf.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import { useEffect, useState, useRef, useDeferredValue, useMemo } from 'react';
 import ContentActions from '../ContentActions.jsx';
-import { bookCoverAssets, coverHue, useBookCover } from './bookCover.js';
+import { bookCoverAssets, coverHue, useBookArtwork } from './bookCover.js';
 import './libraryShelf.css';
 export function Cover({ book, children }) {
-  const url = useBookCover(book);
-  return <span className="shelf-cover" style={{ '--cover-hue': coverHue(book) }}>{url ? <img src={url} alt=""/> : <><span className="cover-edition">{translate("i18n.cyberStudy")}</span><strong>{book.title}</strong><span className="cover-author">{book.author === '本地导入' ? '' : book.author}</span></>}{children}</span>;
+  const {url,crop} = useBookArtwork(book);
+  return <span className="shelf-cover" style={{ '--cover-hue': coverHue(book) }}>{url ? <img style={cropStyle(crop)} src={url} alt=""/> : <><span className="cover-edition">{translate("i18n.cyberStudy")}</span><strong>{book.title}</strong><span className="cover-author">{book.author === '本地导入' ? '' : book.author}</span></>}{children}</span>;
 }
 export const shelfViews = [
   ['all', 'i18n.allBooks'],
@@ -110,7 +111,7 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
       {!selection&&editBook(book)}
     </article>)}</div> : <DisplayShelf key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
 
-    {editing && <BookEditor readingRecord={readerState.books[editing.id]} editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
+    {editing && <BookEditor key={editing.id} readingRecord={readerState.books[editing.id]} editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
   </section>;
 }
 
@@ -118,7 +119,10 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
 export function BookEditor({editing, readingRecord = loadReaderState().books[editing.id], renameBook, removeBook, canDelete, busy, onClose}) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const cover = useBookCover(editing);
+  const {url:cover,crop:savedCrop} = useBookArtwork(editing);
+  const [file,setFile]=useState(null), [draftCrop,setDraftCrop]=useState(undefined);
+  const preview=useFilePreview(file);
+  const crop=draftCrop===undefined?savedCrop:draftCrop;
   return <ActionWorkspace kind="edit" title={translate("i18n.editBook")} command={false} showTrigger={false} open onOpenChange={open => { if (!open && !saving) onClose(); }}>
     <form key={editing.id} className="stack-form" onSubmit={async event => {
         event.preventDefault(); const form = event.currentTarget; const values = new FormData(form);
@@ -126,7 +130,7 @@ export function BookEditor({editing, readingRecord = loadReaderState().books[edi
         try {
           await renameBook(editing, {title: String(values.get('title')).trim(), author: String(values.get('author')).trim(), readingStatus: values.get('readingStatus')});
           const file = form.elements.cover.files[0];
-          if (file) { await bookCoverAssets.add(`book:${editing.id}`, [file]); window.dispatchEvent(new Event('cyber-content-changed')); }
+          if (file || draftCrop!==undefined) { await bookCoverAssets.add(`book:${editing.id}`, file?[file]:[], {photoCrop:crop}); window.dispatchEvent(new Event('cyber-content-changed')); }
           onClose();
         } catch (e) { setError(e.message); } finally { setSaving(false); }
       }}>
@@ -139,9 +143,9 @@ export function BookEditor({editing, readingRecord = loadReaderState().books[edi
           </select></label>
           <label>
             {translate("i18n.cover")}
-            <input name="cover" type="file" accept="image/*" aria-label={translate("i18n.chooseNewCover")} />
+            <input name="cover" onChange={e=>{setFile(e.target.files[0]);setDraftCrop(null);}} type="file" accept="image/*" aria-label={translate("i18n.chooseNewCover")} />
           </label>
-          {cover && <img className="book-editor-cover" src={cover} alt={translate("i18n.currentCover")} />}
+          {(preview || cover) && <PhotoCrop src={preview || cover} ratio={0.7} value={crop} onChange={setDraftCrop}/>}
           {error && <p role="alert">{translateError(error)}</p>}
         </WorkspaceFields>
         <WorkspaceActions><button disabled={saving || busy}>{translate("i18n.save")}</button>

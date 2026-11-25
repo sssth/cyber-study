@@ -1,3 +1,4 @@
+import {cropStyle} from '../PhotoCrop.jsx';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -142,7 +143,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
     setItemEditing(true);
     return () => setItemEditing(false);
   }, [initialPoint?.id]);
-  return <FeaturePanel scopeId={scopeId("globe")} hasMenu wide title="i18n.globe" scrollContext={mode} kicker="Memory Globe" description={translate("i18n.recordMemoriesWithPhotosOrNotesThen")} onClose={() => { if (!busy) onClose(); }}>
+  return <FeaturePanel tipPage={projection ? "projection" : `globe-${mode}`} scopeId={scopeId("globe")} hasMenu wide title="i18n.globe" scrollContext={mode} kicker="Memory Globe" description={translate("i18n.recordMemoriesWithPhotosOrNotesThen")} onClose={() => { if (!busy) onClose(); }}>
     {!desktop ? <EmptyState>{translate("i18n.openTheGlobeInTheDesktopApp")}</EmptyState> : <>
       <div className="globe-mode-switch" aria-label={translate("i18n.globeView")}>{[['browse', translate("i18n.3dView")], ['point', translate("i18n.memoryPin")], ['journey', translate("i18n.trips")]].map(([value, title]) => <button key={value} disabled={busy} aria-pressed={mode === value} onClick={() => { if (value !== mode) { setInitialPoint(null); tripReturn.current = null; const current = getSearch(scopeId('globe')); setSearch(scopeId('globe'), {...current, filters:{...current.filters, journeyId:'',placeId:''}}); setMode(value); } }}>{title}</button>)}</div>
       {mode === 'point' && initialPoint && !initialPoint.id && <ContentCommand kind="cancel-create" label={translate("i18n.cancelNewMemoryPin")} disabled={busy} run={() => {
@@ -171,10 +172,10 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
                   <ContentCommand label={translate("i18n.editMemoryPin0", p.title || p.location || p.filename || translate("i18n.untitledMemory"))} disabled={busy} run={() => editPoint(p)} />
                   <button type="button" data-item-open className="memory-card-edit" disabled={busy} aria-label={translate("i18n.viewMemory0", p.title || p.location || translate("i18n.untitledMemory"))} onClick={event => { returnFocus.current = event.currentTarget; setViewerPhotos(null); setViewId(p.id); }} />
                   {status === 'visited' ? <>
-                    {p.thumbnail ? <img loading="lazy" className="preview-image" src={p.thumbnail} alt={p.title || p.location || translate("i18n.memoryPhoto")} /> : <div className="memory-photo-placeholder" role="img" aria-label={translate("i18n.noPhoto")}><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="8" width="36" height="32" rx="4"/><circle cx="17" cy="18" r="3"/><path d="m8 35 11-11 8 8 6-6 8 9"/></svg></div>}
+                    {p.thumbnail ? <img loading="lazy" className="preview-image" style={{...cropStyle(p.photoCrop), aspectRatio:1.5,height:"auto"}} src={p.thumbnail} alt={p.title || p.location || translate("i18n.memoryPhoto")} /> : <div className="memory-photo-placeholder" role="img" aria-label={translate("i18n.noPhoto")}><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="8" width="36" height="32" rx="4"/><circle cx="17" cy="18" r="3"/><path d="m8 35 11-11 8 8 6-6 8 9"/></svg></div>}
                     <h3>{p.title || p.location || translate("i18n.untitledMemory")}</h3>
-                    <p className="card-meta memory-card-meta"><span>{p.city || p.location || translate("i18n.noPlaceSpecified")}</span><span>{p.date || translate("i18n.unknownDate")}</span></p>
-                  </> : <div className="memory-card-heading"><h3>{p.title || p.location || p.city || translate("i18n.untitledMemory")}</h3><span>{p.city || p.location || translate("i18n.noCitySpecified")}</span></div>}
+                    <p className="card-meta memory-card-meta"><span>{p.city || p.location || p.region || p.country || translate("i18n.noPlaceSpecified")}</span><span>{p.date || translate("i18n.unknownDate")}</span></p>
+                  </> : <div className="memory-card-heading"><h3>{p.title || p.location || p.city || translate("i18n.untitledMemory")}</h3><span>{p.city || p.location || p.region || p.country || translate("i18n.noCitySpecified")}</span></div>}
                   <ContentActions orderItem={p} type="memory_point" id={p.id} title={p.title || p.location} preview={false}/>
                 </article>)}
                 {!records.length && <></>}
@@ -192,7 +193,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
       <ContentCommand label={translate("i18n.editMemoryPin")} run={() => { dismiss(); editPoint(viewed); }} /><ContentActions surface=".globe-photo-viewer" type="memory_point" id={viewed.id} title={viewed.location} preview={false}/>
       <button ref={closeViewer} className="memory-detail-close" aria-label={translate("i18n.closeMemoryDetails")} onClick={dismiss}>×</button>
       <div data-scroll-memory={`memory-detail-${viewed.id}`} className={`memory-detail-layout ${viewed.visitStatus === 'wish' ? 'memory-detail-wish' : ''}`}>{viewed.visitStatus !== 'wish' && <div className="memory-detail-photo">{viewed.photo ? <img src={viewed.photo} alt={viewed.title || viewed.location || translate("i18n.memoryPhoto")} /> : <span>{translate("i18n.noPhoto")}</span>}</div>}
-      <section className="memory-detail-copy">{viewed.visitStatus !== 'wish' && <><h2>{viewed.title || viewed.location || translate("i18n.untitledMemory")}</h2><p>{viewed.city || viewed.location || translate("i18n.noPlaceSpecified")} · {viewed.date || translate("i18n.unknownDate")} · {viewed.visitStatus === 'wish' ? translate("i18n.wantToVisit") : translate("i18n.visited")}</p></>}<p className="memory-detail-description">{viewed.caption || translate("i18n.noDescriptionYet")}</p></section></div>
+      <section className="memory-detail-copy">{viewed.visitStatus !== 'wish' && <><h2>{viewed.title || viewed.location || translate("i18n.untitledMemory")}</h2><p>{viewed.city || viewed.location || viewed.region || viewed.country || translate("i18n.noPlaceSpecified")} · {viewed.date || translate("i18n.unknownDate")} · {viewed.visitStatus === 'wish' ? translate("i18n.wantToVisit") : translate("i18n.visited")}</p></>}<p className="memory-detail-description">{viewed.caption || translate("i18n.noDescriptionYet")}</p></section></div>
     </div>}
   </FeaturePanel>;
 }

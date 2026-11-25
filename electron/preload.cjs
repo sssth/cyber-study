@@ -4,6 +4,7 @@ let streamId = 0;
 
 contextBridge.exposeInMainWorld('cyberStudy', {
   name: '赛博书房',
+  readUsageTips: () => ipcRenderer.invoke('ui:read-usage-tips'),
   setInterfaceLanguage: language => ipcRenderer.send('ui:set-language', language),
   defaultSamples: {
     read: options => ipcRenderer.invoke('default-samples:read', options),

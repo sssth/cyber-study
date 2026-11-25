@@ -1,3 +1,4 @@
+import PhotoCrop from '../PhotoCrop.jsx';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -118,10 +119,10 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
       <div className="globe-toolbar" hidden={!matches.length}>{matches.map(c => <button key={c.id} type="button" onClick={() => {
         setPoint({ ...point, location: c.name, city: c.name, cityId: c.id, country: nodeById.get(c.country_id)?.name || '', region: nodeById.get(c.region_id)?.name || '', latitude: c.latitude, longitude: c.longitude }); setQuery(c.name); setSearching(false);
       }}>{c.name} · {[nodeById.get(c.country_id)?.name, nodeById.get(c.region_id)?.name].filter(Boolean).join(' / ')}</button>)}</div>
-      {(point.city || point.location) && <p className="card-meta" aria-label={translate("i18n.selectedPlace")}>{[point.country, point.region, point.city || point.location].filter(Boolean).join(' / ')}</p>}
+      {(point.country || point.region || point.city || point.location) && <p className="card-meta" aria-label={translate("i18n.selectedPlace")}>{[point.country, point.region, point.city || point.location].filter(Boolean).join(' / ')}</p>}
       <label>{translate("i18n.date")}<input type="date" value={point.date || ''} onChange={e => set('date', e.target.value)} /></label>
       <label>{translate("i18n.memoryNotes")}<textarea value={point.caption} onChange={e => set('caption', e.target.value)} /></label>
-      {point.thumbnail && <img className="preview-image" src={point.thumbnail} alt={translate("i18n.memoryPinPhotos")} />}
+      {point.thumbnail && <PhotoCrop src={point.photo || point.thumbnail} ratio={1.5} value={point.photoCrop} onChange={v=>set("photoCrop",v)} />}
 
       {point.id && <button type="button" disabled={busy} onClick={() => savePoint(true)}>{translate("i18n.replacePhotoAndSave")}</button>}
     </WorkspaceFields>

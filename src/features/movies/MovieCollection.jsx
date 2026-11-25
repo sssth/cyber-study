@@ -1,3 +1,4 @@
+import PhotoCrop, { cropStyle } from '../PhotoCrop.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
@@ -115,7 +116,7 @@ export default function MovieCollection({ onClose, editItem }) {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const { poster, error: uploadError } = await window.cyberStudy.uploadMoviePoster(bytes);
       if (uploadError) setError(uploadError);
-      if (poster) setDraft((current) => ({ ...current, poster }));
+      if (poster) setDraft((current) => ({ ...current, poster, photoCrop:null }));
     } catch {
       setError(translate("i18n.couldNotReadOrSaveThePoster"));
     } finally {
@@ -148,6 +149,7 @@ export default function MovieCollection({ onClose, editItem }) {
       setDraft((current) => ({
         ...current,
         ...details,
+        photoCrop: details.poster && details.poster !== current.poster ? null : current.photoCrop,
         personalScore: current.personalScore,
         review: current.review,
         watchedOn: current.watchedOn,
@@ -242,8 +244,7 @@ export default function MovieCollection({ onClose, editItem }) {
         <label>{translate("i18n.link2")}<input {...field('url')} placeholder={translate("i18n.bilibiliOrOtherSourceLinkOptional")} /></label>
         <input ref={titleInput} {...field('title')} placeholder={translate("i18n.filmTitleOptional")} />
         <div className="movie-poster-field">
-          {draft.poster && <img key={localPosters[draft.poster] || draft.poster} src={localPosters[draft.poster] || draft.poster}
-            referrerPolicy="no-referrer" alt={translate("i18n.posterPreview")} />}
+          {draft.poster && <PhotoCrop src={localPosters[draft.poster] || draft.poster} ratio={2/3} value={draft.photoCrop} onChange={photoCrop=>setDraft(d=>({...d,photoCrop}))}/>}
           <input ref={posterInput} type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" onChange={selectPoster} />
           <button type="button" disabled={formBusy} onClick={() => posterInput.current?.click()}>{draft.poster ? translate("i18n.replacePoster") : translate("i18n.uploadPoster")}</button>
           {draft.poster && <ContentEditButton label={translate("i18n.removeCurrentPoster")} disabled={formBusy} run={() => setDraft(current => ({ ...current, poster: '' }))} />}
@@ -283,7 +284,7 @@ export default function MovieCollection({ onClose, editItem }) {
           const selected = editorOpen && editing === movie.id;
           const posterContent = <>
             <span className="movie-poster-placeholder">{title}</span>
-            {movie.poster && <img key={localPosters[movie.poster] || movie.poster} src={localPosters[movie.poster] || movie.poster} referrerPolicy="no-referrer" alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}
+            {movie.poster && <img style={cropStyle(movie.photoCrop)} key={localPosters[movie.poster] || movie.poster} src={localPosters[movie.poster] || movie.poster} referrerPolicy="no-referrer" alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}
           </>;
           return <article className="movie-tile" key={movie.id}>
             <div className="movie-poster">

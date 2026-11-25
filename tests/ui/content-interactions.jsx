@@ -1,3 +1,4 @@
+import UsageTips from '../../src/ui/UsageTips.jsx';
 import TypewriterPanel from '../../src/features/typewriter/TypewriterPanel.jsx';
 import DiaryPanel from '../../src/features/diary/DiaryPanel.jsx';
 import MemoBoard from '../../src/features/memo/MemoBoard.jsx';
@@ -20,4 +21,4 @@ const shortcuts={search:['Ctrl+K'],selectAll:['Cmd+A','Ctrl+A'],createContent:['
 if(feature==='typewriter') localStorage.setItem('cyber-study.space.v1.typewriter',JSON.stringify([{id:'test-work',title:'测试作品',text:'测试正文',typedText:'测',status:'draft',createdAt:new Date().toISOString()}]));
 if(feature==='memo') localStorage.setItem('cyber-study.space.v1.memo',JSON.stringify([{id:'test-memo',type:'sticky',text:'测试便签',x:30,y:30,tone:'cyan'}]));
 const modules={typewriter:<TypewriterPanel onClose={()=>{}}/>,diary:<DiaryPanel onClose={()=>{}}/>,memo:<MemoBoard shortcuts={shortcuts} onClose={()=>{}}/>,movie:<MovieCollection onClose={()=>{}}/>,music:<MusicPlayer open navigation={{}} shortcuts={shortcuts} onClose={()=>{}}/>};
-createRoot(document.getElementById('root')).render(<React.StrictMode><CommandToolbar shortcuts={shortcuts}/>{feature?<main className="app-shell">{modules[feature]}<UnifiedSearch shortcuts={shortcuts} viewKey={feature}/><ContentRelationshipPanel/><BulkEntityCommands shortcuts={shortcuts} viewKey={feature}/><ContentCommands shortcuts={shortcuts} viewKey={feature}/></main>:<Check/>}</React.StrictMode>);
+createRoot(document.getElementById('root')).render(<React.StrictMode>{feature === "typewriter" && <UsageTips enabled/>}<CommandToolbar shortcuts={shortcuts}/>{feature?<main className="app-shell">{modules[feature]}<UnifiedSearch shortcuts={shortcuts} viewKey={feature}/><ContentRelationshipPanel/><BulkEntityCommands shortcuts={shortcuts} viewKey={feature}/><ContentCommands shortcuts={shortcuts} viewKey={feature}/></main>:<Check/>}</React.StrictMode>);

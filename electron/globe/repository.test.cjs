@@ -92,6 +92,9 @@ test('JPEG EXIF captures date and southern/western GPS coordinates', () => {
   for (const [offset, values] of [[152, [33, 30, 0]], [176, [70, 15, 0]]]) values.forEach((v, i) => { tiff.writeUInt32LE(v, offset + i * 8); tiff.writeUInt32LE(1, offset + i * 8 + 4); });
   const header = Buffer.from('ffd8ffe10000457869660000', 'hex'); header.writeUInt16BE(tiff.length + 8, 4);
   assert.deepEqual(metadata(Buffer.concat([header, tiff])), { date: '2024-03-12', latitude: -33.5, longitude: -70.25 });
+  // Some phone cameras encode GPS components as signed TIFF rationals.
+  tiff.writeUInt16LE(10, 86); tiff.writeUInt16LE(10, 110);
+  assert.deepEqual(metadata(Buffer.concat([header, tiff])), { date: '2024-03-12', latitude: -33.5, longitude: -70.25 });
 });
 
 test('photo-free points and ordered journeys survive trash, backup and restore', async t => {
