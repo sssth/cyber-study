@@ -1,4 +1,4 @@
-import PagedItems from './PagedItems.jsx';
+import PagedItems from '../../ui/PagedItems.jsx';
 import {cropStyle} from '../PhotoCrop.jsx';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';

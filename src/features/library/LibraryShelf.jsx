@@ -12,6 +12,7 @@ import DisplayViewMenu from '../../ui/DisplayViewMenu.jsx';
 import ShelfBookRows from './ShelfBookRows.jsx';
 import ShelfBookPreview from './ShelfBookPreview.jsx';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
+import PagedItems from '../../ui/PagedItems.jsx';
 import DisplayShelf from './DisplayShelf.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import { useEffect, useState, useRef, useDeferredValue, useMemo } from 'react';
@@ -66,9 +67,12 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
     return () => window.removeEventListener('keydown', key, true);
   }, [selection, isPageBack]);
   const order = useContentOrder();
-  const shownBooks = orderType(selection ? visibleBooks.filter(book=>!selection.used.includes(book.id)) : visibleBooks, 'book', order);
-  if (!selection) shownBooks.sort((a, b) =>
-    bookActivityTime(b, readerState.books[b.id]) - bookActivityTime(a, readerState.books[a.id]));
+  const shownBooks = useMemo(() => {
+    const used = selection ? new Set(selection.used) : null;
+    const sorted = orderType(used ? visibleBooks.filter(book => !used.has(book.id)) : visibleBooks, 'book', order);
+    if (!used) sorted.sort((a,b) => bookActivityTime(b,readerState.books[b.id]) - bookActivityTime(a,readerState.books[a.id]));
+    return sorted;
+  }, [visibleBooks, selection?.used, order, readerState.books]);
   useResultSource({
     scopeId: 'library', priority: 30, enabled: view === 'all', matches: resultEntities('book', shownBooks),
     selectVisible: selection ? () => setSelection(current => {
@@ -88,7 +92,7 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
       <WorkspaceActions><button disabled={!selection.ids.length} onClick={placeSelection}>{translate("i18n.confirm2")}{selection.ids.length}/10）</button><button disabled={!selection.ids.length} onClick={()=>setSelection(s=>({...s,ids:[]}))}>{translate("i18n.clear")}</button></WorkspaceActions></>}
     </ActionWorkspace>
     {selection&&<ContentCommand kind="cancel-create" label={translate("i18n.cancelBookSelection")} run={()=>{setView(String(selection.shelf));setSelection(null);}}/>}
-    {view === 'all' ? <div className={`cover-shelves${searchActive?' shelf-search-results':''}`}>{shownBooks.map(book => <article data-edit-item={selection?undefined:true} className={`book-card shelf-book${searchActive?' shelf-search-book':''}`} key={book.id}>
+    {view === 'all' ? <div className={`cover-shelves${searchActive?' shelf-search-results':''}`}><PagedItems key={JSON.stringify([searchQuery,selection?.shelf])} size={48} items={shownBooks}>{book => <article data-edit-item={selection?undefined:true} className={`book-card shelf-book${searchActive?' shelf-search-book':''}`} key={book.id}>
       <button data-item-open={selection?undefined:true} data-instant-selection={selection?true:undefined} className="shelf-read" title={book.title} aria-pressed={selection?selection.ids.includes(book.id):undefined} disabled={selection&&(selection.used.includes(book.id)||(!selection.ids.includes(book.id)&&selection.ids.length>=10))} onClick={() => selection?selectBook(book):openBook(book)} aria-label={translate("i18n.read0", book.title)}><Cover book={book}>
           {!selection && <span className="shelf-cover-caption">
             <span className="shelf-cover-reading">
@@ -109,7 +113,7 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
       </section>}
       {!selection&&<ContentActions sortable={false} orderItem={book} type="book" id={book.id} title={book.title} preview={false}/>}
       {!selection&&editBook(book)}
-    </article>)}</div> : <DisplayShelf key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
+    </article>}</PagedItems></div> : <DisplayShelf key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
 
     {editing && <BookEditor key={editing.id} readingRecord={readerState.books[editing.id]} editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
   </section>;

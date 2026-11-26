@@ -8,7 +8,7 @@ export const textMatches = (values, query) => { const text=values.flat(Infinity)
 export const searchValues = (type, item, definitions = entityTypes) =>
  [item.title, entityTags(type,item), ...(definitions[type]?.search ?? []).map(key => item[key])];
 export function matchesItem(type,item,state=emptySearch, definitions=entityTypes){
- if(item.deletedAt||!textMatches(searchValues(type,item,definitions),state.query))return false;
+ if(item.deletedAt)return false;
  const f=state.filters||{};
  if(f.id&&item.id!==f.id)return false;
  if(f.type&&f.type!==type)return false;
@@ -18,6 +18,8 @@ export function matchesItem(type,item,state=emptySearch, definitions=entityTypes
  if(f.author&&item.author!==f.author)return false;
  if(f.format&&(item.originalFormat||item.format)!==f.format)return false;
  if(f.mood&&item.mood!==f.mood)return false;
+ if(state.query?.trim() && !textMatches(searchValues(type,item,definitions),state.query))return false;
+ if(!f.from && !f.to)return true;
  const rawDate=item.date||item.startDate||item.completedAt||item.createdAt||'';
  const date=String(rawDate).includes('T')&&Number.isFinite(Date.parse(rawDate))?new Date(rawDate).toLocaleDateString('sv-SE'):String(rawDate).slice(0,10);
  if(f.from&&(!date||date<f.from)||f.to&&(!date||date>f.to))return false;

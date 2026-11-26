@@ -22,6 +22,8 @@ import CatalogEditor from './CatalogEditor.jsx';
 import ContentActions from '../features/ContentActions.jsx';
 import { ContentCommand } from '../features/ContentCommands.jsx';
 
+import PagedItems from '../ui/PagedItems.jsx';
+
 const createTypes = Object.entries(entityTypes).filter(([, definition]) => definition.create);
 
 
@@ -89,8 +91,12 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
       if (!byType.has(item.type)) byType.set(item.type, []);
       byType.get(item.type).push(item);
     }
+    for (const [type,items] of byType) {
+      if (columnSlots[type]) byType.set(type, orderType(items,type,layoutOrder));
+    }
     return byType;
-  }, [results, grouped]);
+  }, [results, grouped, columnSlots, layoutOrder]);
+  const pageKey = JSON.stringify([search.query, search.filters]);
   const types = [...new Set([...columnOrder, ...Object.keys(contentTypes)])];
   function finishDrag() {
     setDragColumn(null);
@@ -146,10 +152,10 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
               setDragColumn(type);
             }}>{translate(contentTypes[type])}</h3>
           <div className="catalog-column-items" data-scroll-memory={`catalog-items-${type}`}>
-            {orderType(groups.get(type), type, layoutOrder).map(renderCard)}
+            <PagedItems key={pageKey} items={groups.get(type)}>{renderCard}</PagedItems>
           </div>
         </section>
-      )) : results.map(renderCard)}
+      )) : <PagedItems key={pageKey} items={results}>{renderCard}</PagedItems>}
     </>}
     </section>}
     {editing && <CatalogEditor key={editing.key} item={editing} catalog={catalog ?? []} books={books} {...editorProps} onClose={() => onEdit(null)}/>}

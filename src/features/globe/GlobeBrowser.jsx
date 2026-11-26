@@ -1,4 +1,4 @@
-import PagedItems from './PagedItems.jsx';
+import PagedItems from '../../ui/PagedItems.jsx';
 import { translate } from '../../i18n/index.js';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
 import useEscapeBack, { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';

@@ -13,6 +13,7 @@ import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope} from '../../search/useSearchScope.jsx';
 import {matchesItem,textMatches,hasSearch} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
+import PagedItems from '../../ui/PagedItems.jsx';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FeaturePanel, ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
@@ -57,7 +58,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   const bookId=search.filters.bookId||'';
   const filtered = entries.filter(({ note, items, chapter }) =>
     (!bookId || note.bookId === bookId) && (!search.filters.id||items.some(i=>i.id===search.filters.id)) &&
-    textMatches([note.bookTitle,chapter,note.quote,entityTags('excerpt',note),...items.flatMap(item=>[item.annotation,item.annotation ? entityTags('annotation',item) : []])],search.query));
+    (!search.query.trim() || textMatches([note.bookTitle,chapter,note.quote,entityTags('excerpt',note),...items.flatMap(item=>[item.annotation,item.annotation ? entityTags('annotation',item) : []])],search.query)));
   useSearchCount('knowledge',filtered.length);
   useLayoutEffect(() => {
     if (!editItem || detailKey) window.dispatchEvent(new Event('cyber-close-search'));
@@ -100,7 +101,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
     <div className="knowledge-browser">
       <section className="knowledge-results" aria-label={translate("i18n.excerpts")}>
         {!filtered.length && <></>}
-        {filtered.map(({ key, items, note, chapter }) => {
+        <PagedItems key={JSON.stringify([search.query,search.filters])} items={filtered}>{({ key, items, note, chapter }) => {
           const characters = Array.from(note.quote);
           const preview = characters.length > 120 ? characters.slice(0, 120).join('').trimEnd() + '…' : note.quote;
           return <button key={key} data-item-open type="button" className="knowledge-result" onClick={() => setDetailKey(key)}>
@@ -111,7 +112,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
             <ContentCommand label={translate("i18n.manageExcerptsAndAnnotations0", note.quote.slice(0, 48))} run={() => {setEditKey(key);setEditError('');}} />
             <ContentActions orderItem={note} type="excerpt" id={note.id} title={note.quote?.slice(0,40)}/><span className="knowledge-note-count">{translate(excerptTypes[excerptAppearance(note).excerptType])} · {items.filter((item) => item.annotation).length}{' '}{translate("i18n.annotations")}</span>
           </button>;
-        })}
+        }}</PagedItems>
       </section>
     </div>
   </FeaturePanel>;
