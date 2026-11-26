@@ -66,6 +66,7 @@ function registerGlobe(getWindow) {
         const selection = await dialog.showOpenDialog(getWindow(), { title: nativeText(event.sender, input.folder ? 'i18n.nativeChoosePhotoFolder' : 'i18n.nativeChoosePhotos'), properties: input.folder ? ['openDirectory'] : ['openFile', 'multiSelections'], filters: [{ name: nativeText(event.sender, 'i18n.nativePhotos'), extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
         if (selection.canceled) return { canceled: true };
         const files = [], report = [];
+        event.sender.send('globe:progress', { scanning: true });
         const walk = async folder => {
           for (const entry of await fs.readdir(folder, { withFileTypes: true })) {
             if (entry.name.startsWith('.')) continue;
@@ -75,16 +76,23 @@ function registerGlobe(getWindow) {
           }
         };
         if (input.folder) await walk(selection.filePaths[0]); else files.push(...selection.filePaths);
+        const batch = await repo.beginImport();
+        let lastUpdate = 0;
         for (let index = 0; index < files.length; index++) {
           const file = files[index], name = path.basename(file);
-          event.sender.send('globe:progress', { done: index, total: files.length, name });
+          if (Date.now() - lastUpdate >= 150) {
+            event.sender.send('globe:progress', { done: index, total: files.length, name });
+            lastUpdate = Date.now();
+          }
           try {
             const info = await fs.stat(file);
             if (!info.isFile() || info.size > 80 * 1024 * 1024) throw new Error('文件不可用或超过 80 MB。');
-            const result = await repo.add(await fs.readFile(file), { filename: name, originalPath: file });
+            const result = await repo.add(await fs.readFile(file), { filename: name, originalPath: file }, '', batch);
             report.push({ name, status: result.skipped ? '重复，已跳过' : '成功', reason: result.inTrash ? '已有照片在回收站，可恢复。' : '' });
           } catch (error) { report.push({ name, status: '失败', reason: error.code ? '文件读取或保存失败，请检查空间和文件权限。' : error.message }); }
+          if (batch.pending >= 64) await repo.flushImport(batch);
         }
+        await repo.flushImport(batch);
         event.sender.send('globe:progress', { done: files.length, total: files.length, name: '' });
         return { ...await snapshot(), report };
       }

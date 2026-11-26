@@ -1,3 +1,4 @@
+import PagedItems from './PagedItems.jsx';
 import {cropStyle} from '../PhotoCrop.jsx';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';
@@ -21,6 +22,14 @@ import { ActionWorkspace, FeaturePanel, EmptyState } from '../ui.jsx';
 import GlobeBrowser from './GlobeBrowser.jsx';
 
 const api = (action, input) => window.cyberStudy.globe(action, input);
+function ImportProgress() {
+  const [progress,setProgress] = useState(null);
+  useEffect(() => window.cyberStudy?.onGlobeProgress?.(setProgress), []);
+  return <div role="status">{progress && <progress max={progress.total || 1} value={progress.scanning ? undefined : progress.done}/>}
+    {progress?.scanning ? translate('i18n.scanningFilesAndSubfolders') : progress ? translate('i18n.importing012',progress.done,progress.total,progress.name) : translate('i18n.processing')}
+  </div>;
+}
+
 export default function GlobePanel({ onClose, navigationItem, initialPlace, workspaceHost, initialData, initialView, projection = false, backRef }) {
   const isPageBack = usePageBackMatcher();
   const scopeId = name => projection ? `projection:${name}` : name;
@@ -45,15 +54,16 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [report, setReport] = useState([]);
-  const [progress, setProgress] = useState(null);
-  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:[...dateFilters,...(mode==='journey'?[]:[{key:'placeId',label:translate("i18n.place"),options:memoryPlaces(photos).map(p=>[p.id,p.name])},{key:'journeyId',label:translate("i18n.trips"),options:journeys.map(j=>[j.id,j.title])},{key:'status',label:translate("i18n.visitStatus"),options:[['visited',translate("i18n.visited")],['wish',translate("i18n.wantToVisit")]]}])]});
+  const [reportOpen,setReportOpen] = useState(false);
+  const placeOptions = useMemo(()=>memoryPlaces(photos).map(p=>[p.id,p.name]),[photos]);
+  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:[...dateFilters,...(mode==='journey'?[]:[{key:'placeId',label:translate("i18n.place"),options:placeOptions},{key:'journeyId',label:translate("i18n.trips"),options:journeys.map(j=>[j.id,j.title])},{key:'status',label:translate("i18n.visitStatus"),options:[['visited',translate("i18n.visited")],['wish',translate("i18n.wantToVisit")]]}])]});
   const query=search.query;
   const [viewId, setViewId] = useNavigationState(scopeId('globe'),'viewId',null, { remember:false });
   const closeViewer = useRef(null), returnFocus = useRef(null), initialized = useRef(false);
   useEffect(() => { if (initialPlace) { setSearch(scopeId('globe'), {query:'', filters:{placeId:initialPlace.id}}); setMode('point'); return; } const current = getSearch(scopeId('globe')); if ((current.filters?.journeyId || current.filters?.placeId)) setSearch(scopeId('globe'), { ...current, filters: { ...current.filters, journeyId: '', placeId:'' } }); }, []);
   const desktop = Boolean(window.cyberStudy?.globe);
   const request = async (action, input) => {
-    setBusy(true); setError(''); setMessage(''); setProgress(null);
+    setBusy(true); setError(''); setMessage('');
     try {
       const result = await api(action, input);
       if (result.error) throw new Error(result.error);
@@ -63,24 +73,31 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
         for (const id of input.ids) removeEntityRelations('memory_point:' + id);
       }
       if (!result.canceled && action === 'journey' && input?.remove) removeEntityRelations('journey:' + input.id);
-      if (result.report) { setReport(result.report); if (!result.report.length) setMessage(translate("i18n.noPhotosFoundJpegPngAndWebp")); }
+      if (result.report) { setReportOpen(false); setReport(result.report); if (!result.report.length) setMessage(translate("i18n.noPhotosFoundJpegPngAndWebp")); }
       return result;
     } catch (err) { setError(err.message || translate("i18n.actionFailedTryAgain")); return null; }
-    finally { setBusy(false); setProgress(null); }
+    finally { setBusy(false); }
   };
   useEffect(() => {
     if (!desktop) { setBusy(false); return; }
-    const unsubscribe = window.cyberStudy.onGlobeProgress(setProgress);
+
     if (!initialized.current) { initialized.current = true; if (!initialData) request('list'); }
-    return unsubscribe;
+
   }, []);
-  const active = photos.filter(p => !p.deletedAt);
+
   const order = useContentOrder();
-  const filtered = useMemo(() => orderType(photos,'memory_point',order).filter(p => matchesItem('memory_point',p,search) && (!search.filters?.placeId || memoryPlaces([p]).some(place => place.id === search.filters.placeId)) && (!search.filters?.journeyId || journeys.find(j => j.id === search.filters.journeyId)?.pointIds.includes(p.id))), [photos, search, journeys, order]);
+  const orderedPhotos = useMemo(() => mode === 'point' ? orderType(photos,'memory_point',order) : photos, [photos,mode,order]);
+  const filtered = useMemo(() => {
+    const {placeId,journeyId} = search.filters || {};
+    const members = journeyId ? new Set(journeys.find(j => j.id === journeyId)?.pointIds) : null;
+    return orderedPhotos.filter(p => (!members || members.has(p.id)) &&
+      (!placeId || memoryPlaces([p]).some(place => place.id === placeId)) && matchesItem('memory_point',p,search));
+  }, [orderedPhotos,search,journeys]);
+  const pointNames = useMemo(()=>new Map(photos.map(p=>[p.id,p.title || p.location || p.filename])),[photos]);
   useSearchCount(scopeId(mode==='journey'?'journey':'globe'),busy?null:mode==='journey'?journeys.filter(j=>matchesItem('journey',j,search)).length:filtered.length);
   const viewerSequence = (viewerPhotos || photos).filter(p => !p.deletedAt);
   const viewIndex = viewerSequence.findIndex(p => p.id === viewId), viewed = viewerSequence[viewIndex];
-  useResultSource({ scopeId: mode === 'browse' ? (projection ? 'projection-geography' : 'geography') : scopeId(mode === 'journey' ? 'journey' : 'globe'), priority:projection?1020:20,projection,detail:Boolean(viewed),pointNames:new Map(photos.map(photo=>[photo.id,photo.title || photo.location || photo.filename])),loading:busy,blocked:mode==='browse'&&!viewed,matches:viewed?resultEntities('memory_point',[viewed]):mode==='journey'?resultEntities('journey',journeys.filter(j=>matchesItem('journey',j,search))):resultEntities('memory_point',filtered)});
+  useResultSource({ scopeId: mode === 'browse' ? (projection ? 'projection-geography' : 'geography') : scopeId(mode === 'journey' ? 'journey' : 'globe'), priority:projection?1020:20,projection,detail:Boolean(viewed),pointNames,loading:busy,blocked:mode==='browse'&&!viewed,matches:viewed?resultEntities('memory_point',[viewed]):mode==='journey'?resultEntities('journey',journeys.filter(j=>matchesItem('journey',j,search))):mode==='browse'?[]:resultEntities('memory_point',filtered)});
   const dismiss = () => { setViewId(null); setViewerPhotos(null); returnFocus.current?.focus({ preventScroll:true }); };
   useImperativeHandle(backRef, () => () => {
     if (viewed) { dismiss(); return true; }
@@ -151,16 +168,16 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
       }} />}
       {mode !== 'journey' && <ContentCommand kind="create" label={translate("i18n.newMemoryPin")} disabled={busy} run={() => { createReturnMode.current = mode; setMode('point'); editPoint({}); }} />}
       <SearchStatus id={mode==='journey'?'journey':'globe'} label={mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin")}/>
-      {busy && <p role="status">{progress ? translate("i18n.importing012", progress.done, progress.total, progress.name) : translate("i18n.processing")}</p>}
+      {busy && <ImportProgress/>}
       {error && <p className="form-error" role="alert">{translateError(error)}</p>}
       {message && mode !== 'journey' && <p role="status" className="globe-caption">{message}</p>}
       {mode === 'journey' && <MemoryEditor workspaceHost={workspaceHost} initialPoint={initialPoint} key={mode} mode={mode} photos={photos} journeys={journeys} searchState={search} busy={busy} request={request} onBrowsePoints={id => { tripReturn.current = {mode, search:getSearch(scopeId('globe'))}; setSearch(scopeId('globe'), {query:'', filters:{journeyId:id}}); setInitialPoint(null); setMode('point'); }} />}
       {mode === 'browse' && <GlobeBrowser projection={projection} workspaceHost={workspaceHost} onRememberView={snapshot => { globeReturnView.current = snapshot; rememberView(browserViewKey, snapshot); }} initialView={globeReturnView.current} onBrowsePlace={(place, snapshot) => { globeReturnView.current = snapshot; tripReturn.current = {mode, search:getSearch(scopeId('globe'))}; setSearch(scopeId('globe'), {query:'', filters:{placeId:place.id}}); setInitialPoint(null); setMode('point'); }} journeys={journeys} journeyId={journeyId} setJourneyId={setJourneyId} photos={photos} loading={busy} onOrganize={photo => { setInitialPoint(photo || null); setMode('point'); }} onOpenPhoto={(photo, sequence) => { returnFocus.current = document.activeElement; setViewerPhotos(sequence); setViewId(photo.id); }} />}
       {mode === 'point' && <>
-      {report.length > 0 && <details className="globe-import-report" open><summary>{translate("i18n.photosReport",
+      {report.length > 0 && <details className="globe-import-report" open={reportOpen} onToggle={e=>setReportOpen(e.currentTarget.open)}><summary>{translate("i18n.photosReport",
         report.filter(r => r.status === '成功').length,
         report.filter(r => r.status === '失败').length,
-        report.filter(r => !['成功', '失败'].includes(r.status)).length)}</summary><ul>{report.map((r, i) => <li key={i}>{r.name} — {translateFixedText(r.status)}{r.reason ? ` · ${translateError(r.reason)}` : ''}</li>)}</ul></details>}
+        report.filter(r => !['成功', '失败'].includes(r.status)).length)}</summary>{reportOpen && <div><PagedItems items={report}>{(r, i) => <div key={i}>{r.name} — {translateFixedText(r.status)}{r.reason ? ` · ${translateError(r.reason)}` : ''}</div>}</PagedItems></div>}</details>}
       <div className="globe-library-layout memory-library-layout">
         <div className="memory-status-columns">
           {[['visited', translate("i18n.visited")], ['wish', translate("i18n.wantToVisit")]].map(([status, heading]) => {
@@ -168,7 +185,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
             return <section className={`memory-status-column memory-status-${status}`} key={status} aria-label={heading}>
               <h3 className="memory-status-heading">{heading}</h3>
               <div data-scroll-memory={`memory-${status}`} className={status === 'visited' ? 'memory-status-scroll globe-photo-grid' : 'memory-status-scroll memory-wish-list'}>
-                {records.map(p => <article className={`admin-card memory-point-card ${status === 'wish' ? 'memory-wish-row' : 'memory-visited-card'}`} key={p.id} onClick={event => { if (initialPoint?.id && !busy && !event.target.closest('button')) editPoint(p); }}>
+                <PagedItems items={records} key={JSON.stringify([search.query,search.filters])}>{p => <article className={`admin-card memory-point-card ${status === 'wish' ? 'memory-wish-row' : 'memory-visited-card'}`} key={p.id} onClick={event => { if (initialPoint?.id && !busy && !event.target.closest('button')) editPoint(p); }}>
                   <ContentCommand label={translate("i18n.editMemoryPin0", p.title || p.location || p.filename || translate("i18n.untitledMemory"))} disabled={busy} run={() => editPoint(p)} />
                   <button type="button" data-item-open className="memory-card-edit" disabled={busy} aria-label={translate("i18n.viewMemory0", p.title || p.location || translate("i18n.untitledMemory"))} onClick={event => { returnFocus.current = event.currentTarget; setViewerPhotos(null); setViewId(p.id); }} />
                   {status === 'visited' ? <>
@@ -177,8 +194,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
                     <p className="card-meta memory-card-meta"><span>{p.city || p.location || p.region || p.country || translate("i18n.noPlaceSpecified")}</span><span>{p.date || translate("i18n.unknownDate")}</span></p>
                   </> : <div className="memory-card-heading"><h3>{p.title || p.location || p.city || translate("i18n.untitledMemory")}</h3><span>{p.city || p.location || p.region || p.country || translate("i18n.noCitySpecified")}</span></div>}
                   <ContentActions orderItem={p} type="memory_point" id={p.id} title={p.title || p.location} preview={false}/>
-                </article>)}
-                {!records.length && <></>}
+                </article>}</PagedItems>
               </div>
             </section>;
           })}

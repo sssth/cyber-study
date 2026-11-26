@@ -1,3 +1,4 @@
+import PagedItems from './PagedItems.jsx';
 import { translate } from '../../i18n/index.js';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
 import useEscapeBack, { blocksPageBack, usePageBackMatcher } from '../../ui/useEscapeBack.js';
@@ -30,7 +31,8 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
     }
   }, [loading, photos]);
   // Journey checkboxes reflect the same point selection, rather than a second highlight layer.
-  const selectedJourneys = journeys.filter(j => { const ids = journeyPoints(j); return ids.length > 0 && ids.every(id => selectedPoints.includes(id)); }).map(j => j.id);
+  const selectedSet = useMemo(()=>new Set(selectedPoints),[selectedPoints]);
+  const selectedJourneys = journeys.filter(j => { const ids = journeyPoints(j); return ids.length > 0 && ids.every(id => selectedSet.has(id)); }).map(j => j.id);
   const appliedJourney = useRef(initialView?.selectedPoints ? journeyId : null);
   useEffect(() => {
     const journey = journeys.find(j => j.id === journeyId);
@@ -43,14 +45,13 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
   const [command, setCommand] = useNavigationState(projection?'projection':'globe','command',null,{ remember:false }), [failed, setFailed] = useState(false), [ready, setReady] = useState(false), [retry, setRetry] = useState(0);
   const search = useRef(), card = useRef(), returnTarget = useRef();
   const journey = journeys.find(j => j.id === journeyId);
-  const stops = journey?.pointIds.map(id => photos.find(p => p.id === id && !p.deletedAt)).filter(Boolean) ?? [];
   const issue = useCallback(values => { setRotating(false); setCommand({ ...values, serial: performance.now() }); }, []);
   const cameraPosition = useRef(initialView?.position || null);
   const geography = useGeography(issue, true, projection?'projection-geography':'geography', initialView, cameraPosition, workspaceHost);
   const regionGeometry = geography.region?.geometry || (geography.region?.kind === 'country' ? geography.worldFeatures : geography.features).find(n => n.id === geography.region?.id)?.geometry;
   const { visiblePhotos, visibleJourneys } = useMemo(() => filterGlobeMemories(photos, journeys, geography.search, geography.region, regionGeometry), [photos, journeys, geography.search, geography.region, regionGeometry]);
   const places = useMemo(() => memoryPlaces(visiblePhotos), [visiblePhotos]);
-  const highlighted = useMemo(() => new Set(visiblePhotos.filter(p => selectedPoints.includes(p.id)).map(p => p.id)), [visiblePhotos, selectedPoints]);
+  const highlighted = useMemo(() => new Set(visiblePhotos.filter(p => selectedSet.has(p.id)).map(p => p.id)), [visiblePhotos, selectedSet]);
   const selected = places.find(place => place.id === selectedId);
   useSearchCount('geography', loading ? null : visiblePhotos.length);
   const rememberBrowser = useRef(null);
@@ -121,7 +122,7 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
             <div data-scroll-memory={`regions-${geography.region?.id ?? 'world'}`} className="music-create-song-options globe-region-options">{geography.results.map(n => <button key={n.id} type="button" aria-pressed={(geography.city?.id || geography.region?.id) === n.id} onClick={() => { setSelectedId(null); n.resultType === 'city' ? geography.chooseCity(n) : geography.navigate(n); }}>{n.name}</button>)}</div>
           </fieldset>
           <fieldset className="music-create-song-picker"><legend>{translate("i18n.memoryPin")}</legend>
-            <div data-scroll-memory="points" className="music-create-song-options">{visiblePhotos.map(p => <label key={p.id}><input type="checkbox" checked={selectedPoints.includes(p.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); setSelectedPoints(ids => checked ? [...ids,p.id] : ids.filter(id => id !== p.id)); }} /><span>{p.title || p.location || translate("i18n.untitledMemory")}{p.title && p.location ? ` · ${p.location}` : ''}</span></label>)}</div>
+            <div data-scroll-memory="points" className="music-create-song-options">{controlsOpen && <PagedItems items={visiblePhotos} key={geography.search.query}>{p => <label key={p.id}><input type="checkbox" checked={selectedSet.has(p.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); setSelectedPoints(ids => checked ? [...ids,p.id] : ids.filter(id => id !== p.id)); }} /><span>{p.title || p.location || translate("i18n.untitledMemory")}{p.title && p.location ? ` · ${p.location}` : ''}</span></label>}</PagedItems>}</div>
           </fieldset>
           <fieldset className="music-create-song-picker"><legend>{translate("i18n.trip")}</legend>
             <div data-scroll-memory="journeys" className="music-create-song-options">{visibleJourneys.map(j => <label key={j.id}><input type="checkbox" checked={selectedJourneys.includes(j.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); if(journeyId === j.id) setJourneyId(''); const points = journeyPoints(j); setSelectedPoints(ids => checked ? [...new Set([...ids, ...points])] : ids.filter(id => !points.includes(id))); }} /><span>{j.title}</span></label>)}</div>

@@ -35,12 +35,21 @@ class MemoryRepository {
     catch (error) { if (error.code === 'ENOENT') return { version: 2, photos: [], migrations: [] }; throw error; }
   }
   async commit(data) { validate(data); await atomic(path.join(this.root, 'library.json'), JSON.stringify(data, null, 2)); }
-  async add(bytes, details = {}, migrationKey = '') {
-    if (!bytes.length || bytes.length > 80 * 1024 * 1024) throw new Error('请选择 80 MB 以内的照片。');
+  async beginImport() {
     const data = await this.load();
+    return { data, byHash: new Map(data.photos.map(photo => [photo.hash, photo])), pending: 0 };
+  }
+  async flushImport(batch) {
+    if (!batch.pending) return;
+    await this.commit(batch.data);
+    batch.pending = 0;
+  }
+  async add(bytes, details = {}, migrationKey = '', batch = null) {
+    if (!bytes.length || bytes.length > 80 * 1024 * 1024) throw new Error('请选择 80 MB 以内的照片。');
+    const data = batch?.data ?? await this.load();
     if (migrationKey && data.migrations.includes(migrationKey)) return { skipped: true };
     const key = hash(bytes);
-    const duplicate = data.photos.find(p => p.hash === key);
+    const duplicate = batch ? batch.byHash.get(key) : data.photos.find(p => p.hash === key);
     if (duplicate && !migrationKey) return { skipped: true, duplicate: duplicate.id, inTrash: Boolean(duplicate.deletedAt) };
     const readable = await readablePhoto(bytes);
     const pictures = await this.decode(readable);
@@ -52,7 +61,10 @@ class MemoryRepository {
     if (migrationKey) Object.assign(record, { latitude: null, longitude: null, locationSource: 'unknown', locationStatus: 'pending' });
     data.photos.push(record);
     if (migrationKey) data.migrations.push(migrationKey);
-    await this.commit(data);
+    if (batch) {
+      batch.byHash.set(key, record);
+      batch.pending++;
+    } else await this.commit(data);
     return { record };
   }
   async update(ids, patch) {

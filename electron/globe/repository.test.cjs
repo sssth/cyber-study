@@ -145,3 +145,19 @@ test('recycle bin restores journeys with surviving points and purges only delete
   assert.deepEqual(result.deletedJourneys, []);
   await assert.rejects(fs.access(repo.asset(record.hash, 'original')));
 });
+
+test('folder import checkpoints, recognizes duplicates across checkpoints and can restart', async t => {
+  const {repo} = await fixture(t);
+  const batch = await repo.beginImport();
+  const first = Buffer.from('first');
+  await repo.add(first, {}, '', batch);
+  assert.equal((await repo.add(first, {}, '', batch)).skipped, true);
+  await repo.flushImport(batch);
+  await assert.rejects(repo.add(Buffer.from('bad'), {}, '', batch));
+  await repo.add(Buffer.from('second'), {}, '', batch);
+  assert.equal((await repo.load()).photos.length, 1);
+  await repo.flushImport(batch);
+  const restarted = await repo.beginImport();
+  assert.equal((await repo.add(first, {}, '', restarted)).skipped, true);
+  assert.equal(restarted.data.photos.length, 2);
+});

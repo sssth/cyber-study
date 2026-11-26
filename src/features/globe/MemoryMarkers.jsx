@@ -9,6 +9,8 @@ export default function MemoryMarkers({ places, highlighted, hovered, reduced, o
   const mesh = useRef();
   const { camera, size, invalidate } = useThree();
   const state = useMemo(() => new InstancedBufferAttribute(new Float32Array(places.length * 2), 2), [places.length]);
+  const positions = useMemo(() => places.map(place => new Vector3(...globePosition(place.latitude, place.longitude, 1.0015))), [places]);
+  const markedPlaces = useMemo(() => places.map(place => place.photos.some(photo => highlighted?.has(photo.id))), [places, highlighted]);
   const scratch = useMemo(() => ({ dummy:new Object3D(), forward:new Vector3(), offset:new Vector3() }), []);
   useEffect(() => { invalidate(); }, [places, highlighted, hovered, size, invalidate]);
   useFrame((_, delta) => {
@@ -16,15 +18,16 @@ export default function MemoryMarkers({ places, highlighted, hovered, reduced, o
     const { dummy, forward, offset } = scratch;
     camera.getWorldDirection(forward);
     let moving = false;
+    const pixelScale = 48 * Math.tan(camera.fov * Math.PI / 360) / Math.max(1,size.height);
     places.forEach((place, i) => {
-      dummy.position.fromArray(globePosition(place.latitude, place.longitude, 1.0015));
+      dummy.position.copy(positions[i]);
       const front = dummy.position.dot(camera.position) > 1.0015;
       const depth = offset.copy(dummy.position).sub(camera.position).dot(forward);
-      const width = 24 * 2 * Math.max(.001,depth) * Math.tan(camera.fov * Math.PI / 360) / Math.max(1,size.height);
+      const width = Math.max(.001,depth) * pixelScale;
       dummy.quaternion.copy(camera.quaternion);
       dummy.scale.setScalar(front ? width : 0);
       dummy.updateMatrix(); mesh.current.setMatrixAt(i, dummy.matrix);
-      const marked = place.photos.some(p => highlighted?.has(p.id));
+      const marked = markedPlaces[i];
       const targets = [marked ? 1 : 0, marked && place.id === hovered ? 1 : 0];
       targets.forEach((target, channel) => {
         const index=i*2+channel, old=state.array[index];
@@ -38,7 +41,7 @@ export default function MemoryMarkers({ places, highlighted, hovered, reduced, o
   return <instancedMesh ref={mesh} args={[null,null,places.length]} key={places.length} frustumCulled={false} renderOrder={10} raycast={function(raycaster, intersections) {
     const hits = [];
     InstancedMesh.prototype.raycast.call(this, raycaster, hits);
-    intersections.push(...hits.filter(hit => places[hit.instanceId]?.photos.some(p => highlighted?.has(p.id))));
+    intersections.push(...hits.filter(hit => markedPlaces[hit.instanceId]));
   }} onClick={onClick} onPointerMove={onPointerMove} onPointerOut={onPointerOut}>
     <planeGeometry args={[1,1]}><primitive object={state} attach="attributes-markerState" /></planeGeometry>
     <shaderMaterial transparent depthTest={false} depthWrite={false} toneMapped={false} vertexShader={`
