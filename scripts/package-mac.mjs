@@ -164,6 +164,7 @@ async function main() {
   await fs.mkdir(appPayloadDir, { recursive: true });
 
   console.log('\n[3/7] 复制应用运行代码...');
+  await fs.copyFile(path.join(projectRoot, 'ai-settings.example.json'), path.join(appPayloadDir, 'ai-settings.example.json'));
   await fs.copyFile(path.join(projectRoot, 'package.json'), path.join(appPayloadDir, 'package.json'));
   await fs.copyFile(path.join(projectRoot, '使用建议.md'), path.join(appPayloadDir, '使用建议.md'));
   await copyTo(path.join(projectRoot, 'dist'), path.join(appPayloadDir, 'dist'));

@@ -71,7 +71,7 @@ function makePhoto(work, heading, paper) {
 
 export default function TypewriterPanel({ onClose, importedBooks = [], initialSource = null, editItem }) {
   const isPageBack = usePageBackMatcher();
-  const search=useSearchScope({id:'typewriter',label:translate("i18n.typingWork"),priority:10,filters:[{key:'status',label:translate("i18n.typingStatus"),options:[['not_started',translate("i18n.notStarted")],['in_progress',translate("i18n.inProgress")],['completed',translate("i18n.completed")]]}]});
+  const search=useSearchScope({id:'typewriter',label:translate("i18n.typingWork"),priority:10,filters:[]});
   const [showCompleted, setShowCompleted] = useNavigationState('typewriter','showCompleted',false);
   const [writing, setWriting] = useState(false);
   useActivityTime('copying', writing);
@@ -104,7 +104,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     return () => window.removeEventListener('cyber-bulk-updated', refresh);
   }, []);
 
-  useSearchCount('typewriter',works.filter(item=>matchesItem('typing_work',item,search)).length);
+  useSearchCount('typewriter',works.filter(item=>(item.status==='completed'||item.complete===true)===showCompleted && matchesItem('typing_work',item,search)).length);
   const books = importedBooks;
   const [bookId,setBookId]=useState(editItem?.bookId || initialSource?.bookId || books[0]?.id || '');
   const [chapterId,setChapterId]=useState('whole');
@@ -129,7 +129,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     selectedChapterId = matchingChapter?.id ?? (savedChapter === '全文' || savedChapter === '整本书' ? 'whole' : 'saved-source');
     if (selectedChapterId === 'saved-source') chapterOptions.push({ id: 'saved-source', title: savedChapter || translate("i18n.selectedText") });
   }
-  const visibleBooks = bookOptions.filter(option => textMatches([option.title, option.author], sourceSearch.query));
+  const visibleBooks = bookOptions.filter(option => matchesItem('book',option,sourceSearch));
   useSearchCount('typewriter-source', visibleBooks.length);
   const selected=source||{bookId,bookTitle:book?.title||'',chapterTitle:chapterId==='whole'?'全文':chapters.find(c=>c.id===chapterId)?.text||'',text:blocks.filter(b=>chapterId==='whole'||chapterByBlock.get(b.id)===chapterId).map(b=>b.text).join('\n')};
   const storedTitle = selected.title || `${selected.bookTitle} · ${selected.chapterTitle}`;
@@ -263,9 +263,9 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
           <SourceOptions label={translate("i18n.sourceChapter")} name="copy-source-chapter" options={chapterOptions} value={selectedChapterId} onChange={id => {
             setChapterId(id); setSource(null); setTyped('');
           }} />
-          <p>{selectedTitle}{source ? translate("i18n.selectedText2") : ''}</p>
           <label>{translate("i18n.sourceText")}<textarea rows="8" aria-label={translate("i18n.typingSource")} value={selected.text} onChange={event=>{setSource({...selected,text:event.target.value});setTyped('');}} /></label>
-          {draftId && complete && <>{!editItem && <button type="button" onClick={()=>{setWork(works.find(item=>item.id===draftId));setHeading(selectedTitle);setEditorOpen(false);}}>{translate("i18n.createImage")}</button>}<button type="button" onClick={()=>{setTyped('');setSource({...selected});}}>{translate("i18n.startOverAfterSaving")}</button></>}
+          <div className="workspace-property"><span>{translate("i18n.source")}</span><span>{selectedTitle}{source ? translate("i18n.selectedText2") : ''}</span></div>
+          {draftId && complete && <div className="workspace-tools">{!editItem && <button type="button" onClick={()=>{setWork(works.find(item=>item.id===draftId));setHeading(selectedTitle);setEditorOpen(false);}}>{translate("i18n.createImage")}</button>}<button type="button" onClick={()=>{setTyped('');setSource({...selected});}}>{translate("i18n.startOverAfterSaving")}</button></div>}
         </WorkspaceFields>
         {message && <p className="workspace-feedback" role="status">{translate(message)}</p>}
         <WorkspaceActions>

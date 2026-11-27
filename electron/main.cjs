@@ -51,7 +51,6 @@ const aiChat = require('./aiChat.cjs');
 const aiSettings = require('./aiSettings.cjs');
 for (const [action, handler] of Object.entries({
   settings: () => aiSettings.describe(),
-  select: aiSettings.select,
   'reveal-settings-file': aiSettings.revealSettingsFile,
   'chat-current': aiSettings.chatCurrent
 })) {

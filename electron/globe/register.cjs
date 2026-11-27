@@ -35,7 +35,10 @@ function registerGlobe(getWindow) {
       if (action === 'journey') { await repo.saveJourney(input); return await snapshot(); }
       if (action === 'point') {
         let bytes;
-        if (input.attach) {
+        if (input.photoBytes != null) {
+          if (!(input.photoBytes instanceof Uint8Array) || input.photoBytes.byteLength > 80 * 1024 * 1024) throw new Error('请选择 80 MB 以内的照片。');
+          bytes = Buffer.from(input.photoBytes);
+        } else if (input.attach) {
           const selection = await dialog.showOpenDialog(getWindow(), { properties: ['openFile'], filters: [{ name: nativeText(event.sender, 'i18n.nativePhotos'), extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] }] });
           if (selection.canceled) return { canceled: true };
           const file = selection.filePaths[0];

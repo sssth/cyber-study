@@ -1,4 +1,13 @@
 {
+  "i18n.moviePoster": "海报",
+  "i18n.imageField": "图片",
+  "i18n.scoreMin": "最低评分",
+  "i18n.scoreMax": "最高评分",
+  "i18n.personalScoreMin": "最低个人评分",
+  "i18n.personalScoreMax": "最高个人评分",
+  "i18n.watchedFrom": "观影起始日期",
+  "i18n.watchedTo": "观影结束日期",
+
   "crop.area": "拖动图片或使用方向键取景",
   "crop.zoom": "缩放",
   "crop.center": "恢复居中",
@@ -1289,6 +1298,7 @@
   "i18n.world": "世界",
   "i18n.writeTodaySEntry": "书写今日日记",
   "i18n.writingSounds": "书写音效",
+  "i18n.writingPreferences": "书写偏好",
   "i18n.writingTool": "书写工具",
   "i18n.you": "你",
   "i18n.yourNeteaseSessionExpiredScanAgain": "网易云登录已失效，请重新扫码。",
@@ -1301,5 +1311,8 @@
   "i18n.existingSongs": "选择已有歌曲",
   "i18n.filterSongs": "按歌名或歌手筛选",
   "i18n.destinationPlaylist": "目标歌单",
+  "i18n.memberPlaylists": "所属歌单",
+  "i18n.memberJourneys": "所属旅途",
+  "i18n.removeSongFromPlaylist": "从这个歌单移除这首歌？",
   "i18n.addToPlaylist": "加入歌单"
 }

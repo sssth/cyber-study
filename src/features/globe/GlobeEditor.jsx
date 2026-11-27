@@ -20,7 +20,7 @@ export default function GlobeEditor({item, catalog, onClose}) {
     } finally { setBusy(false); }
   };
   const searchState = useSearchScope({id:"catalog-journey-points",label:translate("i18n.memoryPin"),priority:65,enabled:item.type==="journey",filters:[]});
-  const props = {photos: catalog.filter(entry => entry.type === 'memory_point'), busy, request};
+  const props = {journeys:catalog.filter(entry => entry.type === 'journey'), photos: catalog.filter(entry => entry.type === 'memory_point'), busy, request};
   if (item.type === 'journey') return <MemoryEditor {...props} mode="journey" editJourney={item} searchState={searchState} error={error} onClose={onClose}/>;
   return <ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editMemoryPin")} open onOpenChange={open => { if (!open && !busy) onClose(); }}>
     <MemoryEditor {...props} mode="point" initialPoint={item} onSaved={onClose} onDelete={async id => {

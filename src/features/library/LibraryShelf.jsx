@@ -1,3 +1,4 @@
+import ImageFileField from '../ImageFileField.jsx';
 import PhotoCrop, {cropStyle,useFilePreview} from '../PhotoCrop.jsx';
 import { toggleVisibleIds } from '../../entities/entitySelection.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
@@ -113,7 +114,7 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
       </section>}
       {!selection&&<ContentActions sortable={false} orderItem={book} type="book" id={book.id} title={book.title} preview={false}/>}
       {!selection&&editBook(book)}
-    </article>}</PagedItems></div> : <DisplayShelf key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
+    </article>}</PagedItems></div> : <DisplayShelf readingRecords={readerState.books} key={view} shelf={Number(view)} books={books} openBook={openBook} batch={batch} onBatchDone={()=>setBatch(null)} onChoose={(shelf,used)=>{setCollectionWidth(collection.current?.getBoundingClientRect().width);setSelection({shelf,used,ids:[],orientation:'flat'});setView('all');}}/>}
 
     {editing && <BookEditor key={editing.id} readingRecord={readerState.books[editing.id]} editing={editing} renameBook={renameBook} removeBook={removeBook} busy={busy} canDelete={canDelete} onClose={() => setEditing(null)}/>}
   </section>;
@@ -145,11 +146,10 @@ export function BookEditor({editing, readingRecord = loadReaderState().books[edi
             <option value="">{translate("i18n.automatic")}{translate(readingStatusLabels[bookReadingStatus(readingRecord)])})</option>
             {Object.entries(readingStatusLabels).map(([status, label]) => <option key={status} value={status}>{translate(label)}</option>)}
           </select></label>
-          <label>
-            {translate("i18n.cover")}
-            <input name="cover" onChange={e=>{setFile(e.target.files[0]);setDraftCrop(null);}} type="file" accept="image/*" aria-label={translate("i18n.chooseNewCover")} />
-          </label>
-          {(preview || cover) && <PhotoCrop src={preview || cover} ratio={0.7} value={crop} onChange={setDraftCrop}/>}
+          <ImageFileField label={translate("i18n.cover")} name="cover" aria-label={translate("i18n.chooseNewCover")}
+            disabled={saving} onChange={e => { setFile(e.target.files[0]); setDraftCrop(null); }}>
+            {(preview || cover) && <PhotoCrop src={preview || cover} ratio={0.7} value={crop} onChange={setDraftCrop}/>}
+          </ImageFileField>
           {error && <p role="alert">{translateError(error)}</p>}
         </WorkspaceFields>
         <WorkspaceActions><button disabled={saving || busy}>{translate("i18n.save")}</button>

@@ -1,14 +1,14 @@
 const providers = new Map([
-  ['claude', { name: 'Claude', models: ['claude-sonnet-4-6'], url: 'https://api.anthropic.com/v1/messages' }],
-  ['openai', { name: 'ChatGPT（OpenAI）', models: ['gpt-4.1-mini', 'gpt-4.1'], url: 'https://api.openai.com/v1/chat/completions' }],
-  ['gemini', { name: 'Gemini', models: ['gemini-4-hydrogen'], url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' }],
-  ['deepseek', { name: 'DeepSeek', models: ['deepseek-flash', 'deepseek-v4-pro'], url: 'https://api.deepseek.com/chat/completions' }],
-  ['glm', { name: '智谱 GLM', models: ['glm-5.3', 'glm-5.3-flash'], url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions' }],
-  ['kimi', { name: 'Kimi', models: ['kimi-k2.5'], url: 'https://api.moonshot.cn/v1/chat/completions' }]
+  ['claude', { name: 'Claude', url: 'https://api.anthropic.com/v1/messages' }],
+  ['openai', { name: 'ChatGPT（OpenAI）', url: 'https://api.openai.com/v1/chat/completions' }],
+  ['gemini', { name: 'Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' }],
+  ['deepseek', { name: 'DeepSeek', url: 'https://api.deepseek.com/chat/completions' }],
+  ['glm', { name: '智谱 GLM', url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions' }],
+  ['kimi', { name: 'Kimi', url: 'https://api.moonshot.cn/v1/chat/completions' }]
 ]);
 
 function listProviders() {
-  return Array.from(providers, ([id, { name, models }]) => ({ id, name, models: [...models] }));
+  return Array.from(providers, ([id, { name }]) => ({ id, name }));
 }
 
 // messages 包含按时间排列的 user / assistant 文本，最后一条为本次提问。

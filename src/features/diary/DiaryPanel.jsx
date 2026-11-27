@@ -80,7 +80,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
 
   const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write', { preferInitial:navigationItem?.type === 'diary' });
   useActivityTime('diary', mode === 'write' || Boolean(editItem));
-  const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : [...dateFilters,{key:'mood',label:translate("i18n.mood"),options:[...new Set(entries.map(e=>e.mood).filter(Boolean))].map(v=>[v,v])}],onApply:()=>{}});
+  const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : dateFilters,onApply:()=>{}});
   const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
   const [cropIndex,setCropIndex]=useState(null);
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);
@@ -250,13 +250,8 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
   const fields = (<div className="stack-form">
         <WorkspaceFields><EntityTagsField type="diary" item={entries.find(entry => entry.id === editing)}/>
           {editItem && <label>{translate("i18n.fullText")}<textarea value={draft.text} onChange={event => setDraft(current => ({...current, text:event.target.value}))} /></label>}
-          <label>{translate("i18n.writingTool")}{' '}<select value={prefs.pen} onChange={(event) => setPreference('pen', event.target.value)}><option value="钢笔">{translate("i18n.fountainPen")}</option><option value="羽毛笔">{translate("i18n.quill")}</option></select></label>
-          <label>{translate("i18n.writingSounds")}<input type="checkbox" checked={prefs.sound} onChange={(event) => setPreference('sound', event.target.checked)} /></label>
-          <label>{translate("i18n.handwritingAnimation")}<input type="checkbox" checked={prefs.animation} onChange={(event) => setPreference('animation', event.target.checked)} /></label>
-          <label>{translate("i18n.textSize")}<select value={prefs.fontSize ?? 18} onChange={event => setPreference('fontSize', Number(event.target.value))}>{[14, 16, 18, 20, 24, 28, 32].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
-          <label>{translate("i18n.lineSpacing2")}<select value={prefs.lineHeight ?? 2} onChange={event => setPreference('lineHeight', Number(event.target.value))}>{[1.4, 1.6, 1.8, 2, 2.4, 2.8].map(height => <option key={height} value={height}>{height}</option>)}</select></label>
           <label>{translate("i18n.status")}<input value={draft.mood ?? ''} onChange={event => setDraft(current => ({ ...current, mood: event.target.value }))} /></label>
-          <label className="diary-photo-upload"><span>{translate("i18n.addImage")}</span><input type="file" multiple accept="image/*" onChange={async event => {
+          <label>{translate("i18n.imageField")}<input type="file" multiple accept="image/*" onChange={async event => {
             const files = Array.from(event.target.files || []); event.target.value = '';
             try {
               const added = await Promise.all(files.map(file => readImageFile(file)));
@@ -268,6 +263,13 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
             onDragStart={event => event.dataTransfer.setData('application/x-diary-photo', JSON.stringify({ photoIndex: index }))}
             onDoubleClick={() => { if (window.confirm(translate("i18n.removeThisPhotoFromTheImageLibrary"))) setDraft(current => ({ ...current, photo: '', photos: diaryPhotos(current).filter((_, i) => i !== index), photoCrops:diaryPhotos(current).map((_,i)=>current.photoCrops?.[i] || null).filter((_,i)=>i!==index), placements: diaryPlacements(current).filter(item => item.photoIndex !== index).map(item => ({ ...item, photoIndex: item.photoIndex > index ? item.photoIndex - 1 : item.photoIndex })) })); }} />)}</div>
           {diaryPhotos(draft)[cropIndex] && <PhotoCrop src={diaryPhotos(draft)[cropIndex]} ratio={4/3} value={draft.photoCrops?.[cropIndex]} onChange={value=>setDraft(d=>({...d,photoCrops:diaryPhotos(d).map((_,i)=>i===cropIndex?value:d.photoCrops?.[i] || null)}))}/>}
+          <fieldset className="workspace-preferences" aria-label={translate("i18n.writingPreferences")}>
+            <label>{translate("i18n.writingTool")}{' '}<select value={prefs.pen} onChange={(event) => setPreference('pen', event.target.value)}><option value="钢笔">{translate("i18n.fountainPen")}</option><option value="羽毛笔">{translate("i18n.quill")}</option></select></label>
+            <label>{translate("i18n.writingSounds")}<input type="checkbox" checked={prefs.sound} onChange={(event) => setPreference('sound', event.target.checked)} /></label>
+            <label>{translate("i18n.handwritingAnimation")}<input type="checkbox" checked={prefs.animation} onChange={(event) => setPreference('animation', event.target.checked)} /></label>
+            <label>{translate("i18n.textSize")}<select value={prefs.fontSize ?? 18} onChange={event => setPreference('fontSize', Number(event.target.value))}>{[14, 16, 18, 20, 24, 28, 32].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
+            <label>{translate("i18n.lineSpacing2")}<select value={prefs.lineHeight ?? 2} onChange={event => setPreference('lineHeight', Number(event.target.value))}>{[1.4, 1.6, 1.8, 2, 2.4, 2.8].map(height => <option key={height} value={height}>{height}</option>)}</select></label>
+          </fieldset>
           {editItem && error && <p role="alert">{translateError(error)}</p>}
         </WorkspaceFields>
         <WorkspaceActions>

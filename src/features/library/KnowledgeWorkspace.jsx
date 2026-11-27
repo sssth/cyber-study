@@ -53,10 +53,10 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
     const chapter = source?.chapters.find((item) => item.id && item.id === chapterId)?.text ?? note.chapterTitle ?? '';
     return { key, items, note, source, blockId, chapterId, chapter };
   });
-  const books = new Map(notes.map((note) => [note.bookId, note.bookTitle]));
-  const search=useSearchScope({id:'knowledge',label:translate("i18n.excerptsAndAnnotations"),priority:shelfMenu?40:10,enabled:!suspended,filters:[{key:'bookId',label:translate("i18n.sourceBook"),options:[...books]}]});
+  const search=useSearchScope({id:'knowledge',label:translate("i18n.excerptsAndAnnotations"),priority:shelfMenu?40:10,enabled:!suspended,filters:[{key:'excerptType',label:'i18n.excerptType',options:Object.entries(excerptTypes)}]});
   const bookId=search.filters.bookId||'';
   const filtered = entries.filter(({ note, items, chapter }) =>
+    (!search.filters.excerptType || excerptAppearance(note).excerptType === search.filters.excerptType) &&
     (!bookId || note.bookId === bookId) && (!search.filters.id||items.some(i=>i.id===search.filters.id)) &&
     (!search.query.trim() || textMatches([note.bookTitle,chapter,note.quote,entityTags('excerpt',note),...items.flatMap(item=>[item.annotation,item.annotation ? entityTags('annotation',item) : []])],search.query)));
   useSearchCount('knowledge',filtered.length);
@@ -86,13 +86,17 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   }
 
   const editor = (<ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editExcerpt")} open={Boolean(editingEntry)} onOpenChange={open=>{if(!open)setEditKey(null);}}>
-      {editingEntry&&<><WorkspaceFields><EntityTagsField type="excerpt" item={editingEntry.note}/><blockquote className="excerpt-edit-preview">{editingEntry.note.quote}</blockquote><p>{[editingEntry.note.bookTitle,editingEntry.chapter].filter(Boolean).join(' · ')}</p>
+      {editingEntry&&<><WorkspaceFields><EntityTagsField type="excerpt" item={editingEntry.note}/>
+      <div className="workspace-property"><span>{translate("i18n.sourceText")}</span><blockquote className="excerpt-edit-preview">{editingEntry.note.quote}</blockquote></div>
       <ExcerptTypeField note={editingEntry.note} saving={editBusy} onChange={() => setRevision(v => v + 1)} onError={setEditError} />
+      <div className="workspace-property"><span>{translate("i18n.source")}</span><span>{[editingEntry.note.bookTitle,editingEntry.chapter].filter(Boolean).join(' · ') || '—'}</span></div>
+      <div className="workspace-tools">
       <button type="button" onClick={()=>{setEditKey(null);onStartCopy?.({bookId:editingEntry.note.bookId,bookTitle:editingEntry.note.bookTitle,chapterTitle:editingEntry.chapter||translate("i18n.excerpt"),text:editingEntry.note.quote});}}>{translate("i18n.startTypingPractice")}</button>
       <button type="button" disabled={!editingEntry.source} onClick={()=>{setRangeEditing(true);setDetailKey(editKey);setLocalEditKey(null);}}>{translate("i18n.adjustExcerptRange")}</button>
+      </div>
       {editError&&<p role="alert">{translateError(editError)}</p>}
       </WorkspaceFields>
-      <WorkspaceActions><button onClick={()=>setEditKey(null)}>{translate("i18n.done")}</button><button disabled={editBusy} onClick={async()=>{if(!window.confirm(translate("i18n.deleteThisExcerptAndAllItsAnnotations")))return;setEditBusy(true);try{await mutateExcerpt(editingEntry.note,null);setEditKey(null);setRevision(v=>v+1);}catch(e){setEditError(e.message);}finally{setEditBusy(false);}}}>{translate("i18n.deleteExcerpt")}</button></WorkspaceActions></>}
+      <WorkspaceActions><button disabled={editBusy} onClick={()=>setEditKey(null)}>{translate("i18n.save")}</button><button disabled={editBusy} onClick={async()=>{if(!window.confirm(translate("i18n.deleteThisExcerptAndAllItsAnnotations")))return;setEditBusy(true);try{await mutateExcerpt(editingEntry.note,null);setEditKey(null);setRevision(v=>v+1);}catch(e){setEditError(e.message);}finally{setEditBusy(false);}}}>{translate("i18n.delete")}</button></WorkspaceActions></>}
     </ActionWorkspace>);
   if (editItem) return editor;
   return <FeaturePanel scopeId="knowledge" tipPage="excerpts" hasMenu={Boolean(shelfMenu)} wide title="i18n.excerptsAndAnnotations" onClose={onClose}>

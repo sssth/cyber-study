@@ -21,7 +21,8 @@
 .atlas-place-list button { display: flex; justify-content: space-between; gap: 14px; width: 100%; padding: 15px 4px; border: 0; border-bottom: 1px solid var(--atlas-edge); border-radius: 0; background: transparent; text-align: left; }
 .atlas-place-list button span { overflow-wrap: anywhere; }
 .atlas-place-list small { white-space: nowrap; color: var(--atlas-muted); font-size: 11px; }
-.atlas-place-list button:hover { background: #19313e; }
+.memory-atlas .atlas-place-list button:focus-visible { outline-offset:-2px; }
+.atlas-place-list button:hover { transform:none; background: #19313e; }
 .atlas-empty { padding-top: 28px; line-height: 1.9; color: var(--atlas-muted); }
 .atlas-empty h4 { font-family: 'Songti SC', serif; font-size: 21px; color: var(--atlas-ink); font-weight: 500; }
 .atlas-memory-card { background: var(--atlas-paper); color: var(--atlas-paper-ink); padding: 16px; border-radius: 4px; box-shadow: 0 14px 35px #0005; animation: atlas-card-in 250ms ease-out; }

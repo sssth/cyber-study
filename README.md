@@ -213,8 +213,10 @@ QQ 音乐连接使用 [Simple Music v2.7.0](https://github.com/Yyyangshenghao/si
 
 ## 水晶聊天（AI 对话，可选）
 
-在「互动菜单 → 水晶球」中提供**可选**的 AI 对话功能，不需要该功能可完全跳过本节，应用其余功能不受影响。想使用时：把项目根目录的 [ai-settings.example.json](./ai-settings.example.json) 复制为 `ai-settings.json`，在对应厂商的 `apiKey` 字段填入你自己的 API Key，并在 `current` 里选择默认厂商和模型即可。`ai-settings.json` 含个人密钥，已被 `.gitignore` 排除，不会被提交。
+在「互动菜单 → 水晶球」中提供**可选**的 AI 对话功能，不需要该功能可完全跳过本节，应用其余功能不受影响。想使用时：把项目根目录的 [ai-settings.example.json](./ai-settings.example.json) 复制为 `ai-settings.json`，在对应厂商的 `apiKey` 字段填入你自己的 API Key，并在 `current.provider` 和 `current.model` 填写厂商标识与模型 ID。文件末尾按厂商列出参考 ID，也可以填写该厂商支持的其他对话模型。保存后返回 AI 对话即可看到当前模型，对话页面只读显示模型名称。`ai-settings.json` 含个人密钥，已被 `.gitignore` 排除，不会被提交。
 
+
+模型参考来自各厂商的 API 文档，可据此核对后续版本。[Claude](https://platform.claude.com/docs/en/about-claude/models/overview) · [OpenAI](https://developers.openai.com/api/docs/models) · [Gemini](https://ai.google.dev/gemini-api/docs/models) · [DeepSeek](https://api-docs.deepseek.com/api/list-models/) · [智谱](https://docs.bigmodel.cn/llms.txt) · [Kimi](https://platform.kimi.com/docs/models)
 
 ## 项目资料
 

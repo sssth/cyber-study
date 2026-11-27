@@ -1,6 +1,8 @@
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate } from '../../i18n/index.js';
 import { ContentCommand, ContentEditButton } from '../ContentCommands.jsx';
+import { editActivationProps } from '../../ui/editGesture.js';
+import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import ContentActions from '../ContentActions.jsx';
 import { useState } from 'react';
 import useEditSession from '../../ui/useEditSession.js';
@@ -20,25 +22,45 @@ export default function Annotation({ note, onSaved, onDelete, inlineEdit = false
     setStatus('');
   };
 
-  return <div className="annotation-entry" data-edit-active={editing && !editOnly || undefined}>
-    <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleString('zh-CN')}</time>
-    {editing ? <div className="stack-form"><EntityTagsField type="annotation" item={note}/>
-      <textarea autoFocus aria-label={translate("i18n.editAnnotation")} value={value} onChange={(event) => setValue(event.target.value)} />
-      <button type="button" aria-label={translate("i18n.saveChanges")} onClick={() => {
-        try {
-          editKnowledgeNote(note.id, value.trim());
-          setEditing(false);
-          setStatus('');
-          onSaved();
-        } catch (error) { setStatus(error.message); }
-      }}>✓</button>
-      <button type="button" onClick={close}>{translate("i18n.cancel")}</button>
-      {onDelete && <ContentEditButton label={"i18n.deleteAnnotation"} confirm run={onDelete} />}
-    </div> : <>
-      {inlineEdit ? <button type="button" data-instant-selection className="annotation-text" onClick={start}>{note.annotation || translate("i18n.blankAnnotation")}</button> : <p className="annotation-text">{note.annotation || translate("i18n.blankAnnotation")}</p>}
-      <ContentCommand label={translate("i18n.editAnnotation0", note.annotation?.slice(0, 40) || translate("i18n.blankAnnotation"))} run={start} />
+  const createdAt = note.annotationCreatedAt || note.createdAt;
+  const time = createdAt ? new Date(createdAt).toLocaleString('zh-CN') : '—';
+  const editor = <form className="stack-form annotation-form" onSubmit={event => {
+    event.preventDefault();
+    try {
+      editKnowledgeNote(note.id, value.trim());
+      setEditing(false);
+      setStatus('');
+      onSaved();
+    } catch (error) { setStatus(error.message); }
+  }}>
+    <WorkspaceFields>
+      <EntityTagsField type="annotation" item={note}/>
+      <label>{translate('i18n.content')}<textarea autoFocus aria-label={translate("i18n.editAnnotation")} value={value} onChange={event => setValue(event.target.value)}/></label>
+      <label>{translate('i18n.time')}<input readOnly value={time}/></label>
+      {status && <p role="alert">{status}</p>}
+    </WorkspaceFields>
+    <WorkspaceActions>
+      <button type="submit">{translate('i18n.save')}</button>
+      {onDelete && <ContentEditButton label="i18n.delete" confirm run={onDelete}/>}
+    </WorkspaceActions>
+  </form>;
+
+  if (editOnly) return editor;
+  return <div className="annotation-entry" data-edit-active={editing || undefined}
+    data-instant-selection={inlineEdit || undefined}
+    {...editActivationProps(event => {
+      if (event.target.closest('input, select, .edit-actions')) return;
+      event.stopPropagation();
+      if (editing) close(); else start();
+    })}>
+    {editing ? editor : <>
+      <time dateTime={createdAt}>{time}</time>
+      <button type="button" className="annotation-text" onClick={event => {
+        if (event.detail === 0) start();
+      }}>{note.annotation || translate("i18n.blankAnnotation")}</button>
+      <ContentCommand label={translate("i18n.editAnnotation0", note.annotation?.slice(0, 40) || translate("i18n.blankAnnotation"))} run={start}/>
+      {onDelete && <ContentCommand label={translate("i18n.deleteAnnotation0", note.annotation.slice(0, 40))} confirm run={onDelete}/>}
     </>}
-    {onDelete && !editing && <ContentCommand label={translate("i18n.deleteAnnotation0", note.annotation.slice(0, 40))} confirm run={onDelete} />}
-    <ContentActions surface={inlineEdit ? ".reader-annotation-card" : undefined} orderItem={note} type="annotation" id={note.id} title={note.annotation?.slice(0,24)}/>{status && <p role="status">{status}</p>}
+    <ContentActions surface={inlineEdit ? ".reader-annotation-card" : undefined} orderItem={note} type="annotation" id={note.id} title={note.annotation?.slice(0,24)}/>
   </div>;
 }

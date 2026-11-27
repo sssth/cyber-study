@@ -1,10 +1,10 @@
-import { entityTags } from '../../entities/tags.js';
+import useLibrarySearch, { bookFilters } from './useLibrarySearch.js';
 import { translate } from '../../i18n/index.js';
 import { editActivationProps } from '../../ui/editGesture.js';
 import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import { useSearchScope, useSearchCount } from '../../search/useSearchScope.jsx';
-import { matchesItem, textMatches, hasSearch } from '../../search/searchCore.js';
+import { hasSearch } from '../../search/searchCore.js';
 import { parseMarkdownContent } from './markdownReader.js';
 import ShelfBookRows from './ShelfBookRows.jsx';
 import ShelfBookPreview from './ShelfBookPreview.jsx';
@@ -20,7 +20,7 @@ class ModelBoundary extends Component {
  static getDerivedStateFromError(){return {error:true};}
  render(){return this.state.error?<p role="alert">{translate("i18n.theShelfIsTemporarilyUnavailable")}<button onClick={()=>this.setState({error:false})}>{translate("i18n.retry")}</button></p>:this.props.children;}
 }
-export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, onBatchDone }) {
+export default function DisplayShelf({ shelf, books, readingRecords, openBook, onChoose, batch, onBatchDone }) {
  const isPageBack = usePageBackMatcher();
  const [loaded]=useState(()=>{try{return {shelves:loadArrangement(localStorage)};}catch(e){return {shelves:displayShelves.map(() => []),error:e.message};}});
  const [shelves,setShelves]=useState(loaded.shelves),[error,setError]=useState(loaded.error||'');
@@ -31,20 +31,13 @@ export default function DisplayShelf({ shelf, books, openBook, onChoose, batch, 
  const entries=shelves[shelf],active=entries.filter(e=>lookup.has(e.bookId));
  const layout=useMemo(()=>{try{return {items:arrangeBooks(shelf,entries.filter(e=>lookup.has(e.bookId)))};}catch(e){return {items:[],error:e.message};}},[shelf,entries,lookup]);
  const scopeId=`display-shelf:${shelf}`;
- const shelfBooks=active.map(e=>lookup.get(e.bookId));
- const search=useSearchScope({id:scopeId,label:translate("i18n.displayShelf0BooksOnShelf", shelf+1),priority:35,filters:[
-  {key:'author',label:translate("i18n.author"),options:[...new Set(shelfBooks.map(b=>b.author).filter(Boolean))].map(v=>[v,v])},
-  {key:'format',label:translate("i18n.importFormat"),options:[...new Set(shelfBooks.map(b=>b.originalFormat||b.format).filter(Boolean))].map(v=>[v,v])}
- ]});
- const needsText = Boolean(search.query.trim());
- const textByBook = useMemo(() => new Map(needsText ? entries.flatMap(entry => {
-  const book = lookup.get(entry.bookId);
-  return book ? [[book.id, parseMarkdownContent(book.content || '').map(block => block.text).join('\n')]] : [];
- }) : []), [entries, lookup, needsText]);
- const visibleIds=new Set(shelfBooks.filter(book=>matchesItem('book',book,{...search,query:''})&&textMatches([book.title,book.author,entityTags('book',book),textByBook.get(book.id)],search.query)).map(b=>b.id));
+ const shelfBooks=useMemo(()=>entries.map(e=>lookup.get(e.bookId)).filter(Boolean),[entries,lookup]);
+ const search=useSearchScope({id:scopeId,label:translate("i18n.displayShelf0BooksOnShelf", shelf+1),priority:35,filters:bookFilters});
+ const {visibleBooks} = useLibrarySearch(shelfBooks, null, search, true, parseMarkdownContent, readingRecords);
+ const visibleIds = new Set(visibleBooks.map(book => book.id));
  const visibleActive=active.filter(e=>visibleIds.has(e.bookId));
  useResultSource({ scopeId: scopeId, priority:35,matches:resultEntities('book',visibleActive.map(e=>lookup.get(e.bookId)))});
- const displayLayout=useMemo(()=>{try{return {items:hasSearch(search)?filterShelfLayout(shelf,active,visibleIds):layout.items};}catch(e){return {items:[],error:e.message};}},[layout,shelf,search,books]);
+ const displayLayout=useMemo(()=>{try{return {items:hasSearch(search)?filterShelfLayout(shelf,active,visibleIds):layout.items};}catch(e){return {items:[],error:e.message};}},[layout,shelf,search,books,readingRecords]);
  useSearchCount(scopeId,visibleActive.length);
  useEffect(()=>{if(picked&&!queue.length&&!visibleIds.has(picked.bookId))pick(null);setGhost(null);},[search]);
  const selectedIds=queue.length?queue:carriedBooks(displayLayout.items,picked?.bookId).map(e=>e.bookId);

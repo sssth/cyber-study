@@ -1,27 +1,33 @@
-import CheckboxPicker from '../../ui/CheckboxPicker.jsx';
-import { toggleMatchingIds } from '../../entities/entitySelection.js';
-import PhotoCrop from '../PhotoCrop.jsx';
+import ImageFileField from '../ImageFileField.jsx';
+import ParentMembershipPicker from '../../ui/ParentMembershipPicker.jsx';
+import OrderedMemberPicker from '../../ui/OrderedMemberPicker.jsx';
+import PhotoCrop, { useFilePreview } from '../PhotoCrop.jsx';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
 import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
-import { moveBefore } from '../../data/contentOrder.js';
 import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand, ContentEditButton } from '../ContentCommands.jsx';
 import { ActionWorkspace } from '../ui.jsx';
 import {useSearchScope,SearchStatus,dateFilters} from '../../search/useSearchScope.jsx';
 import {matchesItem,textMatches,hasSearch} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { loadCities, nodeById } from './geography.js';
 
 const blank = { title: '', location: '', caption: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
 const label = p => p.title || p.location || p.filename || p.caption?.slice(0, 40) || translate("i18n.untitledMemoryPin");
 
-export default function MemoryEditor({ mode, photos, journeys, editJourney, onClose, error, busy, request, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
+export default function MemoryEditor({ mode, photos, journeys = [], editJourney, onClose, error, busy, request, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
   const order = useContentOrder();
   const [point, setPoint] = useState(() => ({ ...blank, ...initialPoint }));
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoError, setPhotoError] = useState('');
+  const [readingPhoto, setReadingPhoto] = useState(false);
+  const preview = useFilePreview(photoFile) || point.photo || point.thumbnail;
   const [journey, setJourney] = useState(editJourney || { title: '', note: '', pointIds: [] });
+  const [originalJourneys] = useState(()=>journeys.filter(j=>j.pointIds?.includes(initialPoint?.id)).map(j=>j.id));
+  const [selectedJourneys,setSelectedJourneys] = useState(originalJourneys);
   const [cities, setCities] = useState([]);
   const [query, setQuery] = useState(initialPoint?.city || initialPoint?.location || '');
   const [searching, setSearching] = useState(false);
@@ -38,15 +44,26 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
   const active = photos.filter(p => !p.deletedAt);
   const byId = new Map(photos.map(p => [p.id, p]));
   const set = (key, value) => setPoint(p => ({ ...p, [key]: value, ...(['latitude', 'longitude', 'city', 'region', 'country'].includes(key) ? { cityId: '' } : {}) }));
-  const savePoint = async attach => {
-    const coordinate = value => String(value ?? '').trim() === '' ? null : Number(value);
-    const result = await request('point', { ...point, attach, latitude: coordinate(point.latitude), longitude: coordinate(point.longitude) });
-    if (result && !result.canceled) {
-      if (onSaved) { onSaved(result.photos?.find(p=>!photos.some(old=>old.id===p.id)) || result.photos?.find(p=>p.id===point.id)); }
-      else { setPoint(blank); setQuery(''); }
+  const savePoint = async () => {
+    if (busy || readingPhoto) return;
+    setPhotoError('');
+    setReadingPhoto(true);
+    try {
+      const coordinate = value => String(value ?? '').trim() === '' ? null : Number(value);
+      const result = await request('point', { ...point, photoBytes: photoFile ? new Uint8Array(await photoFile.arrayBuffer()) : undefined,
+        addJourneys:selectedJourneys.filter(id=>!originalJourneys.includes(id)),
+        removeJourneys:originalJourneys.filter(id=>!selectedJourneys.includes(id)),
+        latitude: coordinate(point.latitude), longitude: coordinate(point.longitude) });
+      if (result && !result.canceled) {
+        if (onSaved) { onSaved(result.photos?.find(p=>!photos.some(old=>old.id===p.id)) || result.photos?.find(p=>p.id===point.id)); }
+        else { setPoint(blank); setQuery(''); setPhotoFile(null); }
+      }
+    } catch (failure) {
+      setPhotoError(failure.message);
+    } finally {
+      setReadingPhoto(false);
     }
   };
-  const draggedStop = useRef(null);
   const candidates = active.filter(p => matchesItem('memory_point', p, searchState));
   const [journeyEditorOpen, setOpen] = useState(Boolean(editJourney));
   const setJourneyEditorOpen = open => {setOpen(open); if (!open && editJourney) onClose();};
@@ -57,27 +74,13 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
         <label>{translate("i18n.tripName")}<input required maxLength={200} value={journey.title} onChange={e => setJourney({ ...journey, title: e.target.value })} /></label>
         <label>{translate("i18n.tripDescription")}<textarea value={journey.note} onChange={e => setJourney({ ...journey, note: e.target.value })} /></label>
         <label>{translate("i18n.startDate")}<input type="date" value={journey.startDate||''} onChange={e=>setJourney({...journey,startDate:e.target.value})}/></label><label>{translate("i18n.endDate")}<input type="date" value={journey.endDate||''} onChange={e=>setJourney({...journey,endDate:e.target.value})}/></label>
-        <CheckboxPicker className="music-create-song-picker memory-journey-picker" onSelectVisible={() => {
-          if (!busy) setJourney(current => ({...current, pointIds:toggleMatchingIds(current.pointIds,candidates.map(p=>p.id))}));
-        }}>
-          <legend>{translate("i18n.addMemoryPin")}</legend>
-          <div className="music-create-song-options">
-            {candidates.length ? candidates.map(p => <label key={p.id}>
-              <input type="checkbox" disabled={busy} checked={journey.pointIds.includes(p.id)} onChange={event => {
-                const checked = event.target.checked;
-                setJourney(current => ({ ...current, pointIds: checked ? [...new Set([...current.pointIds, p.id])] : current.pointIds.filter(id => id !== p.id) }));
-              }} />
-              <span>{label(p)}{p.title && p.location ? ` · ${p.location}` : ''}{p.date ? ` · ${p.date}` : ''}</span>
-            </label>) : <></>}
-          </div>
-        </CheckboxPicker>
-        <ul className="memory-journey-stops">{journey.pointIds.map(id => <li key={id} draggable={!busy}
-          onDragStart={e => { draggedStop.current = id; e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragEnd={() => { draggedStop.current = null; }}
-          onDragOver={e => { if (!busy && draggedStop.current && draggedStop.current !== id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } }}
-          onDrop={e => { e.preventDefault(); const source = draggedStop.current; if (!busy && source) setJourney(current => ({ ...current, pointIds: moveBefore(current.pointIds, source, id) })); draggedStop.current = null; }}>
-          <button type="button" disabled={busy} onDoubleClick={event => { event.stopPropagation(); if (!busy && window.confirm(translate("i18n.removeThisPinFromTheTripThe"))) setJourney(current => ({ ...current, pointIds: current.pointIds.filter(value => value !== id) })); }}><span className="journey-stop-title">{label(byId.get(id) || {})}</span><span className="journey-stop-place">{byId.get(id)?.city || byId.get(id)?.location || ''}</span></button>
-        </li>)}</ul>
+        <OrderedMemberPicker legend={translate("i18n.addMemoryPin")} disabled={busy}
+          candidates={candidates} selectedIds={journey.pointIds}
+          updateIds={update => setJourney(current => ({ ...current, pointIds: update(current.pointIds) }))}
+          optionLabel={p => [label(p), p.title && p.location, p.date].filter(Boolean).join(' · ')}
+          memberTitle={id => label(byId.get(id) || {})}
+          memberDetail={id => byId.get(id)?.city || byId.get(id)?.location || ''}
+          confirmRemoval={translate("i18n.removeThisPinFromTheTripThe")} />
       </WorkspaceFields>
       <WorkspaceActions>{journey.id && remove ? <>
         <button type="button" disabled={busy} onClick={event => { event.preventDefault(); setRemove(false); }}>{translate("i18n.cancel")}</button>
@@ -110,12 +113,11 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
   }
   const search = searching ? query.trim().toLowerCase() : '';
   const matches = search ? cities.filter(c => [c.name, c.name_ascii, c.aliases].some(name => name?.toLowerCase().includes(search))).slice(0, 10) : [];
-  return <form className="stack-form memory-point-form" onSubmit={e => { e.preventDefault(); savePoint(false); }}>
+  return <form className="stack-form memory-point-form" onSubmit={e => { e.preventDefault(); savePoint(); }}>
     <WorkspaceFields><EntityTagsField type="memory_point" item={point}/>
       {!point.id && <div className="globe-toolbar"><button type="button" disabled={busy} onClick={() => request('import', { folder: false })}>{translate("i18n.importPhotos")}</button><button type="button" disabled={busy} onClick={() => request('import', { folder: true })}>{translate("i18n.importFolder")}</button></div>}
       <h3>{point.id ? translate("i18n.editMemoryPin") : translate("i18n.newMemoryPin")}</h3>
       <label>{translate("i18n.memoryName")}<input maxLength={200} value={point.title || ''} onChange={e => set('title', e.target.value)} placeholder={translate("i18n.giveThisMemoryAName")} /></label>
-      <label>{translate("i18n.visitStatus2")}<select value={point.visitStatus} onChange={e => set('visitStatus', e.target.value)}><option value="visited">{translate("i18n.visited")}</option><option value="wish">{translate("i18n.wantToVisit")}</option></select></label>
       <label>{translate("i18n.searchOfflineCities")}<input value={query} onFocus={fetchCities} onChange={e => { setQuery(e.target.value); setSearching(true); }} /></label>
       {cityError && <p role="alert">{translateError(cityError)}</p>}
       {citiesLoading && <p role="status">{translate("i18n.loadingCities")}</p>}
@@ -123,13 +125,30 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
       <div className="globe-toolbar" hidden={!matches.length}>{matches.map(c => <button key={c.id} type="button" onClick={() => {
         setPoint({ ...point, location: c.name, city: c.name, cityId: c.id, country: nodeById.get(c.country_id)?.name || '', region: nodeById.get(c.region_id)?.name || '', latitude: c.latitude, longitude: c.longitude }); setQuery(c.name); setSearching(false);
       }}>{c.name} · {[nodeById.get(c.country_id)?.name, nodeById.get(c.region_id)?.name].filter(Boolean).join(' / ')}</button>)}</div>
-      {(point.country || point.region || point.city || point.location) && <p className="card-meta" aria-label={translate("i18n.selectedPlace")}>{[point.country, point.region, point.city || point.location].filter(Boolean).join(' / ')}</p>}
-      <label>{translate("i18n.date")}<input type="date" value={point.date || ''} onChange={e => set('date', e.target.value)} /></label>
       <label>{translate("i18n.memoryNotes")}<textarea value={point.caption} onChange={e => set('caption', e.target.value)} /></label>
-      {point.thumbnail && <PhotoCrop src={point.photo || point.thumbnail} ratio={1.5} value={point.photoCrop} onChange={v=>set("photoCrop",v)} />}
+      <label>{translate("i18n.visitStatus2")}<select value={point.visitStatus} onChange={e => set('visitStatus', e.target.value)}><option value="visited">{translate("i18n.visited")}</option><option value="wish">{translate("i18n.wantToVisit")}</option></select></label>
+      <label>{translate("i18n.date")}<input type="date" value={point.date || ''} onChange={e => set('date', e.target.value)} /></label>
+      <ImageFileField label={translate("i18n.nativePhotos")} accept=".jpg,.jpeg,.png,.webp,.heic,.heif"
+        disabled={busy || readingPhoto} onChange={event => {
+          const file = event.target.files[0];
+          if (!file) return;
+          if (file.size > 80 * 1024 * 1024) {
+            event.target.value = '';
+            setPhotoError(translate("i18n.chooseAPhotoNoLargerThanMb"));
+            return;
+          }
+          setPhotoError('');
+          setPhotoFile(file);
+          set('photoCrop', null);
+        }}>
+        {preview && <PhotoCrop src={preview} ratio={1.5} value={point.photoCrop} onChange={v=>set("photoCrop",v)} />}
+      </ImageFileField>
+      {photoError && <p role="alert">{translateError(photoError)}</p>}
 
-      {point.id && <button type="button" disabled={busy} onClick={() => savePoint(true)}>{translate("i18n.replacePhotoAndSave")}</button>}
+      {point.id && <ParentMembershipPicker type="journey" parents={journeys} workspaceHost={workspaceHost}
+        selectedIds={selectedJourneys} updateIds={setSelectedJourneys} disabled={busy}/>}
+      {(point.country || point.region || point.city || point.location) && <div className="workspace-property"><span>{translate("i18n.selectedPlace")}</span><span>{[point.country, point.region, point.city || point.location].filter(Boolean).join(' / ')}</span></div>}
     </WorkspaceFields>
-    <WorkspaceActions><button disabled={busy}>{translate("i18n.save")}</button>{point.id && onDelete && <ContentEditButton label={translate("i18n.delete")} disabled={busy} run={() => onDelete(point.id)} />}</WorkspaceActions>
+    <WorkspaceActions><button disabled={busy || readingPhoto}>{translate("i18n.save")}</button>{point.id && onDelete && <ContentEditButton label={translate("i18n.delete")} disabled={busy} run={() => onDelete(point.id)} />}</WorkspaceActions>
   </form>;
 }

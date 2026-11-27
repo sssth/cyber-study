@@ -55,8 +55,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const [message, setMessage] = useState('');
   const [report, setReport] = useState([]);
   const [reportOpen,setReportOpen] = useState(false);
-  const placeOptions = useMemo(()=>memoryPlaces(photos).map(p=>[p.id,p.name]),[photos]);
-  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:[...dateFilters,...(mode==='journey'?[]:[{key:'placeId',label:translate("i18n.place"),options:placeOptions},{key:'journeyId',label:translate("i18n.trips"),options:journeys.map(j=>[j.id,j.title])},{key:'status',label:translate("i18n.visitStatus"),options:[['visited',translate("i18n.visited")],['wish',translate("i18n.wantToVisit")]]}])]});
+  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:dateFilters});
   const query=search.query;
   const [viewId, setViewId] = useNavigationState(scopeId('globe'),'viewId',null, { remember:false });
   const closeViewer = useRef(null), returnFocus = useRef(null), initialized = useRef(false);
@@ -200,7 +199,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
           })}
         </div>
         <ActionWorkspace portalHost={workspaceHost} command={false} showTrigger={false} kind={initialPoint?.id ? "edit" : "create"} title={initialPoint?.id ? translate("i18n.editMemoryPin") : translate("i18n.newMemoryPin")} open={Boolean(initialPoint)} onOpenChange={open => { if (!open) setInitialPoint(null); }}>
-          {initialPoint && <MemoryEditor key={editorVersion} mode="point" initialPoint={initialPoint} photos={photos} journeys={journeys} busy={busy} request={request} onSaved={() => setInitialPoint(null)} onDelete={id => deletePoints([id])} />}
+          {initialPoint && <MemoryEditor workspaceHost={workspaceHost} key={editorVersion} mode="point" initialPoint={initialPoint} photos={photos} journeys={journeys} busy={busy} request={request} onSaved={() => setInitialPoint(null)} onDelete={id => deletePoints([id])} />}
         </ActionWorkspace>
       </div>
       </>}

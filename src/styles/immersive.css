@@ -91,8 +91,26 @@ body[data-item-editing] [data-content-target][draggable="true"] { user-select:no
 .reader-library, .feature-body { transition:margin-left 480ms cubic-bezier(.22,1,.36,1), margin-right 480ms cubic-bezier(.22,1,.36,1); }
 .edit-sidebar > header { display:none; }
 .edit-sidebar .stack-form { display:flex; flex-direction:column; }
-.edit-sidebar :is(.stack-form,.workspace-fields) > label { display:grid; grid-template-columns:56px minmax(0,1fr); align-items:center; column-gap:14px; font-size:13px; line-height:1.6; }
-.edit-sidebar :is(input:not([type=checkbox]):not([type=radio]),textarea,select) { width:100%; padding:10px 12px; color:#dfe8e8; background:#ffffff06; border:1px solid #ffffff20; border-radius:6px; font:inherit; }
+.workspace-property,
+.edit-sidebar .workspace-preferences > label,
+.annotation-form .workspace-fields > label,
+.entity-tags-field,
+.edit-sidebar :is(.stack-form,.workspace-fields) > label { display:grid; grid-template-columns:var(--workspace-label-width) minmax(0,1fr); align-items:center; column-gap:14px; font-size:13px; line-height:1.6; }
+/* Ordinary text fields share the editor surface, including forms outside a sidebar. */
+:where(input:not([type]), input[type="text"], input[type="url"], input[type="email"], input[type="password"], textarea),
+.stack-form :is(input:not([type]), input[type="text"], textarea, select),
+.entity-tags-field > input,
+.edit-sidebar :is(input:not([type=checkbox]):not([type=radio]),textarea,select),
+:is(.reader-inline-note,.reader-excerpt-annotations,.annotation-entry) textarea { width:100%; padding:10px 12px; color:#dfe8e8; background:#ffffff06; border:1px solid #ffffff20; border-radius:6px; font:inherit; }
+:is(.reader-inline-note,.reader-excerpt-annotations,.annotation-entry) textarea {
+ box-sizing:border-box; min-height:90px; display:block; line-height:1.6; resize:vertical;
+}
+:where(input:not([type]), input[type="text"], input[type="url"], input[type="email"], input[type="password"], textarea):focus-visible,
+.stack-form :is(input:not([type]),input[type="text"],textarea,select):focus,
+.entity-tags-field > input:focus,
+:is(.reader-inline-note,.reader-excerpt-annotations,.annotation-entry) textarea:focus {
+ border-color:#83b9b3; outline:1px solid #83b9b3; outline-offset:-1px;
+}
 .edit-sidebar :is(input,textarea,select):focus { outline:1px solid #83b9b3; border-color:#83b9b3; }
 .edit-sidebar input[type=file] { padding:6px; font-size:11px; }
 .edit-sidebar input::file-selector-button { border:0; border-radius:4px; padding:7px; margin-right:6px; color:#dfe8e8; background:#ffffff12; }
@@ -151,7 +169,6 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .display-menu-tog
 .edit-sidebar .workspace-feedback { flex:none; margin:10px 0 0; overflow-wrap:anywhere; }
 
 .edit-sidebar textarea { resize:none; }
-.edit-sidebar .movie-field small { grid-column:2; color:var(--muted); font-size:12px; line-height:1.4; }
 
 /* Size collections for both rails once, then center them in the available area. */
 body .feature-overlay .feature-body:has(.copying-library,.entity-catalog,.entity-graph,.movie-collection,.music-pages,.memory-library-layout,.journey-library-layout,.memo-board,.memo-collection,.diary-today,.diary-book) {
@@ -209,16 +226,48 @@ body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-body {
 .feature-body:has(.knowledge-browser) {margin:0;transition:none;overflow-x:clip;}
 .feature-overlay .knowledge-browser {transform:translateX(0);transition:transform 220ms cubic-bezier(.22,1,.36,1);}
 body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-overlay .knowledge-browser {transform:translateX(max(0px,calc(12px + var(--edit-rail-width) + var(--edit-rail-gap) - 248px)));}
+:is(.knowledge-result,.reader-excerpt-card,.annotation-entry button.annotation-text) {
+ border-radius:6px;
+}
+.annotation-entry button.annotation-text,
+.reader-inline-note .annotation-entry button.annotation-text {
+ width:100%; padding:8px 10px; text-align:start; line-height:1.6;
+}
+:is(.knowledge-result,.reader-excerpt-card,.annotation-entry button.annotation-text):hover {
+ transform:none; background-color:#ffffff0a;
+}
+:is(.knowledge-result,.reader-excerpt-card,.annotation-entry button.annotation-text,.knowledge-original):focus {
+ outline:2px solid #83b9b3; outline-offset:-2px;
+}
+.entity-tags-field > input { min-width:0; min-height:var(--workspace-control-height); }
+.entity-tags-field > small { grid-column:2; }
+.annotation-entry .workspace-fields { display:grid; gap:var(--workspace-row-gap); }
+.annotation-entry .edit-actions > button { min-width:0; padding-inline:4px; }
 .knowledge-result {user-select:none;-webkit-user-select:none;}
 @media(max-width:800px){body:has(dialog.edit-sidebar[open], .edit-sidebar:not(dialog)) .feature-overlay .knowledge-browser {transform:translateX(max(0px,calc(12px + var(--edit-rail-width) + var(--edit-rail-gap) - 172px)));}}
 @media(prefers-reduced-motion:reduce){.feature-overlay .knowledge-browser {transition:none;}}
+
+/* Keep edit properties, member choices and secondary actions on the same rails. */
+.workspace-property > :last-child { min-width:0; overflow-wrap:anywhere; }
+.edit-sidebar .workspace-preferences { display:grid; gap:var(--workspace-row-gap); margin:0; padding:0; border:0; min-width:0; }
+.edit-sidebar .workspace-fields > .music-create-song-picker { margin:0; }
+.edit-sidebar .workspace-fields > .music-create-song-picker legend {
+ float:left; width:var(--workspace-label-width); margin:0; padding-block:9px; overflow-wrap:anywhere;
+}
+.edit-sidebar .workspace-fields > .music-create-song-picker .music-create-song-options,
+.edit-sidebar .workspace-fields > .memory-journey-stops {
+ margin-inline-start:calc(var(--workspace-label-width) + 14px);
+}
+.workspace-tools { display:flex; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid #ffffff20; }
+.workspace-tools > button { flex:1 1 auto; }
+.workspace-fields > :is(.diary-photo-library,.memory-journey-stops):empty { display:none; }
 
 /* Nested diary pages take their width from the book cover. */
 .feature-body > :is(.diary-today,.diary-book) { --collection-width:760px; margin-block:14px 32px; }
 .feature-body > .memo-collection { --collection-width:900px; }
 
-.edit-sidebar :is(.stack-form,.workspace-fields) > label > input[type="checkbox"] {
- width:auto; min-height:0; margin:0; justify-self:start;
+.edit-sidebar :is(.stack-form,.workspace-fields,.workspace-preferences) > label > input[type="checkbox"] {
+ width:16px; height:16px; min-height:0; margin:0; justify-self:start;
 }
 
 .feature-body .diary-today textarea.diary-today-text { height:58vh; resize:none; box-sizing:border-box; }
@@ -515,6 +564,8 @@ body[data-item-editing] .catalog-column h3 { cursor: grab; user-select: none; }
   padding: 2px;
 }
 .catalog-column-items > button { flex-shrink: 0; }
+.catalog-column-items > button:hover { transform:none; }
+.catalog-column-items > button:focus-visible { outline-offset:-2px; }
 
 .selection-mode-label {
   position: fixed;

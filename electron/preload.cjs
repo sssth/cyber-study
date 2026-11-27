@@ -18,7 +18,6 @@ contextBridge.exposeInMainWorld('cyberStudy', {
   ai: {
     getSettings: () => ipcRenderer.invoke('ai:settings'),
     revealSettingsFile: () => ipcRenderer.invoke('ai:reveal-settings-file'),
-    selectModel: settings => ipcRenderer.invoke('ai:select', settings),
     streamCurrent: async (input, onText) => {
       const id = ++streamId;
       const listener = (_event, source, part) => { if (source === id) onText(part); };

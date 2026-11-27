@@ -66,20 +66,6 @@ export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [messages, partial, busy, open]);
 
-  async function choose(value) {
-    const [provider, model] = JSON.parse(value);
-    setBusy(true);
-    setError('');
-    try {
-      const value = await ai.selectModel({ provider, model });
-      settingsRevision.current++;
-      setSettings(value);
-      setSettingsError('');
-    }
-    catch { setError("i18n.couldNotSaveTheSelectedModelCheck"); }
-    finally { setBusy(false); }
-  }
-
   async function send(event) {
     event.preventDefault();
     if (!canSend) return;
@@ -138,6 +124,7 @@ export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys
       </aside>
     <div className="crystal-chat" onDragOver={event=>{if(event.dataTransfer.types.includes(dragType)){event.preventDefault();event.dataTransfer.dropEffect='copy';}}} onDrop={event=>{if(event.dataTransfer.types.includes(dragType)){event.preventDefault();attach(event.dataTransfer.getData(dragType));}}}>
         <div className="crystal-tools">
+          {ai?.revealSettingsFile && <button type="button" onClick={revealSettings}>{translate("i18n.showAiSettingsFile")}</button>}
           <button type="button" disabled={busy || !messages.length} onClick={() => { setMessages([]); setError(''); }}>{translate("i18n.clearChat")}</button>
         </div>
       <div className="crystal-log" role="log" aria-label={translate("i18n.chatHistory")} ref={log}>
@@ -148,15 +135,10 @@ export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys
         {attachments.length>0 && <div className="crystal-attachments">{attachments.map(name=><button type="button" key={name} aria-label={translate("i18n.removeAttachment", name)} onClick={()=>setAttachments(items=>items.filter(item=>item!==name))}>{name} ×</button>)}</div>}
         {setupMessage && <div className="crystal-setup">
           <small id="crystal-setup-message" role="status">{translate(setupMessage)}</small>
-          {ai?.revealSettingsFile && <button type="button" onClick={revealSettings}>{translate("i18n.showAiSettingsFile")}</button>}
         </div>}
         {error && <small role="status">{translateError(error)}</small>}
         <div className="crystal-composer">
-        <select aria-label={translate("i18n.chatModel")} disabled={busy || !settings} value={current ? JSON.stringify([current.provider, current.model]) : ''} onChange={e => choose(e.target.value)}>
-          {!current && <option value="">{translate("i18n.chooseAModel")}</option>}
-          {settings?.providers.map(p => <optgroup key={p.id} label={p.name}>{p.models.map(model =>
-            <option key={model} value={JSON.stringify([p.id, model])}>{model}</option>)}</optgroup>)}
-        </select>
+          <span className="crystal-model" aria-label={translate("i18n.chatModel")} title={current?.model}>{current?.model || '—'}</span>
           <textarea rows="1" aria-label={translate("i18n.message")} placeholder={translate("i18n.typeAMessage")} value={draft} readOnly={busy} onChange={e => setDraft(e.target.value)}
           onKeyDown={composerKeyDown} />
           <button disabled={!canSend} aria-describedby={setupMessage ? "crystal-setup-message" : undefined}>{translate("i18n.send")}</button></div>

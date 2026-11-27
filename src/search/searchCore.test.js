@@ -29,3 +29,10 @@ test('result counts are invalidated when query or filters change',async()=>{
  publishSearchCount('count-test',first,106);assert.equal(getSearchCount('count-test'),null);
  publishSearchCount('count-test',next,0);assert.equal(getSearchCount('count-test'),0);
 });
+
+test('each registered entity type matches a manually assigned tag', async () => {
+ const {entityTypes} = await import('../entities/registry.js');
+ for (const type of Object.keys(entityTypes)) {
+   assert.ok(matchesItem(type, {id:'tag-test',tags:['我的分类']}, {query:'我的分类'}), type);
+ }
+});

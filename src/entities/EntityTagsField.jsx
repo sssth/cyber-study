@@ -5,7 +5,7 @@ import { entityTags, saveEntityTags } from './tags.js';
 export default function EntityTagsField({ type, item }) {
   const [failed,setFailed] = useState(false);
   if (!item?.id) return null;
-  return <label>{t('i18n.tags')}<input key={type + ':' + item.id} type="text"
+  return <label className="entity-tags-field">{t('i18n.tags')}<input key={type + ':' + item.id} type="text"
     placeholder={t('i18n.entityTagSeparator')} defaultValue={entityTags(type,item).join('，')}
     onChange={event => {
       setFailed(!saveEntityTags(type,item.id,event.target.value));

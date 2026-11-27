@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const electron = require('electron');
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
-const scenarios = ['navigation-return', 'navigation-transitions', 'search-visibility', 'content-ui', 'map-projection', 'usage-tips'];
+const scenarios = ['navigation-return', 'navigation-transitions', 'search-visibility', 'search-focus', 'content-ui', 'map-projection', 'usage-tips'];
 const server = await createServer();
 let renderer;
 let stopping = false;

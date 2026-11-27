@@ -1,7 +1,7 @@
 import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { captureExcerptSelection } from './excerptRange.js';
-import useLibrarySearch from './useLibrarySearch.js';
+import useLibrarySearch, { bookFilters } from './useLibrarySearch.js';
 import useReadingSession from './useReadingSession.js';
 import { translate, translateError } from '../../i18n/index.js';
 import { contentElements } from '../../ui/contentTargets.js';
@@ -141,7 +141,7 @@ function ReaderOverlay({
     return () => { active = false; };
   }, [desktop, importState, onBooksChanged]);
   const scopeId=mode==='reading'?`book:${activeBookId}`:'library';
-  const search=useSearchScope({id:scopeId,label:mode==='reading'?translate("i18n.currentBook0", allBooks.find(b=>b.id===activeBookId)?.title||''):translate("i18n.libraryFullTextSearch"),priority:30,enabled:mode==='reading'||libraryView!=='excerpts',exactCount:mode==='reading',hostKey:paged,autoFocus:!(mode==='reading'&&paged),searchHost:()=>mode==='reading'&&paged?overlayRef.current?.querySelector('.reader-search-slot'):null,filters:mode==='reading'?[{key:'context',label:translate("i18n.excerptRange"),defaultLabel:translate("i18n.paragraph"),options:[['paragraph',translate("i18n.paragraph")],['sentence',translate("i18n.sentence")],['chapter',translate("i18n.chapter")]]}]:[{key:'author',label:translate("i18n.author"),options:[...new Set(allBooks.map(b=>b.author).filter(Boolean))].map(v=>[v,v])},{key:'format',label:translate("i18n.importFormat"),options:[...new Set(allBooks.map(b=>b.originalFormat||b.format).filter(Boolean))].map(v=>[v,v])}]});
+  const search=useSearchScope({id:scopeId,label:mode==='reading'?translate("i18n.currentBook0", allBooks.find(b=>b.id===activeBookId)?.title||''):translate("i18n.libraryFullTextSearch"),priority:30,enabled:mode==='reading'||libraryView!=='excerpts',exactCount:mode==='reading',hostKey:paged,autoFocus:!(mode==='reading'&&paged),searchHost:()=>mode==='reading'&&paged?overlayRef.current?.querySelector('.reader-search-slot'):null,filters:mode==='reading'?[{key:'context',label:translate("i18n.excerptRange"),defaultLabel:translate("i18n.paragraph"),options:[['paragraph',translate("i18n.paragraph")],['sentence',translate("i18n.sentence")],['chapter',translate("i18n.chapter")]]}]:bookFilters});
   const query=search.query;
   const parseBook = useMemo(() => {
     const cache = new Map();
@@ -150,7 +150,7 @@ function ReaderOverlay({
       return cache.get(content);
     };
   }, [importedBooks]);
-  const { hits, visibleBooks } = useLibrarySearch(allBooks, initialLibraryBookIds, search, mode === 'library', parseBook);
+  const { hits, visibleBooks } = useLibrarySearch(allBooks, initialLibraryBookIds, search, mode === 'library', parseBook, readerState.books);
   const activeBook = allBooks.find(book => book.id === activeBookId) ?? null;
   useActivityTime('reading', mode === 'reading' && Boolean(activeBook));
   const activeContent = activeBook?.content;
@@ -628,7 +628,10 @@ function ReaderOverlay({
         data-reader-eye-comfort={mode === 'reading' && eyeComfort ? '' : undefined}>
         {mode === 'library' && <DisplayMenuToggle label={translate("i18n.openShelfMenu")} open={displayMenuOpen} onToggle={() => setDisplayMenuOpen(value => !value)} />}
         {!paged&&<DisplayCloseButton label={translate("i18n.close")} disabled={savingNote} onClose={closeOverlay} />}
-        <header className="reader-topbar" onPointerLeave={event=>{if(paged&&event.currentTarget.contains(document.activeElement))document.activeElement.blur();}}>
+        <header className="reader-topbar" onPointerLeave={event => {
+          const focused = document.activeElement;
+          if (paged && event.currentTarget.contains(focused) && !focused.closest('.unified-search')) focused.blur();
+        }}>
           <div data-edit-item={mode === 'reading' ? '' : undefined}>
 
             {mode === 'reading' && activeBook && <>

@@ -54,3 +54,37 @@ export function nextQueuedTrack(queue, currentIndex, mode, manual = false) {
   }
   return queue[currentIndex + 1] ?? queue[0];
 }
+
+export function updatePlaylistMembers(tracks, playlist, selectedIds, originalIds) {
+  const ranks = new Map(selectedIds.map((id, index) => [id, index]));
+  const original = new Set(originalIds);
+  return tracks.map(track => {
+    const entries = track.playlists ?? [];
+    const member = entries.find(entry => entry.id === playlist.id);
+    if (!ranks.has(track.id)) {
+      if (!member || !original.has(track.id)) return track;
+      return { ...track, playlists: entries.filter(entry => entry.id !== playlist.id) };
+    }
+    const updated = { ...member, id: playlist.id, title: playlist.title, position: ranks.get(track.id) };
+    return { ...track, playlists: member
+      ? entries.map(entry => entry.id === playlist.id ? updated : entry)
+      : [...entries, updated] };
+  });
+}
+
+export function updateSongMemberships(tracks, trackId, values, playlists, selected, original) {
+  const removed = new Set(original.filter(id => !selected.includes(id)));
+  const added = selected.filter(id => !original.includes(id) && playlists.has(id));
+  const nextPosition = new Map(added.map(id => [id, 0]));
+  for (const track of tracks) for (const entry of track.playlists ?? []) {
+    if (nextPosition.has(entry.id)) nextPosition.set(entry.id, Math.max(nextPosition.get(entry.id), (entry.position ?? 0) + 1));
+  }
+  return tracks.map(track => {
+    if (track.id !== trackId) return track;
+    const memberships = (track.playlists ?? []).filter(entry => !removed.has(entry.id));
+    for (const id of added) {
+      if (!memberships.some(entry => entry.id === id)) memberships.push({id, title:playlists.get(id).title, position:nextPosition.get(id)});
+    }
+    return {...track, ...values, playlists:memberships};
+  });
+}

@@ -161,3 +161,21 @@ test('folder import checkpoints, recognizes duplicates across checkpoints and ca
   assert.equal((await repo.add(first, {}, '', restarted)).skipped, true);
   assert.equal(restarted.data.photos.length, 2);
 });
+
+test('point-side edits save the same journey stops atomically and preserve other stops', async t => {
+  const {repo} = await fixture(t);
+  await repo.savePoint({title:'One',visitStatus:'wish'});
+  await repo.savePoint({title:'Two',visitStatus:'wish'});
+  const [one,two] = (await repo.load()).photos;
+  await repo.saveJourney({title:'First',note:'',pointIds:[one.id,two.id]});
+  await repo.saveJourney({title:'Second',note:'',pointIds:[two.id]});
+  const [first,second] = (await repo.load()).journeys;
+  const change = {...one,title:'Renamed',removeJourneys:[first.id],addJourneys:[second.id]};
+  await repo.savePoint(change);
+  await repo.savePoint(change);
+  const saved = await repo.load();
+  assert.deepEqual(saved.journeys.map(j=>j.pointIds),[[two.id],[two.id,one.id]]);
+  assert.equal(saved.photos[0].title,'Renamed');
+  await assert.rejects(repo.savePoint({...change,title:'Unsaved',addJourneys:['missing']}));
+  assert.deepEqual(await repo.load(),saved);
+});

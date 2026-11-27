@@ -1,3 +1,4 @@
+import ImageFileField from '../ImageFileField.jsx';
 import PhotoCrop, { cropStyle } from '../PhotoCrop.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { translate, translateError } from '../../i18n/index.js';
@@ -5,7 +6,7 @@ import useContentOrder from '../../ui/useContentOrder.js';
 import { orderType } from '../../data/contentOrder.js';
 import useResultSource, { resultEntities } from '../../results/useResultSource.js';
 import { useSearchCount, useSearchScope } from '../../search/useSearchScope.jsx';
-import { matchesItem } from '../../search/searchCore.js';
+import { matchesMovie, movieFilters } from './movieSearch.js';
 import { createId, loadSpaceData, saveContentData } from '../../data/spaceStorage.js';
 import { ActionWorkspace, FeaturePanel, WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand, ContentEditButton } from '../ContentCommands.jsx';
@@ -15,8 +16,7 @@ import { httpUrl } from '../mediaUrl.js';
 
 function MovieField({ label, hint, ...input }) {
   return <label className="movie-field">
-    {label}<input {...input} aria-description={hint ? translate(hint) : undefined} />
-    {hint && <small aria-hidden="true">{translate(hint)}</small>}
+    {label}<input {...input} placeholder={translate(hint)} />
   </label>;
 }
 
@@ -26,11 +26,7 @@ function movieStatus(status) {
   return translate({ '想看': "i18n.wantToWatch", '在看': "i18n.watching", '看过': "i18n.watched" }[status] ?? (status || "i18n.wantToWatch"));
 }
 
-const movieFilterGroups = [
-  { key: 'region', label: "i18n.countryOrRegion", values: (movie) => splitMovieRegions(movie.region) },
-  { key: 'genres', label: "i18n.type", values: (movie) => movie.genres ?? [] },
-  { key: 'tags', label: "i18n.customTags", values: (movie) => movie.tags ?? [] }
-];
+
 
 function splitMovieLabels(value) {
   return [...new Set(value.split(/[,，、]+/).map((label) => label.trim()).filter(Boolean))];
@@ -65,15 +61,13 @@ export default function MovieCollection({ onClose, editItem }) {
   const [editing, setEditing] = useState(editItem?.id ?? null);
   const [editorOpen, setOpen] = useState(Boolean(editItem));
   const setEditorOpen = open => { setOpen(open); if (!open && editItem) onClose(); };
-  const search=useSearchScope({id:'movie',label:translate("i18n.film"),priority:10,filters:movieFilterGroups.map(g=>({key:g.key,label:g.label,options:[...new Set(movies.flatMap(g.values))].sort().map(v=>[v,v])}))});
-  const filters=search.filters;
+  const search=useSearchScope({id:'movie',label:translate("i18n.film"),priority:10,filters:movieFilters});
   const [error, setError] = useState('');
   const [fetchingDouban, setFetchingDouban] = useState(false);
   const [choosingPoster, setChoosingPoster] = useState(false);
   const formBusy = fetchingDouban || choosingPoster;
   const [localPosters, setLocalPosters] = useState({});
   const titleInput = useRef(null);
-  const posterInput = useRef(null);
   const posterRequests = useRef(new Set());
   useEffect(() => {
     if (!window.cyberStudy?.cacheMoviePoster) return;
@@ -228,27 +222,15 @@ export default function MovieCollection({ onClose, editItem }) {
   const deleteMovie = () => {
     if (window.confirm(translate("i18n.deleteThisFilmEntry")) && persist(movies.filter((movie) => movie.id !== editing))) { cancelEdit(); setEditorOpen(false); }
   };
-  const groups = movieFilterGroups.map((group) => {
-    const options = [...new Set(movies.flatMap(group.values))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
-    return { ...group, options, selected: filters[group.key] || '' };
-  });
   const order = useContentOrder();
-  const visibleMovies = orderType(movies,'movie',order).filter((movie) => matchesItem('movie',movie,search) && groups.every(({ selected, values }) =>
-    !selected || values(movie).includes(selected)));
-
+  const visibleMovies = orderType(movies,'movie',order).filter(movie => matchesMovie(movie,search));
   useResultSource({ scopeId: 'movie', priority:10,matches:resultEntities('movie',visibleMovies)});
   useSearchCount('movie',visibleMovies.length);
   const editor = (<ActionWorkspace kind={editing ? "edit" : "create"} disabled={formBusy} onCreate={() => { if (editing) cancelEdit(); }} label={translate("i18n.newFilm")} title={editing ? translate("i18n.editFilm") : translate("i18n.newFilm")} open={editorOpen} onOpenChange={setEditorOpen}><form className="stack-form" onSubmit={(event) => { event.preventDefault(); addMovie(); }}>
       <WorkspaceFields>
-        <MovieField label={translate("i18n.tags")} {...field('tags')} hint="i18n.customTagsSeparatedByCommas" />
+        <MovieField label={translate("i18n.tags")} {...field('tags')} hint="i18n.entityTagSeparator" />
+        <label>{translate("i18n.name")}<input ref={titleInput} {...field('title')} placeholder={translate("i18n.filmTitleOptional")} /></label>
         <label>{translate("i18n.link2")}<input {...field('url')} placeholder={translate("i18n.bilibiliOrOtherSourceLinkOptional")} /></label>
-        <input ref={titleInput} {...field('title')} placeholder={translate("i18n.filmTitleOptional")} />
-        <div className="movie-poster-field">
-          {draft.poster && <PhotoCrop src={localPosters[draft.poster] || draft.poster} ratio={2/3} value={draft.photoCrop} onChange={photoCrop=>setDraft(d=>({...d,photoCrop}))}/>}
-          <input ref={posterInput} type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" onChange={selectPoster} />
-          <button type="button" disabled={formBusy} onClick={() => posterInput.current?.click()}>{draft.poster ? translate("i18n.replacePoster") : translate("i18n.uploadPoster")}</button>
-          {draft.poster && <ContentEditButton label={translate("i18n.removeCurrentPoster")} disabled={formBusy} run={() => setDraft(current => ({ ...current, poster: '' }))} />}
-        </div>
         <div className="panel-toolbar">
           <label>{translate("i18n.douban")}<input {...field('douban')} placeholder={translate("i18n.doubanFilmLink")} aria-label={translate("i18n.doubanFilmLink")} disabled={formBusy} /></label>
           <button type="button" onClick={fillFromDouban} disabled={formBusy || !draft.douban.trim()}>{fetchingDouban ? translate("i18n.fetching") : translate("i18n.getDoubanDetails")}</button>
@@ -258,12 +240,14 @@ export default function MovieCollection({ onClose, editItem }) {
           <label>{translate("i18n.rating")}<input {...field('score')} inputMode="decimal" placeholder={translate("i18n.doubanRating")} /></label>
         </div>
         <MovieField label={translate("i18n.type")} {...field('genres')} aria-label={translate("i18n.genres")} hint="i18n.genresSeparatedByCommas" />
-        <div className="panel-toolbar">
-          <select {...field('status')} aria-label={translate("i18n.watchStatus")}><option value="想看">{translate("i18n.wantToWatch")}</option><option value="在看">{translate("i18n.watching")}</option><option value="看过">{translate("i18n.watched")}</option></select>
-        </div>
+        <label>{translate("i18n.review")}<textarea {...field('review')} rows={6} placeholder={translate("i18n.optionalViewingNotes")} /></label>
+        <label>{translate("i18n.watchStatus")}<select {...field('status')} aria-label={translate("i18n.watchStatus")}><option value="想看">{translate("i18n.wantToWatch")}</option><option value="在看">{translate("i18n.watching")}</option><option value="看过">{translate("i18n.watched")}</option></select></label>
         <label>{translate("i18n.personalRating")}<input {...field('personalScore')} type="number" min="0" max="10" step="0.1" placeholder={translate("i18n.optional010")} /></label>
         <label>{translate("i18n.watchDate")}<input {...field('watchedOn')} type="date" /></label>
-        <label>{translate("i18n.review")}<textarea {...field('review')} rows={6} placeholder={translate("i18n.optionalViewingNotes")} /></label>
+        <ImageFileField label={translate("i18n.moviePoster")} disabled={formBusy}
+          accept="image/jpeg,image/png,image/webp,image/gif" onChange={selectPoster}>
+          {draft.poster && <PhotoCrop src={localPosters[draft.poster] || draft.poster} ratio={2/3} value={draft.photoCrop} onChange={photoCrop=>setDraft(d=>({...d,photoCrop}))}/>}
+        </ImageFileField>
       </WorkspaceFields>
       {error && <p className="workspace-feedback" role="alert">{translateError(error)}</p>}
       {doubanMessage && <p className="workspace-feedback" role="status">{doubanMessage}</p>}

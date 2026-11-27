@@ -1,3 +1,4 @@
+import { frontModal } from '../ui/frontModal.js';
 import { commands, invokeCommand } from '../ui/commands.js';
 import { translate } from '../i18n/index.js';
 import { getSelection, subscribeSelection } from '../entities/entitySelection.js';
@@ -30,7 +31,7 @@ export default function CommandToolbar({ shortcuts }) {
 
   useEffect(() => {
     const sync = () => {
-      const modal = [...document.querySelectorAll('dialog:modal')].at(-1);
+      const modal = frontModal();
       const mode = commandTargetMode();
       const relate = modal?.matches('.content-relation-dialog') ?? false;
       const projection = modal?.matches('.map-projection') ?? false;

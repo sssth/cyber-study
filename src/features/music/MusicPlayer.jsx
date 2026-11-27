@@ -1,5 +1,6 @@
-import CheckboxPicker from '../../ui/CheckboxPicker.jsx';
-import { toggleMatchingIds } from '../../entities/entitySelection.js';
+import ImageFileField from '../ImageFileField.jsx';
+import ParentMembershipPicker from '../../ui/ParentMembershipPicker.jsx';
+import OrderedMemberPicker from '../../ui/OrderedMemberPicker.jsx';
 import PhotoCrop, { cropStyle, useFilePreview } from '../PhotoCrop.jsx';
 import { entityTags } from '../../entities/tags.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
@@ -8,7 +9,7 @@ import { removeEntityRelations } from '../../entities/contentRelations.js';
 import { translate, translateError } from '../../i18n/index.js';
 import RecordShelf from './RecordShelf.jsx';
 import useContentOrder from '../../ui/useContentOrder.js';
-import { orderType } from '../../data/contentOrder.js';
+import { moveBefore, orderType } from '../../data/contentOrder.js';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
 import useResultSource, {resultEntities} from '../../results/useResultSource.js';
 import '../../../shared/contentAssets.js';
@@ -25,7 +26,7 @@ import { ActionWorkspace, FeaturePanel } from '../ui.jsx';
 import { matchesShortcut, typingTarget } from '../../data/shortcuts.js';
 import { createId, loadSpaceData, recyclePlaylists } from '../../data/spaceStorage.js';
 
-import { alignNeteasePositions, mergeMusicPlaylist, neteasePlaylistTracks, nextQueuedTrack } from './musicCollection.js';
+import { alignNeteasePositions, mergeMusicPlaylist, updatePlaylistMembers, updateSongMemberships, neteasePlaylistTracks, nextQueuedTrack } from './musicCollection.js';
 
 import { httpUrl } from '../mediaUrl.js';
 import { useMusicResume, useMusicStorage } from './useMusicStorage.js';
@@ -85,6 +86,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const [savedPlaylists,setSavedPlaylists]=useState(()=>loadSpaceData('playlists',[]));
   const [listTitle,setListTitle]=useState('');
   const [createMusicType,setCreateMusicType]=useState('playlist');
+  const [createOpen,setCreateOpen]=useState(false);
   const [listSelection,setListSelection]=useState([]);
   const order = useContentOrder();
   const [musicView, setMusicView] = useNavigationState('music','view','player');
@@ -138,6 +140,11 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   ])));
   savedPlaylists.forEach(p=>{const provider=p.provider || (['qq','netease','spotify'].includes(p.id.split(':')[0])?p.id.split(':')[0]:null);playlists.set(p.id,[p.showSource!==false?musicPlatformNames[provider]:null,p.title].filter(Boolean).join(' · '));});
   if (stagedImport) playlists.set(stagedImport.id, stagedImport.title);
+  const playlistRecords = new Map();
+  if (musicEditor?.type === 'music') {
+    for (const track of tracks) for (const list of track.playlists ?? []) playlistRecords.set(list.id,list);
+    for (const list of savedPlaylists) playlistRecords.set(list.id,list);
+  }
   const storedTrack = tracks.find(track => track.id === currentId) ?? null;
   const current = stagedImport?.tracks.get(currentId)?.cachedUrl
     ? stagedImport.tracks.get(currentId)
@@ -151,7 +158,8 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     if (!id) return [];
     const entry = track => track.playlists?.find(list => list.id === id);
     const platformOrder = id.startsWith('netease:');
-    const saved = platformOrder ? neteasePlaylistTracks(tracks, id) : orderType(tracks.filter(entry),'music',order);
+    const orderedMembers = savedPlaylists.some(list => list.id === id && list.memberOrder);
+    const saved = platformOrder || orderedMembers ? neteasePlaylistTracks(tracks, id) : orderType(tracks.filter(entry),'music',order);
     if (id !== stagedImport?.id) return saved;
     const merged = new Map(saved.map(track => [track.id, track]));
     for (const [trackId, track] of stagedImport.tracks) {
@@ -166,7 +174,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     }
     return [...merged.values()];
   };
-  const search=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:10,enabled:open,filters:[{key:'musicTarget',label:translate("i18n.searchBy"),options:[['song',translate("i18n.trackName")],['artist',translate("i18n.artistName")],['playlist',translate("i18n.playlistName")]]},{key:'provider',label:translate("i18n.platform"),options:[...new Set(tracks.map(t=>t.provider).filter(Boolean))].map(v=>[v,musicPlatformNames[v]||v])}]});
+  const search=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:catalogItem?.type==='playlist'?30:10,enabled:open||catalogItem?.type==='playlist',filters:[{key:'musicTarget',label:translate("i18n.searchBy"),options:[['song',translate("i18n.trackName")],['artist',translate("i18n.artistName")],['playlist',translate("i18n.playlistName")]]},{key:'provider',label:translate("i18n.platform"),options:[...new Set(tracks.map(t=>t.provider).filter(Boolean))].map(v=>[v,musicPlatformNames[v]||v])}]});
   const filteredLists = new Map();
   for(const [id,title] of playlists) {
     if (search.filters.playlistId && id !== search.filters.playlistId) continue;
@@ -180,36 +188,16 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const browserFilter=filteredLists.has(activeFilter)?activeFilter:filteredLists.keys().next().value??'';
   const displayedTracks=filteredLists.get(browserFilter)?.songs??[];
   useResultSource({ scopeId: 'music', priority:10,applications:{selectAll:musicView==='player'?undefined:resultEntities('music',displayedTracks)},label:musicView==='player'?translate("i18n.recordPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
-  const [songQuery, setSongQuery] = useState('');
-  const [existingIds, setExistingIds] = useState([]);
   const playlistMatches = search.filters.musicTarget === 'playlist' || search.filters.playlistId
     ? new Set([...filteredLists.values()].flatMap(list => list.songs.map(track=>track.id))) : null;
   const candidateTracks = tracks.filter(track => {
     if (playlistMatches && !playlistMatches.has(track.id)) return false;
     if (!matchesItem('music',track,{...search,query:''})) return false;
-    const fields = search.filters.musicTarget === 'artist' ? [track.artist] : search.filters.musicTarget === 'song' ? [track.title] : [track.title,track.artist,track.tags];
-    return (playlistMatches || textMatches(fields,search.query)) && textMatches([track.title,track.artist],songQuery);
+    const fields = search.filters.musicTarget === 'artist' ? [track.artist] : search.filters.musicTarget === 'song' ? [track.title] : [track.title,track.artist,entityTags('music',track)];
+    return playlistMatches || textMatches(fields,search.query);
   });
-  const [importTarget, setImportTarget] = useState('');
-  const destination = playlists.has(importTarget) ? importTarget : activeFilter;
-  const selectedExisting = tracks.filter(track => existingIds.includes(track.id) &&
-    !track.playlists?.some(list => list.id === destination));
-  function addExistingTracks() {
-    const target = savedPlaylists.find(list => list.id === destination)
-      ?? tracks.flatMap(track => track.playlists ?? []).find(list => list.id === destination);
-    if (!target || !selectedExisting.length) return;
-    const ids = new Set(selectedExisting.map(track => track.id));
-    setTracks(items => {
-      let position = items.reduce((max, track) => Math.max(max,
-        track.playlists?.find(list => list.id === target.id)?.position ?? -1), -1);
-      return items.map(track => ids.has(track.id) && !track.playlists?.some(list => list.id === target.id)
-        ? { ...track, playlists: [...(track.playlists ?? []), {id:target.id,title:target.title,position:++position}] } : track);
-    });
-    setPlaylistFilter(destination);
-    setExistingIds([]);
-    setSongQuery('');
-  }
-  useSearchCount('music',new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
+  const pickingSongs = musicEditor?.type === 'playlist' || (open && musicView !== 'player' && createOpen && createMusicType === 'playlist');
+  useSearchCount('music',pickingSongs ? candidateTracks.length : new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
   const queue = tracksInPlaylist(songPlaylist || activeFilter)
     .filter(track => !track.kind && (!track.cacheState || track.cacheState === 'ready'));
   const queueIndex = queue.findIndex((track) => track.id === currentId);
@@ -609,16 +597,23 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
         }}
       />
             {(open || catalogItem) && musicEditor && <MusicEntityEditor key={`${musicEditor.type}:${musicEditor.id}`} entity={{...musicEditor,fallbackCover:musicEditor.type==='playlist'?tracksInPlaylist(musicEditor.id).find(track=>track.cover)?.cover:undefined}}
+              playlistRecords={playlistRecords} playlistLabels={playlists} tracks={tracks} candidates={candidateTracks} members={musicEditor.type==='playlist'?tracksInPlaylist(musicEditor.id):[]}
               storageWarning={!open ? storageWarning : null} onClose={()=>setMusicEditor(null)} onCache={async()=>{
                 const result=await musicRequest(musicEditor.provider,'cache-track',{id:musicEditor.sourceId,mediaMid:musicEditor.mediaMid,fee:musicEditor.fee});
                 setTracks(items=>items.map(t=>t.id===musicEditor.id?{...t,cachedUrl:result.cachedUrl}:t));
                 if (!catalogItem) setMusicEditor(item=>item?.id===musicEditor.id?{...item,cachedUrl:result.cachedUrl}:item);
-              }} onSave={values=>{
+              }} onSave={(values, selectedIds, originalIds)=>{
                 if(musicEditor.type==='playlist') {
                   const record={...musicEditor,...values}; delete record.type; delete record.key;
+                  if (selectedIds.some((id,index)=>id!==originalIds[index]) || selectedIds.length!==originalIds.length) record.memberOrder=true;
                   setSavedPlaylists(items=>[...items.filter(p=>p.id!==record.id),record]);
-                  setTracks(items=>items.map(t=>({...t,playlists:t.playlists?.map(p=>p.id===record.id?{...p,title:record.title}:p)})));
-                } else setTracks(items=>items.map(t=>t.id===musicEditor.id?{...t,...values}:t));
+                  setTracks(items=>updatePlaylistMembers(items,record,selectedIds,originalIds));
+                } else {
+                  // Folder and legacy playlists may exist only on their member tracks.
+                  const removed = originalIds.filter(id=>!selectedIds.includes(id)).map(id=>playlistRecords.get(id)).filter(Boolean);
+                  if (removed.length) setSavedPlaylists(lists=>[...lists,...removed.filter(p=>!lists.some(list=>list.id===p.id))]);
+                  setTracks(items=>updateSongMemberships(items,musicEditor.id,values,playlistRecords,selectedIds,originalIds));
+                }
                 setMusicEditor(null);
               }} onDelete={()=>{
                 if(musicEditor.type==='playlist')removePlaylist(musicEditor.id);
@@ -683,25 +678,23 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                   {musicView==='player' && spotifyControls}
                 </div>
               </div>
-              {musicView !== 'player' && <ActionWorkspace label={translate("i18n.new")} title={translate("i18n.addMusic")}><div className="music-create-fields">
+              {musicView !== 'player' && <ActionWorkspace onOpenChange={setCreateOpen} label={translate("i18n.new")} title={translate("i18n.addMusic")}><div className="music-create-fields">
                 <div className="music-create-kind"><select aria-label={translate("i18n.addMusicBy")} value={createMusicType} disabled={Boolean(stagedImport)} onChange={e=>setCreateMusicType(e.target.value)}>
                   <option value="playlist">{translate("i18n.newPlaylist")}</option><option value="local">{translate("i18n.importLocalTracks")}</option><option value="platform">{translate("i18n.connectAService")}</option>
                 </select></div>
-                {createMusicType==='playlist' && <div className="stack-form"><label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><CheckboxPicker className="music-create-song-picker" onSelectVisible={()=>setListSelection(ids=>toggleMatchingIds(ids,candidateTracks.map(t=>t.id)))}><legend>{translate("i18n.includeTracks")}{' '}<span>{translate("i18n.optional")}</span></legend><input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/><div className="music-create-song-options">{candidateTracks.length?candidateTracks.map(t=><label key={t.id}><input type="checkbox" checked={listSelection.includes(t.id)} onChange={e=>setListSelection(ids=>e.target.checked?[...ids,t.id]:ids.filter(id=>id!==t.id))}/><span>{t.title}</span></label>):<></>}</div></CheckboxPicker><WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>{translate("i18n.createPlaylist")}</button></WorkspaceActions></div>}
-                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label><CheckboxPicker className="music-create-song-picker" onSelectVisible={()=>setExistingIds(ids=>toggleMatchingIds(ids,candidateTracks.filter(t=>!t.playlists?.some(p=>p.id===destination)).map(t=>t.id)))}>
-                  <legend>{translate("i18n.existingSongs")}</legend>
-                  <label>{translate("i18n.destinationPlaylist")}<select value={destination} onChange={e=>setImportTarget(e.target.value)}>
-                    {[...playlists].map(([id,title])=><option key={id} value={id}>{title}</option>)}
-                  </select></label>
-                  <input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/>
-                  <div className="music-create-song-options">{candidateTracks.map(track=>{
-                    const included = track.playlists?.some(list=>list.id===destination);
-                    return <label key={track.id}><input type="checkbox" disabled={included} checked={Boolean(included)||existingIds.includes(track.id)}
-                      onChange={e=>setExistingIds(ids=>e.target.checked?[...ids,track.id]:ids.filter(id=>id!==track.id))}/>
-                      <span>{[track.title,track.artist].filter(Boolean).join(' · ')}</span></label>;
-                  })}</div>
-                  <button type="button" disabled={!destination||!selectedExisting.length} onClick={addExistingTracks}>{translate("i18n.addToPlaylist")}</button>
-                </CheckboxPicker>{importNotice&&<p role="status">{importNotice}</p>}</div>}
+                {createMusicType==='playlist' && <div className="stack-form">
+                  <label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label>
+                  <SongMemberPicker tracks={tracks} candidates={candidateTracks} selectedIds={listSelection} updateIds={setListSelection}/>
+                  <WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{
+                    const list={id:createId('playlist'),title:listTitle.trim(),memberOrder:true,description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()};
+                    setSavedPlaylists(items=>[...items,list]);
+                    setTracks(items=>updatePlaylistMembers(items,list,listSelection,[]));
+                    setPlaylistFilter(list.id);
+                    setListTitle('');
+                    setListSelection([]);
+                  }}>{translate("i18n.createPlaylist")}</button></WorkspaceActions>
+                </div>}
+                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label>{importNotice&&<p role="status">{importNotice}</p>}</div>}
                 {createMusicType==='platform'&&<MusicSources search={search} onImport={beginImport} importing={Boolean(stagedImport)}/>}
               </div></ActionWorkspace>}
             </section>
@@ -735,7 +728,13 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
               {displayedTracks.length === 0 ? <></> : displayedTracks.map((track) => (
                 <article data-edit-select className={`admin-card ${track.id === currentId ? 'selected' : ''}`} key={track.id}>
                   <SongListing track={track} onPlay={()=>playListedTrack(track)} />
-                  <ContentActions preview={false} orderItem={track} sortable={!browserFilter.startsWith('netease:')} type="music" id={track.id} title={track.title}/>
+                  <ContentActions preview={false} orderItem={track} sortable={!browserFilter.startsWith('netease:')}
+                    onReorder={savedPlaylists.some(list=>list.id===browserFilter && list.memberOrder) ? (_type,_items,source,target)=>{
+                      const list=savedPlaylists.find(item=>item.id===browserFilter);
+                      const ids=tracksInPlaylist(browserFilter).map(item=>item.id);
+                      const moved=moveBefore(ids,source.slice(6),target.slice(6));
+                      setTracks(items=>updatePlaylistMembers(items,list,moved,ids));
+                    }:undefined} type="music" id={track.id} title={track.title}/>
                   {tracks.some(item => item.id === track.id) && <>
                     <ContentCommand label={translate("i18n.editTrack0", track.title)} run={()=>setMusicEditor({...track,type:'music'})}/>
                   </>}
@@ -754,7 +753,17 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   );
 }
 
-function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarning}) {
+function SongMemberPicker({tracks,candidates,...props}) {
+  const byId = new Map(tracks.map(track=>[track.id,track]));
+  return <OrderedMemberPicker {...props} legend={translate("i18n.includeTracks")} candidates={candidates}
+    optionLabel={track=>[track.title,track.artist].filter(Boolean).join(' · ')}
+    memberTitle={id=>byId.get(id)?.title} memberDetail={id=>byId.get(id)?.artist}
+    confirmRemoval={translate("i18n.removeSongFromPlaylist")} />;
+}
+
+function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarning,tracks,candidates,members,playlistRecords,playlistLabels}) {
+  const [originalIds] = useState(()=>(entity.type==='playlist' ? members : entity.playlists ?? []).map(item=>item.id));
+  const [selectedIds,setSelectedIds] = useState(originalIds);
   const [draft,setDraft]=useState({title:entity.title??'',artist:entity.artist??'',note:entity.note??'',description:entity.description??'',showSource:entity.showSource!==false});
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const [coverFile,setCoverFile]=useState(null);
@@ -767,20 +776,27 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
       let coverAssetId=entity.coverAssetId;
       if(coverFile){const record=await globalThis.ContentAssets.repository('cyber-study-content-assets-v1').add(`${entity.type}:${entity.id}`,[coverFile]);coverAssetId=record.imageAssetIds.at(-1);}
       const values=entity.type==='playlist'?{title:draft.title.trim(),description:draft.description,showSource:draft.showSource}:{title:draft.title.trim(),artist:draft.artist,note:draft.note,showSource:draft.showSource};
-      await onSave({...values,coverAssetId,photoCrop});
+      await onSave({...values,coverAssetId,photoCrop},selectedIds,originalIds);
       if(coverFile)window.dispatchEvent(new Event('cyber-content-changed'));
     }catch(failure){setError(failure.message);}finally{setBusy(false);}}}>
       <WorkspaceFields><EntityTagsField type={entity.type === 'playlist' ? 'playlist' : 'music'} item={entity}/>
         {field('title',translate("i18n.name"))}
-        <label>{translate("i18n.cover")}<input type="file" accept="image/*" disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setPhotoCrop(null);setError('');}}/></label>
-        {(replacement || cover) && <PhotoCrop src={replacement || cover} ratio={1} value={photoCrop} onChange={setPhotoCrop}/>}
         {entity.type==='playlist'?field('description',translate("i18n.description")):<>{field('artist',translate("i18n.artist"))}{field('note',translate("i18n.notes"))}</>}
         <label>{translate("i18n.showSourcePrefix")}<input type="checkbox" checked={draft.showSource} onChange={e=>setDraft(d=>({...d,showSource:e.target.checked}))}/></label>
-        <label>{translate("i18n.source")}<span>{musicPlatformNames[entity.provider]||translate("i18n.localCollection")}</span></label>
-        {entity.type==='music'&&<><label>{translate("i18n.cacheStatus")}<span>{entity.provider==='spotify'?translate("i18n.onlinePlayback"):entity.cachedUrl?translate("i18n.cached"):entity.local?translate("i18n.playableThisSession"):translate("i18n.notCached")}</span></label>
-          {entity.durationSeconds>0&&<label>{translate("i18n.duration")}<span>{formatTime(entity.durationSeconds)}</span></label>}
-          {!entity.cachedUrl&&entity.provider&&entity.provider!=='spotify'&&entity.sourceId&&<button type="button" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await onCache();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{busy?translate("i18n.caching2"):translate("i18n.cacheAgain")}</button>}
+        <ImageFileField label={translate("i18n.cover")} disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setPhotoCrop(null);setError('');}}>
+        {(replacement || cover) && <PhotoCrop src={replacement || cover} ratio={1} value={photoCrop} onChange={setPhotoCrop}/>}
+        </ImageFileField>
+        {entity.type==='music' && <ParentMembershipPicker type="playlist" disabled={busy}
+          parents={[...playlistRecords.values()].map(list=>({...list,title:playlistLabels.get(list.id)||list.title}))}
+          selectedIds={selectedIds} updateIds={setSelectedIds}/>}
+        {entity.type==='playlist' && <SongMemberPicker tracks={tracks} candidates={candidates}
+          selectedIds={selectedIds} updateIds={setSelectedIds} disabled={busy}/>}
+        <div className="workspace-property"><span>{translate("i18n.source")}</span><span>{musicPlatformNames[entity.provider]||translate("i18n.localCollection")}</span></div>
+        {entity.type==='music'&&<><div className="workspace-property"><span>{translate("i18n.cacheStatus")}</span><span>{entity.provider==='spotify'?translate("i18n.onlinePlayback"):entity.cachedUrl?translate("i18n.cached"):entity.local?translate("i18n.playableThisSession"):translate("i18n.notCached")}</span></div>
+          {entity.durationSeconds>0&&<div className="workspace-property"><span>{translate("i18n.duration")}</span><span>{formatTime(entity.durationSeconds)}</span></div>}
+          {!entity.cachedUrl&&entity.provider&&entity.provider!=='spotify'&&entity.sourceId&&<div className="workspace-tools"><button type="button" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await onCache();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{busy?translate("i18n.caching2"):translate("i18n.cacheAgain")}</button></div>}
         </>}
+
         {storageWarning}
         {error&&<p role="alert">{translateError(error)}</p>}
       </WorkspaceFields>

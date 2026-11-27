@@ -1,12 +1,19 @@
 import { useMemo } from 'react';
 import { hasSearch, matchesItem, textMatches } from '../../search/searchCore.js';
 
-export default function useLibrarySearch(books, bookIds, search, enabled, parseBook) {
+import { bookReadingStatus, readingStatusLabels } from './storage.js';
+
+export const bookFilters = [{
+  key: 'readingStatus', label: 'i18n.readingStatus', options: Object.entries(readingStatusLabels)
+}];
+
+export default function useLibrarySearch(books, bookIds, search, enabled, parseBook, readingRecords) {
   const available = useMemo(() => {
-    if (!bookIds) return books;
-    const ids = new Set(bookIds);
-    return books.filter(book => ids.has(book.id));
-  }, [books, bookIds]);
+    const ids = bookIds && new Set(bookIds);
+    const status = enabled && search.filters.readingStatus;
+    return books.filter(book => (!ids || ids.has(book.id)) &&
+      (!status || bookReadingStatus(readingRecords[book.id]) === status));
+  }, [books, bookIds, readingRecords, enabled, search.filters.readingStatus]);
 
   const term = search.query.trim().toLocaleLowerCase();
   const hits = useMemo(() => {

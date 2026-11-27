@@ -1,14 +1,53 @@
 {
   "current": {
     "provider": "deepseek",
-    "model": "deepseek-chat"
+    "model": "deepseek-flash"
   },
   "providers": {
-    "claude": { "models": [], "apiKey": "" },
-    "openai": { "models": [], "apiKey": "" },
-    "gemini": { "models": [], "apiKey": "" },
-    "deepseek": { "models": [], "apiKey": "" },
-    "glm": { "models": [], "apiKey": "" },
-    "kimi": { "models": [], "apiKey": "" }
+    "claude": {
+      "apiKey": ""
+    },
+    "openai": {
+      "apiKey": ""
+    },
+    "gemini": {
+      "apiKey": ""
+    },
+    "deepseek": {
+      "apiKey": ""
+    },
+    "glm": {
+      "apiKey": ""
+    },
+    "kimi": {
+      "apiKey": ""
+    }
+  },
+  "_说明": "current.provider 填下列厂商标识，current.model 填该厂商的 API 模型 ID，密钥填入对应的 providers 条目。以下是 2026-11-27 的参考，可自行填写其他对话模型。",
+  "_模型参考": {
+    "claude": [
+      "claude-sonnet-5-5",
+      "claude-opus-5-5"
+    ],
+    "openai": [
+      "gpt-6.2-sol",
+      "gpt-6.2-astra"
+    ],
+    "gemini": [
+      "gemini-4-hydrogen",
+      "gemini-4-carbon"
+    ],
+    "deepseek": [
+      "deepseek-flash",
+      "deepseek-v4-pro"
+    ],
+    "glm": [
+      "glm-5.4",
+      "glm-5.3-flash"
+    ],
+    "kimi": [
+      "kimi-k3.1-pro",
+      "kimi-k3.1-pro-highspeed"
+    ]
   }
 }

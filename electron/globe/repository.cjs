@@ -94,6 +94,10 @@ class MemoryRepository {
     const hasCoords = input.latitude != null || input.longitude != null;
     if (hasCoords && !coordinates(input.latitude, input.longitude)) throw new Error('请输入有效的纬度和经度。');
     if (!['visited', 'wish'].includes(input.visitStatus)) throw new Error('请选择到访状态。');
+    const journeys = data.journeys ?? [];
+    const {addJourneys = [], removeJourneys = []} = input;
+    if (![addJourneys,removeJourneys].every(ids=>Array.isArray(ids) && ids.every(id=>typeof id === 'string'))
+      || addJourneys.some(id=>!journeys.some(journey=>journey.id===id))) throw new Error('找不到这段旅程。');
     let key = previous?.hash ?? null;
     if (bytes) {
       if (!bytes.length || bytes.length > 80 * 1024 * 1024) throw new Error('请选择 80 MB 以内的照片。');
@@ -101,7 +105,7 @@ class MemoryRepository {
       const pictures = await this.decode(await readablePhoto(bytes));
       for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
     }
-    const point = { ...previous, ...fields, photoCrop: bytes ? null : input.photoCrop === undefined ? previous?.photoCrop : input.photoCrop, id: previous?.id ?? randomUUID(), hash: key,
+    const point = { ...previous, ...fields, photoCrop: input.photoCrop === undefined ? (bytes ? null : previous?.photoCrop) : input.photoCrop, id: previous?.id ?? randomUUID(), hash: key,
       dateSource: previous && fields.date === previous.date ? previous.dateSource : fields.date ? 'user' : 'unknown',
       latitude: input.latitude ?? null, longitude: input.longitude ?? null,
       visitStatus: input.visitStatus, locationStatus: hasCoords ? 'confirmed' : 'pending',
@@ -109,6 +113,10 @@ class MemoryRepository {
       createdAt: previous?.createdAt ?? new Date().toISOString(), deletedAt: null };
     if (previous) data.photos = data.photos.map(p => p.id === point.id ? point : p);
     else data.photos.push(point);
+    for (const journey of journeys) {
+      if (removeJourneys.includes(journey.id)) journey.pointIds = journey.pointIds.filter(id=>id!==point.id);
+      else if (addJourneys.includes(journey.id) && !journey.pointIds.includes(point.id)) journey.pointIds.push(point.id);
+    }
     await this.commit(data);
   }
   async saveJourney(input) {

@@ -1,4 +1,13 @@
 {
+  "i18n.moviePoster": "Poster",
+  "i18n.imageField": "Image",
+  "i18n.scoreMin": "Minimum rating",
+  "i18n.scoreMax": "Maximum rating",
+  "i18n.personalScoreMin": "Minimum personal rating",
+  "i18n.personalScoreMax": "Maximum personal rating",
+  "i18n.watchedFrom": "Watched from",
+  "i18n.watchedTo": "Watched through",
+
   "crop.area": "Drag to frame, or use the arrow keys",
   "crop.zoom": "Zoom",
   "crop.center": "Center and reset",
@@ -1289,6 +1298,7 @@
   "i18n.world": "World",
   "i18n.writeTodaySEntry": "Write today's entry",
   "i18n.writingSounds": "Writing sounds",
+  "i18n.writingPreferences": "Writing preferences",
   "i18n.writingTool": "Writing tool",
   "i18n.you": "You",
   "i18n.yourNeteaseSessionExpiredScanAgain": "Your NetEase session expired. Scan again.",
@@ -1301,5 +1311,8 @@
   "i18n.existingSongs": "Select existing songs",
   "i18n.filterSongs": "Filter by title or artist",
   "i18n.destinationPlaylist": "Destination playlist",
+  "i18n.memberPlaylists": "Playlists containing this song",
+  "i18n.memberJourneys": "Journeys containing this memory",
+  "i18n.removeSongFromPlaylist": "Remove this song from the playlist?",
   "i18n.addToPlaylist": "Add to playlist"
 }

@@ -548,6 +548,7 @@
 .reader-immersive .reader-page-nav:not(:hover):not(:has(:focus-visible)) { background: transparent; border-color: transparent; }
 .reader-immersive .reader-topbar:hover,
 .reader-immersive .reader-topbar:has(:focus-visible),
+.reader-immersive .reader-topbar:has(.unified-search :focus),
 .reader-immersive .reader-page-nav:hover,
 .reader-immersive .reader-page-nav:has(:focus-visible) { transform: translateY(0); }
 .reader-immersive .reader-paged { grid-template-rows: minmax(0, 1fr); }
