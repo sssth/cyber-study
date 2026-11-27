@@ -7,7 +7,8 @@ import { blocksPageBack, PageBackKeys, usePageBackMatcher } from './ui/useEscape
 import CrystalChat from './features/CrystalChat.jsx';
 import ResultApplications from './resultApplications/ResultApplications.jsx';
 import BulkEntityCommands from './entities/BulkEntityCommands.jsx';
-import UsageTips, { useUsageTipsPreference } from './ui/UsageTips.jsx';
+import useMenuSwitch from './ui/useMenuSwitch.js';
+import UsageTips from './ui/UsageTips.jsx';
 import CommandToolbar from './features/CommandToolbar.jsx';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
@@ -136,7 +137,8 @@ function Study({ shortcuts, setShortcuts }) {
     try { localStorage.setItem('study-graphics', JSON.stringify(value)); setGraphicsError(''); }
     catch { setGraphicsError("i18n.graphicsSettingsWereAppliedButCouldNot2"); }
   };
-  const [tipsEnabled, setTipsEnabled] = useUsageTipsPreference();
+  const [tipsEnabled, setTipsEnabled] = useMenuSwitch('cyber-study.usage-tips.enabled');
+  const [toolbarEnabled, setToolbarEnabled] = useMenuSwitch('cyber-study.command-toolbar.enabled');
   const [menuOpen, setMenuOpen] = useState(false);
   useLayoutEffect(() => {
     globalThis.clearTimeout(captionTimer.current);
@@ -230,7 +232,7 @@ function Study({ shortcuts, setShortcuts }) {
     window.addEventListener('cyber-search-visibility', sync);
     return () => window.removeEventListener('cyber-search-visibility', sync);
   }, []);
-  const showCommandToolbar = !menuOpen && !manualOpen && !shortcutsOpen && !graphicsOpen && !calibration &&
+  const showCommandToolbar = toolbarEnabled && !menuOpen && !manualOpen && !shortcutsOpen && !graphicsOpen && !calibration &&
     (mapOpen || readerOpen || globalSearchOpen || (activeFeature && activeFeature !== 'crystal'));
 
   const FeatureView = featureViews[activeFeature]?.panel;
@@ -350,7 +352,8 @@ function Study({ shortcuts, setShortcuts }) {
               <button type="button" onClick={() => setGraphicsOpen(true)}>{translate("i18n.graphicsAndPerformance")}</button>
               <div className="room-menu-preferences">
                 <button type="button" onClick={() => setShortcutsOpen(true)}>{translate("i18n.keyboardShortcuts")}</button>
-                <button type="button" role="switch" aria-checked={tipsEnabled} onClick={() => setTipsEnabled(!tipsEnabled)}>{translate("i18n.usageTips")} · {translate(tipsEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
+                <button type="button" role="switch" aria-label={translate("i18n.featureButtons")} aria-checked={toolbarEnabled} onClick={() => setToolbarEnabled(!toolbarEnabled)}>{translate("i18n.featureButtons")} · {translate(toolbarEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
+                <button type="button" role="switch" aria-label={translate("i18n.usageTips")} aria-checked={tipsEnabled} onClick={() => setTipsEnabled(!tipsEnabled)}>{translate("i18n.usageTips")} · {translate(tipsEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
                 <LanguageSelect />
               </div>
             </nav>

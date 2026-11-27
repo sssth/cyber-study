@@ -131,9 +131,13 @@ export default function BulkEntityCommands({ shortcuts, disabled, projection, vi
         else clearSelection();
         return;
       }
-      if (typingTarget(event.target)) return;
+      if (!matchesShortcut(event, latest.current.shortcuts?.selectAll)) return;
+      const source = currentResultSource('selectAll');
+      const picker = source?.checkboxPicker || (source?.searchSelectAll && event.target.closest?.('[role="searchbox"]'));
+      const pickerInput = event.target.closest?.('[role="searchbox"],input[type="search"],input[type="checkbox"]');
+      if (typingTarget(event.target) && !(picker && pickerInput)) return;
       const modal = [...document.querySelectorAll('dialog:modal')].at(-1);
-      if (modal && !modal.matches('.map-projection, .content-relation-dialog')) return;
+      if (!picker && modal && !modal.matches('.map-projection, .content-relation-dialog')) return;
       handleCommandKey(event, 'selectAll', latest.current.shortcuts, select);
     };
     function activate(event, kind) {

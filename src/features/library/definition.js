@@ -19,7 +19,7 @@ export default {
     annotation: {
       label: 'i18n.annotation', read: ({ notes }) => notes.filter(note => note.annotation),
       title: record => record.annotation.slice(0, 40),
-      search: ['text', 'annotation', 'bookTitle'], target: { view: 'excerpts', scope: 'knowledge' },
+      search: ['text', 'annotation', 'bookTitle', 'chapterTitle'], target: { view: 'excerpts', scope: 'knowledge' },
       parent: { type: 'excerpt', matchKey: excerptKey },
       snapshot: 'bookTitle:来源书名 chapterTitle:章节 quote:被批注的原文'
     }

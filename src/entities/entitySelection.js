@@ -17,6 +17,15 @@ export function clearSelection() {
   if (selection) publish(null);
 }
 
+// Toggle only the matching rows; preserve the order of earlier selections.
+export function toggleMatchingIds(selected, visible) {
+  const matches = new Set(visible);
+  if (!matches.size) return selected;
+  const picked = new Set(selected);
+  if ([...matches].every(id => picked.has(id))) return selected.filter(id => !matches.has(id));
+  return [...new Set([...selected, ...matches])];
+}
+
 // Local pickers use the same select-all command while keeping their own item IDs.
 export function toggleVisibleIds(selected, visible, limit = Infinity) {
   const next = new Set(selected);
@@ -24,7 +33,9 @@ export function toggleVisibleIds(selected, visible, limit = Infinity) {
     if (next.size >= limit) break;
     next.add(id);
   }
-  return next.size === selected.length ? [] : [...next];
+  if (next.size > selected.length) return [...next];
+  const matches = new Set(visible);
+  return selected.filter(id => !matches.has(id));
 }
 
 function selectionInput() {

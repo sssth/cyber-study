@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
+const { photoTitle } = require('./photoTitle.cjs');
 const { metadata } = require('./metadata.cjs');
 const { readablePhoto } = require('./photoInput.cjs');
 const { photoRegion } = require('./photoRegion.cjs');
@@ -56,9 +57,10 @@ class MemoryRepository {
     for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
     const meta = metadata(readable);
     const area = migrationKey ? {} : await photoRegion(meta);
-    const record = { id: randomUUID(), hash: key, location: '', caption: '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: meta.latitude != null ? 'confirmed' : 'pending', ...area, createdAt: new Date().toISOString(), deletedAt: null, ...details };
+    const record = { id: randomUUID(), hash: key, location: '', caption: '', time: meta.time || '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: meta.latitude != null ? 'confirmed' : 'pending', ...area, createdAt: new Date().toISOString(), deletedAt: null, ...details };
     // Never accept legacy random longitude as a coordinate.
     if (migrationKey) Object.assign(record, { latitude: null, longitude: null, locationSource: 'unknown', locationStatus: 'pending' });
+    if (record.filename && !record.title) record.title = photoTitle(record);
     data.photos.push(record);
     if (migrationKey) data.migrations.push(migrationKey);
     if (batch) {

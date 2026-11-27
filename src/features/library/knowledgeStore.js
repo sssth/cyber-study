@@ -50,12 +50,13 @@ export function updateExcerptAppearance(note, changes) {
   saveKnowledge(data);
 }
 
-export function addKnowledgeNote({ bookId, bookTitle, quote, annotation = '', tags = [], progress = 0, blockId = null, side = 'left', markdownUnderline = false, ranges, excerptType, color }, { updateAppearance = false } = {}) {
+export function addKnowledgeNote({ bookId, bookTitle, chapterTitle, quote, annotation = '', tags = [], progress = 0, blockId = null, side = 'left', markdownUnderline = false, ranges, excerptType, color }, { updateAppearance = false } = {}) {
   const data = loadKnowledge();
   const note = {
     id: createId('note'),
     bookId,
     bookTitle,
+    chapterTitle,
     quote,
     annotation,
     tags,

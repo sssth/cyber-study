@@ -12,11 +12,6 @@ function write(key, value) {
   try { localStorage.setItem(prefix + key, String(value)); } catch { /* Keep session state. */ }
 }
 
-export function useUsageTipsPreference() {
-  const [enabled, setEnabled] = useState(() => read('enabled') !== 'false');
-  return [enabled, value => { setEnabled(value); write('enabled', value); }];
-}
-
 const tracked = '[data-tip-page], dialog, .edit-sidebar';
 function frontPage(roomPage) {
   const modal = [...document.querySelectorAll('dialog:modal')].at(-1);

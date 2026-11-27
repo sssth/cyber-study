@@ -117,10 +117,11 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   useResultSource(resultSet);
 
   function renderCard(item) {
+    const source = ['excerpt','annotation'].includes(item.type) && [item.bookTitle,item.chapterTitle].filter(Boolean).join(' · ');
     return <button type="button" data-item-open key={item.key} title={item.title} onClick={() => onOpen(item)}>
         <ContentActions surface="button" type={item.type} id={item.id} title={item.title} preview={false} sortable orderItem={item} onReorder={grouped ? reorderCard : undefined} />
         <ContentCommand label={translate("i18n.edit0", translate(contentTypes[item.type]))} run={() => onEdit(item)} />
-        <strong>{item.title}</strong>{!grouped && <small>{translate(contentTypes[item.type])}</small>}
+        <strong>{source || item.title}</strong>{source && <span className="catalog-note-preview">{item.title}</span>}{!grouped && <small>{translate(contentTypes[item.type])}</small>}
       </button>;
   }
 

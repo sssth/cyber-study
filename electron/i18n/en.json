@@ -2,6 +2,7 @@
   "crop.area": "Drag to frame, or use the arrow keys",
   "crop.zoom": "Zoom",
   "crop.center": "Center and reset",
+  "i18n.featureButtons": "Action buttons",
   "i18n.usageTips": "Usage tips",
   "i18n.collapseUsageTips": "Collapse usage tips",
   "i18n.expandUsageTips": "Expand usage tips",

@@ -1,3 +1,5 @@
+import CheckboxPicker from '../../ui/CheckboxPicker.jsx';
+import { toggleMatchingIds } from '../../entities/entitySelection.js';
 import PhotoCrop from '../PhotoCrop.jsx';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import { translate, translateError } from '../../i18n/index.js';
@@ -55,7 +57,9 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
         <label>{translate("i18n.tripName")}<input required maxLength={200} value={journey.title} onChange={e => setJourney({ ...journey, title: e.target.value })} /></label>
         <label>{translate("i18n.tripDescription")}<textarea value={journey.note} onChange={e => setJourney({ ...journey, note: e.target.value })} /></label>
         <label>{translate("i18n.startDate")}<input type="date" value={journey.startDate||''} onChange={e=>setJourney({...journey,startDate:e.target.value})}/></label><label>{translate("i18n.endDate")}<input type="date" value={journey.endDate||''} onChange={e=>setJourney({...journey,endDate:e.target.value})}/></label>
-        <fieldset className="music-create-song-picker memory-journey-picker">
+        <CheckboxPicker className="music-create-song-picker memory-journey-picker" onSelectVisible={() => {
+          if (!busy) setJourney(current => ({...current, pointIds:toggleMatchingIds(current.pointIds,candidates.map(p=>p.id))}));
+        }}>
           <legend>{translate("i18n.addMemoryPin")}</legend>
           <div className="music-create-song-options">
             {candidates.length ? candidates.map(p => <label key={p.id}>
@@ -66,7 +70,7 @@ export default function MemoryEditor({ mode, photos, journeys, editJourney, onCl
               <span>{label(p)}{p.title && p.location ? ` · ${p.location}` : ''}{p.date ? ` · ${p.date}` : ''}</span>
             </label>) : <></>}
           </div>
-        </fieldset>
+        </CheckboxPicker>
         <ul className="memory-journey-stops">{journey.pointIds.map(id => <li key={id} draggable={!busy}
           onDragStart={e => { draggedStop.current = id; e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; }}
           onDragEnd={() => { draggedStop.current = null; }}

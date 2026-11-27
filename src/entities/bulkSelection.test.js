@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { sharedFields } from './bulkFields.js';
-import { selectResults, getSelection, validateSelection, clearSelection, restoreSelection } from './entitySelection.js';
+import { toggleVisibleIds, toggleMatchingIds, selectResults, getSelection, validateSelection, clearSelection, restoreSelection } from './entitySelection.js';
 import { registerResultSource, resultEntities } from '../results/activeResults.js';
 import { commonNeighbors, addRelations } from './contentRelations.js';
 import { writeSelection } from './bulkWrite.js';
@@ -93,4 +93,23 @@ test('batch writes only patch selected records and support mixed collection dele
   await writeSelection([item('diary', 'a'), item('movie', 'a')], {}, true, options);
   assert.deepEqual(loadSpaceData('diary', []), []);
   assert.deepEqual(loadSpaceData('movies', []).map(row => row.id), ['b', 'c']);
+});
+
+test('picker select all toggles filtered candidates across pages and preserves other selections', () => {
+  const scope = Array.from({length:100}, (_, i) => String(i));
+  const selected = toggleMatchingIds(['outside','2'],scope);
+  assert.equal(selected.length,101);
+  assert.deepEqual(selected.slice(0,2),['outside','2']);
+  assert.deepEqual(toggleMatchingIds(selected,scope),['outside']);
+  assert.deepEqual(toggleMatchingIds(selected,[]),selected);
+});
+
+test('limited shelf selection and trash keep selections outside the current filter', () => {
+  const books = Array.from({length:20}, (_,i)=>String(i));
+  const selected = toggleVisibleIds(['outside'], books, 10);
+  assert.equal(selected.length,10);
+  assert.deepEqual(toggleVisibleIds(selected, books, 10), ['outside']);
+  assert.deepEqual(toggleVisibleIds(selected, ['other'], 10), selected);
+  assert.deepEqual(toggleVisibleIds(['outside','a'], ['a']), ['outside']);
+  assert.deepEqual(toggleVisibleIds(['outside'], []), ['outside']);
 });

@@ -1,10 +1,11 @@
+import {imageMemoTitle} from './memoTitle.js';
 export default {
   id: 'memo', label: 'i18n.memoBoard', description: 'i18n.openNotesAndToDos',
   entities: {
     memo: {
       label: 'i18n.note', create: true,
       read: ({ list }) => list('memo').filter(record => record.type !== 'todo'),
-      title: record => record.text?.slice(0, 40) || (record.type === 'image' ? '图片便签' : ''),
+      title: record => record.photo || record.type === 'image' ? record.title || imageMemoTitle(record) : record.text?.slice(0,40),
       target: { rememberedView: { 'memo.view': 'memo' } }, search: ['text'],
       snapshot: 'text:便签内容'
     },

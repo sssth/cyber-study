@@ -50,7 +50,7 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
     const blockId = note.blockId ?? note.ranges?.[0]?.blockId ??
       source?.blocks.find((block) => block.text.includes(note.quote))?.id;
     const chapterId = source?.chapterByBlock.get(blockId);
-    const chapter = source?.chapters.find((item) => item.id === chapterId)?.text ?? note.chapterTitle ?? '';
+    const chapter = source?.chapters.find((item) => item.id && item.id === chapterId)?.text ?? note.chapterTitle ?? '';
     return { key, items, note, source, blockId, chapterId, chapter };
   });
   const books = new Map(notes.map((note) => [note.bookId, note.bookTitle]));

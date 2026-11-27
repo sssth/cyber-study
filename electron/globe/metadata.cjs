@@ -38,7 +38,10 @@ function metadata(bytes) {
         const root = directory(u32(4));
         const exif = root[0x8769] ? directory(root[0x8769]) : {};
         const date = exif[0x9003];
-        if (/^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/.test(date || '')) result.date = date.slice(0, 10).replaceAll(':', '-');
+        if (/^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/.test(date || '')) {
+          result.date = date.slice(0, 10).replaceAll(':', '-');
+          result.time = date.slice(11,16);
+        }
         if (root[0x8825]) {
           const gps = directory(root[0x8825]);
           const degrees = parts => parts?.length === 3 ? parts[0] + parts[1] / 60 + parts[2] / 3600 : NaN;

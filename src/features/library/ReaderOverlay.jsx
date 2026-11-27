@@ -508,7 +508,7 @@ function ReaderOverlay({
     setSavingNote(true);
     try {
       addKnowledgeNote({
-        bookId: activeBook.id, bookTitle: activeBook.title, quote, annotation: noteDraft.trim(),
+        bookId: activeBook.id, bookTitle: activeBook.title, chapterTitle: chapters.find(c => c.id && c.id === chapterByBlock.get(selectionBlock))?.text, quote, annotation: noteDraft.trim(),
         progress, blockId: selectionBlock, excerptType, color: excerptColor,
         ranges: (selectionRange.current ?? []).map(({ blockId, start, end }) => ({ blockId, start, end }))
       }, { updateAppearance: true });

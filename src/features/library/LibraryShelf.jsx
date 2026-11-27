@@ -74,7 +74,7 @@ export default function LibraryShelf({ books, visibleBooks, readerState, openBoo
     return sorted;
   }, [visibleBooks, selection?.used, order, readerState.books]);
   useResultSource({
-    scopeId: 'library', priority: 30, enabled: view === 'all', matches: resultEntities('book', shownBooks),
+    scopeId: 'library', searchSelectAll: Boolean(selection), priority: selection ? 60 : 30, enabled: view === 'all', matches: resultEntities('book', shownBooks),
     selectVisible: selection ? () => setSelection(current => {
       if (!current) return current;
       const ids = toggleVisibleIds(current.ids, shownBooks.map(book => book.id), 10);

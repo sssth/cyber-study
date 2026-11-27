@@ -1,3 +1,5 @@
+import CheckboxPicker from '../../ui/CheckboxPicker.jsx';
+import { toggleMatchingIds } from '../../entities/entitySelection.js';
 import PhotoCrop, { cropStyle, useFilePreview } from '../PhotoCrop.jsx';
 import { entityTags } from '../../entities/tags.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
@@ -180,7 +182,14 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   useResultSource({ scopeId: 'music', priority:10,applications:{selectAll:musicView==='player'?undefined:resultEntities('music',displayedTracks)},label:musicView==='player'?translate("i18n.recordPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
   const [songQuery, setSongQuery] = useState('');
   const [existingIds, setExistingIds] = useState([]);
-  const candidateTracks = tracks.filter(track => textMatches([track.title, track.artist], songQuery));
+  const playlistMatches = search.filters.musicTarget === 'playlist' || search.filters.playlistId
+    ? new Set([...filteredLists.values()].flatMap(list => list.songs.map(track=>track.id))) : null;
+  const candidateTracks = tracks.filter(track => {
+    if (playlistMatches && !playlistMatches.has(track.id)) return false;
+    if (!matchesItem('music',track,{...search,query:''})) return false;
+    const fields = search.filters.musicTarget === 'artist' ? [track.artist] : search.filters.musicTarget === 'song' ? [track.title] : [track.title,track.artist,track.tags];
+    return (playlistMatches || textMatches(fields,search.query)) && textMatches([track.title,track.artist],songQuery);
+  });
   const [importTarget, setImportTarget] = useState('');
   const destination = playlists.has(importTarget) ? importTarget : activeFilter;
   const selectedExisting = tracks.filter(track => existingIds.includes(track.id) &&
@@ -678,8 +687,8 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                 <div className="music-create-kind"><select aria-label={translate("i18n.addMusicBy")} value={createMusicType} disabled={Boolean(stagedImport)} onChange={e=>setCreateMusicType(e.target.value)}>
                   <option value="playlist">{translate("i18n.newPlaylist")}</option><option value="local">{translate("i18n.importLocalTracks")}</option><option value="platform">{translate("i18n.connectAService")}</option>
                 </select></div>
-                {createMusicType==='playlist' && <div className="stack-form"><label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><fieldset className="music-create-song-picker"><legend>{translate("i18n.includeTracks")}{' '}<span>{translate("i18n.optional")}</span></legend><input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/><div className="music-create-song-options">{candidateTracks.length?candidateTracks.map(t=><label key={t.id}><input type="checkbox" checked={listSelection.includes(t.id)} onChange={e=>setListSelection(ids=>e.target.checked?[...ids,t.id]:ids.filter(id=>id!==t.id))}/><span>{t.title}</span></label>):<></>}</div></fieldset><WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>{translate("i18n.createPlaylist")}</button></WorkspaceActions></div>}
-                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label><fieldset className="music-create-song-picker">
+                {createMusicType==='playlist' && <div className="stack-form"><label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label><CheckboxPicker className="music-create-song-picker" onSelectVisible={()=>setListSelection(ids=>toggleMatchingIds(ids,candidateTracks.map(t=>t.id)))}><legend>{translate("i18n.includeTracks")}{' '}<span>{translate("i18n.optional")}</span></legend><input type="search" aria-label={translate("i18n.filterSongs")} placeholder={translate("i18n.filterSongs")} value={songQuery} onChange={e=>setSongQuery(e.target.value)}/><div className="music-create-song-options">{candidateTracks.length?candidateTracks.map(t=><label key={t.id}><input type="checkbox" checked={listSelection.includes(t.id)} onChange={e=>setListSelection(ids=>e.target.checked?[...ids,t.id]:ids.filter(id=>id!==t.id))}/><span>{t.title}</span></label>):<></>}</div></CheckboxPicker><WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{const id=createId('playlist');setSavedPlaylists(items=>[...items,{id,title:listTitle.trim(),description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()}]);setTracks(items=>items.map(t=>listSelection.includes(t.id)?{...t,playlists:[...(t.playlists||[]),{id,title:listTitle.trim(),position:listSelection.indexOf(t.id)}]}:t));setPlaylistFilter(id);setListTitle('');setListSelection([]);}}>{translate("i18n.createPlaylist")}</button></WorkspaceActions></div>}
+                {createMusicType==='local' && <div className="stack-form music-local-import"><label className="file-label">{translate("i18n.chooseAudioFiles")}<input type="file" multiple accept="audio/*" onChange={addFolder}/></label><label className="file-label">{translate("i18n.chooseAudioFolder")}<input type="file" webkitdirectory="" onChange={addFolder}/></label><CheckboxPicker className="music-create-song-picker" onSelectVisible={()=>setExistingIds(ids=>toggleMatchingIds(ids,candidateTracks.filter(t=>!t.playlists?.some(p=>p.id===destination)).map(t=>t.id)))}>
                   <legend>{translate("i18n.existingSongs")}</legend>
                   <label>{translate("i18n.destinationPlaylist")}<select value={destination} onChange={e=>setImportTarget(e.target.value)}>
                     {[...playlists].map(([id,title])=><option key={id} value={id}>{title}</option>)}
@@ -692,7 +701,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                       <span>{[track.title,track.artist].filter(Boolean).join(' · ')}</span></label>;
                   })}</div>
                   <button type="button" disabled={!destination||!selectedExisting.length} onClick={addExistingTracks}>{translate("i18n.addToPlaylist")}</button>
-                </fieldset>{importNotice&&<p role="status">{importNotice}</p>}</div>}
+                </CheckboxPicker>{importNotice&&<p role="status">{importNotice}</p>}</div>}
                 {createMusicType==='platform'&&<MusicSources search={search} onImport={beginImport} importing={Boolean(stagedImport)}/>}
               </div></ActionWorkspace>}
             </section>

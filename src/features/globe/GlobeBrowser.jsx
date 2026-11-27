@@ -1,3 +1,5 @@
+import CheckboxPicker from '../../ui/CheckboxPicker.jsx';
+import { toggleMatchingIds } from '../../entities/entitySelection.js';
 import PagedItems from '../../ui/PagedItems.jsx';
 import { translate } from '../../i18n/index.js';
 import { toggleEditor, editActivationProps } from '../../ui/editGesture.js';
@@ -121,12 +123,12 @@ export default function GlobeBrowser({ photos, loading, initialView, onRememberV
             {geography.error && <p role="alert">{geography.error}<button onClick={geography.retry}>{translate("i18n.retry")}</button></p>}
             <div data-scroll-memory={`regions-${geography.region?.id ?? 'world'}`} className="music-create-song-options globe-region-options">{geography.results.map(n => <button key={n.id} type="button" aria-pressed={(geography.city?.id || geography.region?.id) === n.id} onClick={() => { setSelectedId(null); n.resultType === 'city' ? geography.chooseCity(n) : geography.navigate(n); }}>{n.name}</button>)}</div>
           </fieldset>
-          <fieldset className="music-create-song-picker"><legend>{translate("i18n.memoryPin")}</legend>
+          <CheckboxPicker className="music-create-song-picker" preferred={geography.search.filters?.searchBy !== 'journey'} onSelectVisible={()=>{setSelectedId(null);setSelectedPoints(ids=>toggleMatchingIds(ids,visiblePhotos.map(p=>p.id)));}}><legend>{translate("i18n.memoryPin")}</legend>
             <div data-scroll-memory="points" className="music-create-song-options">{controlsOpen && <PagedItems items={visiblePhotos} key={geography.search.query}>{p => <label key={p.id}><input type="checkbox" checked={selectedSet.has(p.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); setSelectedPoints(ids => checked ? [...ids,p.id] : ids.filter(id => id !== p.id)); }} /><span>{p.title || p.location || translate("i18n.untitledMemory")}{p.title && p.location ? ` · ${p.location}` : ''}</span></label>}</PagedItems>}</div>
-          </fieldset>
-          <fieldset className="music-create-song-picker"><legend>{translate("i18n.trip")}</legend>
+          </CheckboxPicker>
+          <CheckboxPicker className="music-create-song-picker" preferred={geography.search.filters?.searchBy === 'journey'} onSelectVisible={()=>{setSelectedId(null);setSelectedPoints(ids=>toggleMatchingIds(ids,visibleJourneys.flatMap(journeyPoints)));}}><legend>{translate("i18n.trip")}</legend>
             <div data-scroll-memory="journeys" className="music-create-song-options">{visibleJourneys.map(j => <label key={j.id}><input type="checkbox" checked={selectedJourneys.includes(j.id)} onChange={e => { const checked=e.target.checked; setSelectedId(null); if(journeyId === j.id) setJourneyId(''); const points = journeyPoints(j); setSelectedPoints(ids => checked ? [...new Set([...ids, ...points])] : ids.filter(id => !points.includes(id))); }} /><span>{j.title}</span></label>)}</div>
-          </fieldset>
+          </CheckboxPicker>
         </div>
       </div>
     </ActionWorkspace>

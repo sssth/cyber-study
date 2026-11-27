@@ -10,7 +10,7 @@ export function registerResultSource(token, read) {
 
 export function currentResultSource(application) {
   return [...sources.values()].map(read => read())
-    .filter(source => source.enabled !== false && source.applications?.[application] !== false)
+    .filter(source => (!source.onlyFor || source.onlyFor === application) && source.enabled !== false && source.applications?.[application] !== false)
     .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
 }
 

@@ -2,6 +2,7 @@ const { nativeText } = require('../i18n/native.cjs');
 const { app, ipcMain, dialog, nativeImage, protocol } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { photoTitle } = require('./photoTitle.cjs');
 const { MemoryRepository, hash } = require('./repository.cjs');
 function registerGlobe(getWindow) {
   const repo = new MemoryRepository(path.join(app.getPath('userData'), 'memory-globe'), async bytes => {
@@ -15,7 +16,7 @@ function registerGlobe(getWindow) {
   const snapshot = async () => {
     const data = await repo.load();
     return { deletedJourneys: data.deletedJourneys ?? [], journeys: data.journeys ?? [], photos: data.photos.map(p => ({
-      ...p, visitStatus: p.visitStatus ?? 'visited',
+      ...p, title: p.title || (p.filename ? photoTitle(p) : ''), visitStatus: p.visitStatus ?? 'visited',
       photo: p.hash ? `study-memory://photo/${p.hash}.preview` : '',
       thumbnail: p.hash ? `study-memory://photo/${p.hash}.thumb` : ''
     })) };

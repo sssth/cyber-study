@@ -2,6 +2,7 @@
   "crop.area": "拖动图片或使用方向键取景",
   "crop.zoom": "缩放",
   "crop.center": "恢复居中",
+  "i18n.featureButtons": "功能按键",
   "i18n.usageTips": "使用建议",
   "i18n.collapseUsageTips": "收起使用建议",
   "i18n.expandUsageTips": "展开使用建议",

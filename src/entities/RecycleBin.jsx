@@ -53,11 +53,11 @@ export default function RecycleBin({ search, revision, onBooksChanged }) {
     } else edit(picked.map(item => item.token));
   }
   useResultSource({
-    scopeId: 'entity-trash', priority: 56, blocked: true, matches: [],
+    scopeId: 'entity-trash', searchSelectAll: !editing, priority: 56, blocked: true, matches: [],
     selectVisible() {
       if (lock.current) return;
       edit([]);
-      select(toggleVisibleIds(picked.map(row => row.token), visible.map(row => row.token)));
+      select(previous => toggleVisibleIds(previous, visible.map(row => row.token)));
     },
     editSelected: picked.length && !editing ? () => openEditor() : undefined
   });

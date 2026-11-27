@@ -1520,3 +1520,6 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .stat-items > button > strong { font-size: 24px; font-variant-numeric: tabular-nums; }
 .stat-add-items { display: grid; gap: 6px; }
 .result-page-controls { grid-column:1/-1; display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0 }
+.memo-content-open:has(.memo-image-title) { flex-direction:column; }
+.memo-content-open:has(.memo-image-title) > img { min-height:0; flex:1; }
+.memo-image-title,.catalog-note-preview { max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
