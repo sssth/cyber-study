@@ -7,10 +7,10 @@ add('trip','journey','江南 · 秋日旅行总集',{description:'跨杭州与�
 add('hz','journey','杭州 · 湖山两日',{location:'杭州',startDate:'2026-11-14',endDate:'2026-11-15'},['杭州']);
 add('sz','journey','苏州 · 园林一日',{location:'苏州',startDate:'2026-11-16',endDate:'2026-11-16'},['苏州']);
 add('walk','journey','周末散步 · 年度合集',{description:'跨旅途收录记忆点，不设单一发生地点。'},['多上级']);
-add('west','memory_point','断桥 · 日落与晚风',{location:'杭州 · 西湖断桥',latitude:30.2604,longitude:120.1482,caption:'同一个点同时属于杭州旅途与散步合集。'},['杭州','多上级'],'主要关系中心：日记、歌、影片、摘录与待办汇聚于此。');
-add('temple','memory_point','灵隐 · 雨后山路',{location:'杭州 · 灵隐',latitude:30.2408,longitude:120.1001,caption:'与断桥共同关联同一篇日记。'},['杭州']);
-add('garden','memory_point','拙政园 · 借景',{location:'苏州 · 拙政园',latitude:31.3256,longitude:120.6293},['苏州']);
-add('wish','memory_point','天平山 · 下次再去',{location:'苏州 · 天平山',latitude:31.287,longitude:120.464,visitStatus:'wish'},['计划']);
+add('west','memory_point','断桥 · 日落与晚风',{city:'杭州',latitude:30.2604,longitude:120.1482,caption:'同一个点同时属于杭州旅途与散步合集。'},['杭州','多上级'],'主要关系中心：日记、歌、影片、摘录与待办汇聚于此。');
+add('temple','memory_point','灵隐 · 雨后山路',{city:'杭州',latitude:30.2408,longitude:120.1001,caption:'与断桥共同关联同一篇日记。'},['杭州']);
+add('garden','memory_point','拙政园 · 借景',{city:'苏州',latitude:31.3256,longitude:120.6293},['苏州']);
+add('wish','memory_point','天平山 · 下次再去',{city:'苏州',latitude:31.287,longitude:120.464,visitStatus:'wish'},['计划']);
 add('unknown','memory_point','车窗外 · 未定位的片刻',{caption:'有文字，没有地点或坐标，等待整理。',latitude:null,longitude:null},['待整理']);
 add('diary','diary','一天里的湖与山',{text:'上午走山路，傍晚到湖边。一篇日记连接两个地点，但自身地点保持空白。',mood:'愉悦'},['多地点'],'观察“关联地点”出现两条来源，data.location 仍为空。');
 add('diary2','diary','旅途结束后的整理',{text:'回家后整理照片与清单。关联旅行不意味着写作发生在景点。',location:'上海 · 家中',mood:'平静'},['地点区分']);

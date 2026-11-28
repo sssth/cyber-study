@@ -3,7 +3,7 @@ import {parseQuery} from './logicQuery.js';
 import {calendarDay,comparable} from './typedFields.js';
 
 // These affect how a page searches or presents matches, rather than testing an entity.
-export const expressionModes=new Set(['context','fulltext','musicTarget','searchBy','provider']);
+export const expressionModes=new Set(['context','provider']);
 const aliases={watchStatus:'movie.status',boardVisibility:'showOnBoard',status:'done'};
 const boolValues={boardVisibility:{shown:'YES',hidden:'NO'},status:{done:'YES',open:'NO'}};
 
@@ -60,6 +60,7 @@ function inspect(part,scope){
  if(parsed.error||!node?.field||node.op||node.empty)return {};
  const found={};
  for(const f of scope.filters||[]){
+   if(f.key==='musicTarget')continue;
    const {name,bound}=binding(scope,f.key);
    // A page limited to one entity also accepts the spelling inserted by its slash menu.
    const page=scope.id.replace(/^projection:/,'');
@@ -74,6 +75,40 @@ function inspect(part,scope){
  }
  return found;
 }
+// The record-player picker edits ordinary field clauses. Only outer AND terms
+// belong to the picker; nested boolean expressions remain intact.
+function musicParts(query){
+ const parts=clauses(query);
+ const type=parts.find(part=>/^TYPE (music|playlist)$/i.test(part.text));
+ const field=parts.find(part=>/^(artist|title):/i.test(part.text));
+ const target=field?.text.toLowerCase().startsWith('artist:')?'artist':
+   field && type ? (type.text.toLowerCase()==='type music'?'song':'playlist'):'';
+ return {parts,type,field,target};
+}
+function changeMusicTarget(query,next){
+ // Parse an unfinished field using a temporary value so switching before typing also works.
+ const pending=/(?:^|\s)(?:artist|title):$/i.test(query);
+ const source=pending?query+'""':query;
+ const {parts,type,field,target}=musicParts(source);
+ const prefix=next==='artist'?'artist:':next?'title:':'';
+ const result=[];
+ let filled=false;
+ if(next==='song'||next==='playlist')result.push({text:'TYPE '+(next==='song'?'music':'playlist')});
+ for(const part of parts){
+   if(part===type && (target||next && next!=='artist'))continue;
+   const existingField=field?.text.split(':',1)[0].toLowerCase();
+   if(field && (target||next) && part.text.toLowerCase().startsWith(existingField+':')){
+     const raw=pending && part===parts.at(-1)?'':part.text.slice(part.text.indexOf(':')+1);
+     if(prefix||raw)result.push({text:prefix+raw});
+     filled=true;
+   }else if(next && !target && !parseQuery(part.text,true).structured){
+     for(const word of part.text.match(/"[^"]*"|\S+/g)||[])result.push({text:prefix+word});
+     filled=true;
+   }else result.push(part);
+ }
+ if(next&&!filled)result.push({text:prefix});
+ return join(result,source);
+}
 export function expressionState(query,scope){
  const values={},conditions=[],options={};
  for(const part of clauses(query)){
@@ -84,9 +119,14 @@ export function expressionState(query,scope){
  }
  let predicate=Object.keys(options).length?join(conditions,query):query;
  if(conditions.length===1 && Object.keys(options).length)predicate=unwrap(predicate);
+ if(scope.id==='music'){
+   const {target}=musicParts(query.replace(/((?:artist|title):)$/i,'$1""'));
+   if(target)values.musicTarget=target;
+ }
  return {values,options,predicate};
 }
 export function changeFilter(query,scope,key,value){
+ if(scope.id==='music'&&key==='musicTarget')return changeMusicTarget(query,value);
  const {name,bound}=binding(scope,key);
  const parts=[],bounds={};
  for(const part of clauses(query)){

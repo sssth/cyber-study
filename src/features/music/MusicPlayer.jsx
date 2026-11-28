@@ -1,9 +1,10 @@
+import { closePageTools } from '../../ui/closePageTools.js';
+import {currentScope,subscribeSearch} from '../../search/searchStore.js';
 import {musicSearchFilters} from '../../search/pageModes.js';
 import ImageFileField from '../ImageFileField.jsx';
 import ParentMembershipPicker from '../../ui/ParentMembershipPicker.jsx';
 import OrderedMemberPicker from '../../ui/OrderedMemberPicker.jsx';
 import PhotoCrop, { cropStyle, useFilePreview } from '../PhotoCrop.jsx';
-import { entityTags } from '../../entities/tags.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
@@ -19,9 +20,9 @@ import { useNavigationState } from '../../ui/useNavigationState.js';
 import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus} from '../../search/useSearchScope.jsx';
-import {matchesItem,matchFields,hasSearch} from '../../search/searchCore.js';
+import {matchesItem,hasSearch} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { MusicSources, musicPlatformNames, musicRequest } from './MusicSources.jsx';
 import { ActionWorkspace, FeaturePanel } from '../ui.jsx';
 import { matchesShortcut, typingTarget } from '../../data/shortcuts.js';
@@ -87,7 +88,6 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const [savedPlaylists,setSavedPlaylists]=useState(()=>loadSpaceData('playlists',[]));
   const [listTitle,setListTitle]=useState('');
   const [createMusicType,setCreateMusicType]=useState('playlist');
-  const [createOpen,setCreateOpen]=useState(false);
   const [listSelection,setListSelection]=useState([]);
   const order = useContentOrder();
   const [musicView, setMusicView] = useNavigationState('music','view','player');
@@ -101,7 +101,11 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     else setLocalEditor(value);
   };
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setLocalEditor(null);
+      setPlayerEditor(false);
+      return;
+    }
     const item = navigation?.item;
     if (item?.catalogCommand || item?.type === 'playlist' || item?.type === 'music') setMusicView('playlists');
     setPlayerEditor(false);
@@ -175,36 +179,34 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     }
     return [...merged.values()];
   };
-  const search=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:catalogItem?.type==='playlist'?30:10,enabled:open||catalogItem?.type==='playlist',filters:musicSearchFilters(tracks)});
-  function trackMatches(track) {
-    const target=search.filters.musicTarget;
-    if(!target)return matchesItem('music',track,{query:search.query});
-    const fields=target==='artist'?{'歌手':track.artist}:target==='song'?{'曲名':track.title}:
-      {'曲名':track.title,'歌手':track.artist,'标签':entityTags('music',track)};
-    return matchFields(Object.values(fields),fields,search.query);
-  }
+  const musicSearch=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:10,enabled:open,filters:musicSearchFilters(tracks)});
+  const catalogSearch = useSyncExternalStore(subscribeSearch, () => catalogItem
+    ? currentScope(scope=>['entity-catalog','entity-graph'].includes(scope.id))?.state : undefined);
+  const search = catalogSearch ?? musicSearch;
+  const trackMatches=track=>matchesItem('music',track,{query:search.query});
+  const matchedPlaylistMembers=new Set();
   const filteredLists = new Map();
   for(const [id,title] of playlists) {
     if (search.filters.playlistId && id !== search.filters.playlistId) continue;
     const songs=tracksInPlaylist(id);
     const list=savedPlaylists.find(p=>p.id===id)??songs.find(t=>t.playlists?.some(p=>p.id===id))?.playlists?.find(p=>p.id===id)??{title};
-    const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&matchesItem('playlist',{...list,id,trackNames:songs.map(t=>t.title)},{query:search.query});
-    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&trackMatches(t))||!search.query.trim()));
+    const titleHit=Boolean(search.query.trim())&&matchesItem('playlist',{...list,id,trackNames:songs.map(t=>t.title)},{query:search.query});
+    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||trackMatches(t)||!search.query.trim()));
+    if(titleHit)for(const track of matching)matchedPlaylistMembers.add(track.id);
     const provider=list.provider||(['qq','netease','spotify'].includes(id.split(':')[0])?id.split(':')[0]:null);
     if(!hasSearch(search)||(search.filters.playlistId && !search.query.trim() && !search.filters.provider)||matching.length||(titleHit&&(!search.filters?.provider||provider===search.filters.provider))) filteredLists.set(id,{title,songs:matching,record:{...list,id,trackNames:songs.map(track=>track.title)}});
   }
   const browserFilter=filteredLists.has(activeFilter)?activeFilter:filteredLists.keys().next().value??'';
   const displayedTracks=filteredLists.get(browserFilter)?.songs??[];
   useResultSource({ scopeId: 'music', priority:10,applications:{selectAll:musicView==='player'?undefined:resultEntities('music',displayedTracks)},label:musicView==='player'?translate("i18n.recordPlayer"):translate("i18n.playlistsAndTracks"),detail:musicView==='player',enabled:open,matches:musicView==='player'?resultEntities('music',[current]):[...resultEntities('playlist',[...filteredLists.values()].map(list=>list.record)),...resultEntities('music',displayedTracks)]});
-  const playlistMatches = search.filters.musicTarget === 'playlist' || search.filters.playlistId
+  const playlistMatches = search.filters.playlistId
     ? new Set([...filteredLists.values()].flatMap(list => list.songs.map(track=>track.id))) : null;
   const candidateTracks = tracks.filter(track => {
     if (playlistMatches && !playlistMatches.has(track.id)) return false;
     if (!matchesItem('music',track,{...search,query:''})) return false;
-    return playlistMatches || trackMatches(track);
+    return playlistMatches || matchedPlaylistMembers.has(track.id) || trackMatches(track);
   });
-  const pickingSongs = musicEditor?.type === 'playlist' || (open && musicView !== 'player' && createOpen && createMusicType === 'playlist');
-  useSearchCount('music',pickingSongs ? candidateTracks.length : new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
+  useSearchCount('music',new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
   const queue = tracksInPlaylist(songPlaylist || activeFilter)
     .filter(track => !track.kind && (!track.cacheState || track.cacheState === 'ready'));
   const queueIndex = queue.findIndex((track) => track.id === currentId);
@@ -604,7 +606,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
         }}
       />
             {(open || catalogItem) && musicEditor && <MusicEntityEditor key={`${musicEditor.type}:${musicEditor.id}`} entity={{...musicEditor,fallbackCover:musicEditor.type==='playlist'?tracksInPlaylist(musicEditor.id).find(track=>track.cover)?.cover:undefined}}
-              playlistRecords={playlistRecords} playlistLabels={playlists} tracks={tracks} candidates={candidateTracks} members={musicEditor.type==='playlist'?tracksInPlaylist(musicEditor.id):[]}
+              visibleLists={filteredLists} playlistRecords={playlistRecords} playlistLabels={playlists} tracks={tracks} candidates={candidateTracks} members={musicEditor.type==='playlist'?tracksInPlaylist(musicEditor.id):[]}
               storageWarning={!open ? storageWarning : null} onClose={()=>setMusicEditor(null)} onCache={async()=>{
                 const result=await musicRequest(musicEditor.provider,'cache-track',{id:musicEditor.sourceId,mediaMid:musicEditor.mediaMid,fee:musicEditor.fee});
                 setTracks(items=>items.map(t=>t.id===musicEditor.id?{...t,cachedUrl:result.cachedUrl}:t));
@@ -631,7 +633,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
         <FeaturePanel scopeId="music" tipPage={`music-${musicView}`} hasMenu title="i18n.recordPlayer" scrollContext={musicView} kicker="Music Deck" description={translate("i18n.playPlaylistsOrLocalAudioMusicKeeps")} onClose={onClose}>
           {storageWarning}
           <nav className="globe-mode-switch" aria-label={translate("i18n.recordPlayerView")}>
-            {[['player',translate("i18n.play")],['playlists',translate("i18n.playlist")]].map(([id,label]) => <button key={id} aria-pressed={musicView===id} onClick={()=>{setMusicView(id);setPlayerEditor(false);setMusicEditor(null);}}>{label}</button>)}
+            {[['player',translate("i18n.play")],['playlists',translate("i18n.playlist")]].map(([id,label]) => <button key={id} aria-pressed={musicView===id} onClick={()=>{if(id!==musicView) closePageTools();setMusicView(id);setPlayerEditor(false);setMusicEditor(null);}}>{label}</button>)}
           </nav>
           <div className="music-pages">
             <ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editPlayer")} open={playerEditor} onOpenChange={setPlayerEditor}>
@@ -685,7 +687,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                   {musicView==='player' && spotifyControls}
                 </div>
               </div>
-              {musicView !== 'player' && <ActionWorkspace onOpenChange={setCreateOpen} label={translate("i18n.new")} title={translate("i18n.addMusic")}><div className="music-create-fields">
+              {musicView !== 'player' && <ActionWorkspace label={translate("i18n.new")} title={translate("i18n.addMusic")}><div className="music-create-fields">
                 <div className="music-create-kind"><select aria-label={translate("i18n.addMusicBy")} value={createMusicType} disabled={Boolean(stagedImport)} onChange={e=>setCreateMusicType(e.target.value)}>
                   <option value="playlist">{translate("i18n.newPlaylist")}</option><option value="local">{translate("i18n.importLocalTracks")}</option><option value="platform">{translate("i18n.connectAService")}</option>
                 </select></div>
@@ -724,7 +726,10 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                     style={{'--offset': distance, '--side': Math.sign(distance), '--depth': Math.min(Math.abs(distance), 5),
                       '--hue': Array.from(id).reduce((h,c)=>(h*31+c.codePointAt(0))%360,0), zIndex: 10-Math.min(Math.abs(distance), 5)}}>
                     <ContentActions orderItem={record} preview={false} sortable surface=".music-playlist-item" type="playlist" id={id} title={title}/>
-                    <ContentCommand label={translate("i18n.editPlaylist0", title)} disabled={id===stagedImport?.id} run={()=>setMusicEditor({...entry,type:'playlist'})}/>
+                    <ContentCommand label={translate("i18n.editPlaylist0", title)} disabled={id===stagedImport?.id} run={()=>{
+                      setPlaylistFilter(id);
+                      setMusicEditor({...entry,type:'playlist'});
+                    }}/>
                     <button className="sleeve-button" data-item-open type="button" aria-label={title} aria-pressed={opened} onClick={activate}>
                       <span className="sleeve-vinyl" aria-hidden="true" />
                       <PlaylistArt entry={entry} fallback={cover} title={record.title || title}/>
@@ -768,7 +773,8 @@ function SongMemberPicker({tracks,candidates,...props}) {
     confirmRemoval={translate("i18n.removeSongFromPlaylist")} />;
 }
 
-function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarning,tracks,candidates,members,playlistRecords,playlistLabels}) {
+function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarning,tracks,candidates,members,playlistRecords,playlistLabels,visibleLists}) {
+  const parents = [...playlistRecords.values()].map(list=>({...list,title:playlistLabels.get(list.id)||list.title}));
   const [originalIds] = useState(()=>(entity.type==='playlist' ? members : entity.playlists ?? []).map(item=>item.id));
   const [selectedIds,setSelectedIds] = useState(originalIds);
   const [draft,setDraft]=useState({title:entity.title??'',artist:entity.artist??'',text:entity.text??'',showSource:entity.showSource!==false});
@@ -794,7 +800,7 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
         {(replacement || cover) && <PhotoCrop src={replacement || cover} ratio={1} value={photoCrop} onChange={setPhotoCrop}/>}
         </ImageFileField>
         {entity.type==='music' && <ParentMembershipPicker type="playlist" disabled={busy}
-          parents={[...playlistRecords.values()].map(list=>({...list,title:playlistLabels.get(list.id)||list.title}))}
+          parents={parents} candidates={parents.filter(list=>visibleLists.has(list.id))}
           selectedIds={selectedIds} updateIds={setSelectedIds}/>}
         {entity.type==='playlist' && <SongMemberPicker tracks={tracks} candidates={candidates}
           selectedIds={selectedIds} updateIds={setSelectedIds} disabled={busy}/>}

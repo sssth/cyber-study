@@ -17,10 +17,10 @@ test('reply protocol distinguishes questions and complete queries',()=>{
  for(const text of ['{}','{"query":["foo"]}','{"ask":"a","query":"b"}','{"query":"个人评分:FROM 12"}'])
    assert.equal(readAssistantReply(text,movie),null);
 });
-test('mode changes use the fields available in the resulting search scope',()=>{
- const geography={id:'geography',label:'地球仪',filters:[{key:'searchBy',options:[['journey','旅途']]}]};
- const data=searchCapabilities(geography);
- assert.ok(data.modes.searchBy.journey.fields.includes('startDate'));
- assert.ok(validCandidate('searchBy:journey AND startDate:FROM 2026-01-01',geography));
- assert.equal(validCandidate('startDate:FROM 2026-01-01',geography),false);
+test('geography exposes point and journey types to the converter',()=>{
+ const scope={id:'geography',label:'地球仪'};
+ const data=searchCapabilities(scope);
+ assert.deepEqual(Object.keys(data.types).sort(),['journey','memory_point']);
+ assert.ok(validCandidate('TYPE journey AND startDate:FROM 2026-01-01',scope));
+ assert.equal(validCandidate('searchBy:journey',scope),false);
 });

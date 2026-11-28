@@ -1,10 +1,9 @@
 import { translate, translateError } from '../../i18n/index.js';
 import { useState } from 'react';
 import { ActionWorkspace } from '../ui.jsx';
-import {useSearchScope} from '../../search/useSearchScope.jsx';
 import MemoryEditor from './MemoryEditor.jsx';
 
-export default function GlobeEditor({item, catalog, onClose}) {
+export default function GlobeEditor({item, catalog, onClose, searchState}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const request = async (action, input) => {
@@ -19,11 +18,10 @@ export default function GlobeEditor({item, catalog, onClose}) {
       return null;
     } finally { setBusy(false); }
   };
-  const searchState = useSearchScope({id:"catalog-journey-points",label:translate("i18n.memoryPin"),priority:65,enabled:item.type==="journey",filters:[]});
   const props = {journeys:catalog.filter(entry => entry.type === 'journey'), photos: catalog.filter(entry => entry.type === 'memory_point'), busy, request};
   if (item.type === 'journey') return <MemoryEditor {...props} mode="journey" editJourney={item} searchState={searchState} error={error} onClose={onClose}/>;
   return <ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate("i18n.editMemoryPin")} open onOpenChange={open => { if (!open && !busy) onClose(); }}>
-    <MemoryEditor {...props} mode="point" initialPoint={item} onSaved={onClose} onDelete={async id => {
+    <MemoryEditor {...props} mode="point" searchState={searchState} initialPoint={item} onSaved={onClose} onDelete={async id => {
       if (window.confirm(translate("i18n.deleteThisMemoryPin")) && await request('update', {ids:[id], patch:{deletedAt:true}})) onClose();
     }}/>
     {error && <p className="workspace-feedback" role="alert">{translateError(error)}</p>}

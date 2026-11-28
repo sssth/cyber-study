@@ -43,3 +43,13 @@ test('qualified date pasted from the slash menu reflects in both date controls',
  assert.deepEqual(expressionState('diary.date:FROM 2021年1月1号 TO 2021-2-1',diary).values,{from:'2021-01-01',to:'2021-02-01'});
  assert.equal(changeFilter('diary.date:FROM 2021-1-1',diary,'to','2021-02-01'),'date:FROM 2021-01-01 TO 2021-02-01');
 });
+
+test('music picker generates scoped titles and artist fields, including before typing',()=>{
+ const scope={id:'music',filters:[]};
+ for(const [option,query] of [['song','TYPE music AND title:晴天'],['artist','artist:晴天'],['playlist','TYPE playlist AND title:晴天']]){
+   assert.equal(changeFilter('晴天',scope,'musicTarget',option),query);
+   assert.equal(expressionState(query,scope).values.musicTarget,option);
+   assert.equal(changeFilter(query,scope,'musicTarget',''),'晴天');
+ }
+ assert.equal(changeFilter('TYPE music AND title:',scope,'musicTarget','artist'),'artist:');
+});

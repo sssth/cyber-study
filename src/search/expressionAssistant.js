@@ -30,17 +30,16 @@ export function searchCapabilities(scope,label=value=>value){
  for(const filter of scope.filters||[]){
    if(!expressionModes.has(filter.key))continue;
    modes[filter.key]=Object.fromEntries(filter.options.filter(([id])=>id).map(([id,name])=>{
-     const available=scopeFields(scope,{[filter.key]:id});
-     include(available);
-     const meaning=label(name);
-     return [id,['musicTarget','searchBy'].includes(filter.key)?{meaning,fields:[...new Set(available.map(fieldCommand))]}:meaning];
+     return [id,label(name)];
    }));
  }
  if(Object.keys(types).length<=1)for(const spec of Object.values(fields)){
    delete spec[2].owners;
    if(!Object.keys(spec[2]).length)spec.pop();
  }
- return {scope:label(scope.label),types,fields,modes,related:Boolean(scope.relatedSearch)};
+ const data={scope:label(scope.label),types,fields,modes,related:Boolean(scope.relatedSearch)};
+ if(['geography','projection-geography'].includes(scope.id))data.resultRule='地图默认搜记忆点；按旅途条件搜须使用 TYPE journey，命中后显示其成员记忆点。';
+ return data;
 }
 
 export function validCandidate(query,scope){

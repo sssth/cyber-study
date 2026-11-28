@@ -1,3 +1,4 @@
+import { closePageTools } from '../../ui/closePageTools.js';
 import {loadReaderState} from '../library/storage.js';
 import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
@@ -283,7 +284,7 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
   if (editItem) return editor;
   return (
     <FeaturePanel scopeId="typewriter" hasMenu title="i18n.typewriter" scrollContext={showCompleted ? "completed" : "unfinished"} kicker="Slow Writing" onClose={onClose}>
-      <div className="globe-mode-switch" aria-label={translate("i18n.typingLibrary")}>{[[false,translate("i18n.unfinishedWorks")],[true,translate("i18n.completedWorks")]].map(([value,label])=><button key={String(value)} type="button" aria-pressed={showCompleted===value} onClick={()=>setShowCompleted(value)}>{label}</button>)}</div>
+      <div className="globe-mode-switch" aria-label={translate("i18n.typingLibrary")}>{[[false,translate("i18n.unfinishedWorks")],[true,translate("i18n.completedWorks")]].map(([value,label])=><button key={String(value)} type="button" aria-pressed={showCompleted===value} onClick={()=>{if(value!==showCompleted) closePageTools(); setShowCompleted(value);}}>{label}</button>)}</div>
       {editor}
       <SearchStatus id="typewriter" label={translate("i18n.typingWork")}/>
 

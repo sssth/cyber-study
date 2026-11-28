@@ -162,6 +162,6 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
       )) : <PagedItems key={pageKey} items={results}>{renderCard}</PagedItems>}
     </>}
     </section>}
-    {editing && <CatalogEditor key={editing.key} item={editing} catalog={catalog ?? []} books={books} {...editorProps} onClose={() => onEdit(null)}/>}
+    {editing && <CatalogEditor searchState={search} key={editing.key} item={editing} catalog={catalog ?? []} books={books} {...editorProps} onClose={() => onEdit(null)}/>}
   </FeaturePanel>;
 }

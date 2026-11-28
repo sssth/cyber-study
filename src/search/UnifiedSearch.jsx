@@ -136,19 +136,23 @@ export default function UnifiedSearch({shortcuts,disabled=false,viewKey}){
    setFilters(expressionState(text,scope).values);
    if(commit)update(text);
  };
- const selectFilter=(field,input,valid=true)=>{
-   const normalized=normalizeFilter(field,input);
-   setFilters(previous=>({...previous,[field.key]:input}));
+ const selectFilter=(field,raw,valid=true)=>{
+   const normalized=normalizeFilter(field,raw);
+   setFilters(previous=>({...previous,[field.key]:raw}));
    if(!valid||normalized===null)return;
    const text=changeFilter(value,scope,field.key,normalized);
    setValue(text);
-   setFilters({...expressionState(text,scope).values,[field.key]:input});
+   setFilters({...expressionState(text,scope).values,[field.key]:raw});
    update(text);
+   if(field.key==='musicTarget'&&text.endsWith(':'))requestAnimationFrame(()=>{
+     input.current?.focus();
+     input.current?.setSelectionRange(text.length,text.length);
+   });
  };
  return createPortal(<div ref={bar} className={`unified-search${expanded?' has-filters':''}`} role="search" data-search-scope={current.id} aria-label={translate("i18n.search0", translate(current.label))} onClick={e=>e.stopPropagation()}>
   <div className="unified-search-row">{value.trim()&&count!=null&&<span className="search-result-count" role="status" aria-label={translate("i18n.0Results", count)}>{getScope(current.id)?.exactCount?count:count>99?'99+':count}</span>}<QueryInput key={current.id} scope={getScope(current.id)||current} inputRef={input} keyHandler={queryKeys} value={value} onEdit={edit}/>
    <button type="button" className="search-filter-toggle" aria-label={translate("i18n.filters")} aria-expanded={expanded} aria-controls="unified-search-filters" data-active={Object.values(filters).some(Boolean)||undefined} onClick={()=>{setExpanded(v=>!v);setChoice(null);}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/></svg></button>
   </div>
-  {expanded&&<div className="unified-search-filters" id="unified-search-filters">{fields.map(field=><label key={field.key}>{({fulltext:translate("i18n.fullText"),type:translate("i18n.type"),}[field.key]||translate(({'i18n.startDate':'i18n.from','i18n.endDate':'i18n.to'})[field.label]||field.label))}{field.type==='number'?<input type="number" aria-label={translate(field.label)} min={field.min} max={field.max} step={field.step} value={filters[field.key] ?? ''} onChange={e=>selectFilter(field,e.target.value,e.target.validity.valid)}/>:field.type==='date'?<input type="text" inputMode="numeric" aria-label={translate(field.label)} placeholder="YYYY-MM-DD" value={filters[field.key]||''} onChange={e=>selectFilter(field,e.target.value)}/>:<div className="search-choice"><button type="button" aria-label={translate(field.label)} aria-expanded={choice===field.key} onClick={()=>setChoice(v=>v===field.key?null:field.key)}>{translate(field.options.find(([id])=>id===filters[field.key])?.[1]||(field.defaultLabel||(field.key==='fulltext'?translate("i18n.metadataOnly"):translate("i18n.all"))))}<span aria-hidden="true">⌄</span></button>{choice===field.key&&<div className="search-choice-options">{[...(field.defaultLabel?[]:[['',field.key==='fulltext'?translate("i18n.metadataOnly"):translate("i18n.all")]]),...field.options].map(([id,label])=><button key={id} type="button" aria-pressed={(filters[field.key]||'')===id} onClick={event=>{event.preventDefault();setChoice(null);selectFilter(field,id);}}>{field.key==='fulltext'&&id?translate("i18n.includeFullText"):translate(label)}</button>)}</div>}</div>}</label>)}</div>}
+  {expanded&&<div className="unified-search-filters" id="unified-search-filters">{fields.map(field=><label key={field.key}>{({type:translate("i18n.type"),}[field.key]||translate(({'i18n.startDate':'i18n.from','i18n.endDate':'i18n.to'})[field.label]||field.label))}{field.type==='number'?<input type="number" aria-label={translate(field.label)} min={field.min} max={field.max} step={field.step} value={filters[field.key] ?? ''} onChange={e=>selectFilter(field,e.target.value,e.target.validity.valid)}/>:field.type==='date'?<input type="text" inputMode="numeric" aria-label={translate(field.label)} placeholder="YYYY-MM-DD" value={filters[field.key]||''} onChange={e=>selectFilter(field,e.target.value)}/>:<div className="search-choice"><button type="button" aria-label={translate(field.label)} aria-expanded={choice===field.key} onClick={()=>setChoice(v=>v===field.key?null:field.key)}>{translate(field.options.find(([id])=>id===filters[field.key])?.[1]||(field.defaultLabel||translate("i18n.all")))}<span aria-hidden="true">⌄</span></button>{choice===field.key&&<div className="search-choice-options">{[...(field.defaultLabel?[]:[['',translate("i18n.all")]]),...field.options].map(([id,label])=><button key={id} type="button" aria-pressed={(filters[field.key]||'')===id} onClick={event=>{event.preventDefault();setChoice(null);selectFilter(field,id);}}>{translate(label)}</button>)}</div>}</div>}</label>)}</div>}
  </div>,host);
 }

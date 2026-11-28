@@ -100,7 +100,7 @@ test('JPEG EXIF captures date and southern/western GPS coordinates', () => {
 test('photo-free points and ordered journeys survive trash, backup and restore', async t => {
   const {root, repo} = await fixture(t);
   const {record} = await repo.add(Buffer.from('trip photo'));
-  await repo.savePoint({location:'京都', visitStatus:'wish', latitude:35, longitude:135, country:'日本', city:'京都'});
+  await repo.savePoint({visitStatus:'wish', latitude:35, longitude:135, country:'日本', city:'京都'});
   const point = (await repo.load()).photos.find(p => p.hash === null);
   assert.equal(point.visitStatus, 'wish');
   await repo.saveJourney({title:'京都旅行', note:'两站', pointIds:[point.id, record.id]});
@@ -120,13 +120,14 @@ test('photo-free points and ordered journeys survive trash, backup and restore',
 
 test('memory titles persist independently of city and journey membership', async t => {
   const { root, repo } = await fixture(t);
-  await repo.savePoint({ title:'湖边的日落', location:'杭州', city:'杭州市', visitStatus:'visited', latitude:30, longitude:120 });
+  await repo.savePoint({ title:'湖边的日落', city:'杭州市', visitStatus:'visited', latitude:30, longitude:120 });
   const point = (await repo.load()).photos[0];
   await repo.saveJourney({ title:'周末旅行', note:'', pointIds:[point.id] });
   await repo.savePoint({ ...point, title:'西湖黄昏', city:'杭州市' });
   const data = await new MemoryRepository(path.join(root, 'library'), decode).load();
   assert.equal(data.photos[0].title, '西湖黄昏');
-  assert.equal(data.photos[0].location, '杭州');
+  assert.equal(data.photos[0].city, '杭州市');
+  assert.ok(!Object.hasOwn(data.photos[0],'location'));
   assert.deepEqual(data.journeys[0].pointIds, [point.id]);
 });
 
@@ -185,10 +186,12 @@ test('old globe text migrates on disk for points, journeys and recycled journeys
  const file=path.join(root,'library','library.json');
  await fs.mkdir(path.dirname(file),{recursive:true});
  const trip={id:'j',title:'旅行',note:'行程说明',pointIds:['p']};
- await fs.writeFile(file,JSON.stringify({version:2,migrations:[],photos:[{id:'p',location:'',locationStatus:'pending',date:'',caption:'照片说明'}],journeys:[trip],deletedJourneys:[{...trip,id:'old'}]}));
+ await fs.writeFile(file,JSON.stringify({version:2,migrations:[],photos:[{id:'p',location:'西湖断桥',locationStatus:'pending',date:'',caption:'照片说明'}],journeys:[trip],deletedJourneys:[{...trip,id:'old'}]}));
  await Promise.all([repo.load(),repo.load()]);
  const data=JSON.parse(await fs.readFile(file));
  assert.equal(data.photos[0].text,'照片说明');
+ assert.equal(data.photos[0].title,'西湖断桥');
+ assert.ok(!Object.hasOwn(data.photos[0],'location'));
  assert.ok(!('caption' in data.photos[0]));
  for(const row of [...data.journeys,...data.deletedJourneys]){
    assert.equal(row.text,'行程说明');

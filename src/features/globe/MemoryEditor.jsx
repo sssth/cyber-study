@@ -1,3 +1,4 @@
+import {placeName} from '../../../shared/placeName.js';
 import ImageFileField from '../ImageFileField.jsx';
 import ParentMembershipPicker from '../../ui/ParentMembershipPicker.jsx';
 import OrderedMemberPicker from '../../ui/OrderedMemberPicker.jsx';
@@ -15,8 +16,8 @@ import ContentActions from '../ContentActions.jsx';
 import { useState } from 'react';
 import { loadCities, nodeById } from './geography.js';
 
-const blank = { title: '', location: '', text: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
-const label = p => p.title || p.location || p.filename || p.text?.slice(0, 40) || translate("i18n.untitledMemoryPin");
+const blank = { title: '', text: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
+const label = p => p.title || placeName(p) || p.filename || p.text?.slice(0, 40) || translate("i18n.untitledMemoryPin");
 
 export default function MemoryEditor({ mode, photos, journeys = [], editJourney, onClose, error, busy, request, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
   const order = useContentOrder();
@@ -29,7 +30,7 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
   const [originalJourneys] = useState(()=>journeys.filter(j=>j.pointIds?.includes(initialPoint?.id)).map(j=>j.id));
   const [selectedJourneys,setSelectedJourneys] = useState(originalJourneys);
   const [cities, setCities] = useState([]);
-  const [query, setQuery] = useState(initialPoint?.city || initialPoint?.location || '');
+  const [query, setQuery] = useState(initialPoint?.city || '');
   const [searching, setSearching] = useState(false);
   const [cityError, setCityError] = useState('');
   const [citiesLoading, setCitiesLoading] = useState(false);
@@ -77,9 +78,9 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
         <OrderedMemberPicker legend={translate("i18n.addMemoryPin")} disabled={busy}
           candidates={candidates} selectedIds={journey.pointIds}
           updateIds={update => setJourney(current => ({ ...current, pointIds: update(current.pointIds) }))}
-          optionLabel={p => [label(p), p.title && p.location, p.date].filter(Boolean).join(' · ')}
+          optionLabel={p => [label(p), p.title && placeName(p), p.date].filter(Boolean).join(' · ')}
           memberTitle={id => label(byId.get(id) || {})}
-          memberDetail={id => byId.get(id)?.city || byId.get(id)?.location || ''}
+          memberDetail={id => placeName(byId.get(id))}
           confirmRemoval={translate("i18n.removeThisPinFromTheTripThe")} />
       </WorkspaceFields>
       <WorkspaceActions>{journey.id && remove ? <>
@@ -123,7 +124,7 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
       {citiesLoading && <p role="status">{translate("i18n.loadingCities")}</p>}
 
       <div className="globe-toolbar" hidden={!matches.length}>{matches.map(c => <button key={c.id} type="button" onClick={() => {
-        setPoint({ ...point, location: c.name, city: c.name, cityId: c.id, country: nodeById.get(c.country_id)?.name || '', region: nodeById.get(c.region_id)?.name || '', latitude: c.latitude, longitude: c.longitude }); setQuery(c.name); setSearching(false);
+        setPoint({ ...point, city: c.name, cityId: c.id, country: nodeById.get(c.country_id)?.name || '', region: nodeById.get(c.region_id)?.name || '', latitude: c.latitude, longitude: c.longitude }); setQuery(c.name); setSearching(false);
       }}>{c.name} · {[nodeById.get(c.country_id)?.name, nodeById.get(c.region_id)?.name].filter(Boolean).join(' / ')}</button>)}</div>
       <label>{translate("i18n.memoryNotes")}<textarea value={point.text} onChange={e => set('text', e.target.value)} /></label>
       <label>{translate("i18n.visitStatus2")}<select value={point.visitStatus} onChange={e => set('visitStatus', e.target.value)}><option value="visited">{translate("i18n.visited")}</option><option value="wish">{translate("i18n.wantToVisit")}</option></select></label>
@@ -145,9 +146,9 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
       </ImageFileField>
       {photoError && <p role="alert">{translateError(photoError)}</p>}
 
-      {point.id && <ParentMembershipPicker type="journey" parents={journeys} workspaceHost={workspaceHost}
+      {point.id && <ParentMembershipPicker type="journey" parents={journeys} candidates={journeys.filter(j=>matchesItem('journey',j,searchState))}
         selectedIds={selectedJourneys} updateIds={setSelectedJourneys} disabled={busy}/>}
-      {(point.country || point.region || point.city || point.location) && <div className="workspace-property"><span>{translate("i18n.selectedPlace")}</span><span>{[point.country, point.region, point.city || point.location].filter(Boolean).join(' / ')}</span></div>}
+      {(point.country || point.region || point.city) && <div className="workspace-property"><span>{translate("i18n.selectedPlace")}</span><span>{[point.country, point.region, point.city].filter(Boolean).join(' / ')}</span></div>}
     </WorkspaceFields>
     <WorkspaceActions><button disabled={busy || readingPhoto}>{translate("i18n.save")}</button>{point.id && onDelete && <ContentEditButton label={translate("i18n.delete")} disabled={busy} run={() => onDelete(point.id)} />}</WorkspaceActions>
   </form>;

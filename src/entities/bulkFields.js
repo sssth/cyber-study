@@ -5,7 +5,7 @@ const fieldsByType = {
   music: ['title', 'artist', 'note'],
   playlist: ['title', 'description'],
   journey: ['title', 'tripNote'],
-  memory_point: ['title', 'location', 'caption'],
+  memory_point: ['title', 'caption'],
   typing_work: ['title', 'sourceText'],
   annotation: ['annotation'],
   memo: ['text'],
@@ -13,7 +13,7 @@ const fieldsByType = {
 };
 const labels = {
   title: 'name', region: 'countryOrRegion', url: 'link2', note: 'notes',
-  tripNote: 'tripDescription', location: 'place', caption: 'description', text: 'content'
+  tripNote: 'tripDescription', caption: 'description', text: 'content'
 };
 const multiline = new Set(['review', 'note', 'description', 'tripNote', 'caption', 'sourceText', 'annotation', 'text']);
 

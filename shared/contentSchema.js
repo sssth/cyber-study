@@ -4,7 +4,7 @@ const definitions={
  excerpt:['摘录',{text:'',position:null}],annotation:['批注',{text:''}],
  typing_work:['抄写作品',{text:'',chapterTitle:'',typedText:'',cursor:0,status:'not_started',completedAt:null}],
  journey:['旅途',{text:'',startDate:null,endDate:null}],
- memory_point:['记忆点',{location:'',country:'',region:'',city:'',cityId:null,latitude:null,longitude:null,text:'',date:null,time:null,timezone:null,visitStatus:'wish',locationStatus:'pending',locationSource:'unknown',dateSource:'unknown'}],
+ memory_point:['记忆点',{country:'',region:'',city:'',cityId:null,latitude:null,longitude:null,text:'',date:null,time:null,timezone:null,visitStatus:'wish',locationStatus:'pending',locationSource:'unknown',dateSource:'unknown'}],
  playlist:['歌单',{text:'',provider:null,sourceId:null}],
  music:['歌曲',{text:'',artist:'',album:'',genre:[],provider:null,sourceId:null,audioAssetId:null,durationSeconds:null}],
  movie:['影片',{text:'',url:null,douban:null,status:'想看',score:null,scoreSource:null,region:[],genres:[],releaseYear:null}],

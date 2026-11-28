@@ -4,7 +4,6 @@
     {
       "id": "86108a06-301c-43c0-a42a-0a255fb9e794",
       "hash": "c94c52fe7174c18e453c985a2289aca7bdb6019e63f3e9534dad80f41d17feeb",
-      "location": "杭州市",
       "caption": "啦啦啦啦啦啦啦啦\n啦啦啦啦啦啦啦",
       "date": "2026-10-17",
       "dateSource": "exif",
@@ -26,7 +25,6 @@
     {
       "id": "19d1b5ed-16f7-4b89-8b4c-792509a15f47",
       "hash": "9285bbe7be19e0971d552c863f1b64e1c383cfab9c8ecfc5afc243a93f25b39e",
-      "location": "杭州市",
       "caption": "",
       "date": "2026-10-17",
       "dateSource": "exif",
@@ -48,7 +46,6 @@
     {
       "id": "f54d2360-f274-4e37-a699-a4e6625dc7bb",
       "hash": "83d0973e2a091a6a7cd6fb346ce693760d67ea6ff170c1b60244ce903d87c5da",
-      "location": "杭州市",
       "caption": "",
       "date": "2026-10-18",
       "dateSource": "exif",
@@ -69,7 +66,6 @@
     },
     {
       "title": "巴黎",
-      "location": "Paris",
       "caption": "",
       "date": "",
       "time": "",
@@ -90,7 +86,6 @@
     },
     {
       "title": "苏州",
-      "location": "苏州市",
       "caption": "",
       "date": "",
       "time": "",
@@ -111,7 +106,6 @@
     },
     {
       "title": "旧金山",
-      "location": "City and County of San Francisco",
       "caption": "",
       "date": "",
       "time": "",

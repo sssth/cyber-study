@@ -1,3 +1,4 @@
+import { closePageTools } from '../../ui/closePageTools.js';
 import ImageFileField from '../ImageFileField.jsx';
 import { imageMemoTitle } from './memoTitle.js';
 import { useFilePreview } from '../PhotoCrop.jsx';
@@ -164,9 +165,9 @@ export default function MemoBoard({ onClose, editItem }) {
   return (
     <FeaturePanel scopeId="memo" tipPage={`memo-${view}`} hasMenu wide title="i18n.memoBoard" scrollContext={view} kicker="Wall & Tasks" description={translate("i18n.dragToArrangeToDosNotesAnd")} onClose={onClose}>
       <nav className="globe-mode-switch" aria-label={translate("i18n.memoView")}>
-        <button aria-pressed={view === 'board'} onClick={() => setView('board')}>{translate("i18n.memoBoard")}</button>
-        <button aria-pressed={view === 'memo'} onClick={() => setView('memo')}>{translate("i18n.note")}</button>
-        <button aria-pressed={view === 'todo'} onClick={() => setView('todo')}>{translate("i18n.toDo")}</button>
+        <button aria-pressed={view === 'board'} onClick={() => { if (view !== 'board') closePageTools(); setView('board'); }}>{translate("i18n.memoBoard")}</button>
+        <button aria-pressed={view === 'memo'} onClick={() => { if (view !== 'memo') closePageTools(); setView('memo'); }}>{translate("i18n.note")}</button>
+        <button aria-pressed={view === 'todo'} onClick={() => { if (view !== 'todo') closePageTools(); setView('todo'); }}>{translate("i18n.toDo")}</button>
       </nav>
       <ActionWorkspace label={view === 'board' ? translate("i18n.newMemo") : view === 'todo' ? translate("i18n.newToDo") : translate("i18n.newNote")} title={view === 'board' ? translate("i18n.newMemo") : view === 'todo' ? translate("i18n.newToDo") : translate("i18n.newNote")}><div className="stack-form memo-create-form">
         <WorkspaceFields>

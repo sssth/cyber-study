@@ -31,7 +31,7 @@ function validate(data) {
   if (data?.version !== 2 || !Array.isArray(data.photos) || !Array.isArray(data.migrations)) throw new Error('记忆库格式不正确，未修改现有数据。');
   const ids = new Set();
   for (const p of data.photos) {
-    if (!p || typeof p.id !== 'string' || ids.has(p.id) || (p.hash != null && !validHash(p.hash)) || typeof p.location !== 'string' || typeof p.text !== 'string' || typeof p.date !== 'string' || !['pending', 'confirmed'].includes(p.locationStatus) || (p.locationStatus === 'confirmed' && !coordinates(p.latitude, p.longitude))) throw new Error('记忆库记录损坏，未修改现有数据。');
+    if (!p || typeof p.id !== 'string' || ids.has(p.id) || (p.hash != null && !validHash(p.hash)) || typeof p.text !== 'string' || typeof p.date !== 'string' || !['pending', 'confirmed'].includes(p.locationStatus) || (p.locationStatus === 'confirmed' && !coordinates(p.latitude, p.longitude))) throw new Error('记忆库记录损坏，未修改现有数据。');
     ids.add(p.id);
   }
   const journeys = data.journeys ?? [];
@@ -79,7 +79,7 @@ class MemoryRepository {
     for (const [kind, content] of Object.entries({ original: bytes, ...pictures })) await atomic(this.asset(key, kind), content);
     const meta = metadata(readable);
     const area = migrationKey ? {} : await photoRegion(meta);
-    const record = { id: randomUUID(), hash: key, location: '', text: '', time: meta.time || '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: meta.latitude != null ? 'confirmed' : 'pending', ...area, createdAt: new Date().toISOString(), deletedAt: null, ...(await textModule).migrateEntityText('memory_point',details) };
+    const record = { id: randomUUID(), hash: key, text: '', time: meta.time || '', date: meta.date || '', dateSource: meta.date ? 'exif' : 'unknown', latitude: meta.latitude ?? null, longitude: meta.longitude ?? null, locationSource: meta.latitude != null ? 'exif' : 'unknown', locationStatus: meta.latitude != null ? 'confirmed' : 'pending', ...area, createdAt: new Date().toISOString(), deletedAt: null, ...(await textModule).migrateEntityText('memory_point',details) };
     // Never accept legacy random longitude as a coordinate.
     if (migrationKey) Object.assign(record, { latitude: null, longitude: null, locationSource: 'unknown', locationStatus: 'pending' });
     if (record.filename && !record.title) record.title = photoTitle(record);
@@ -95,9 +95,9 @@ class MemoryRepository {
     const data = await this.load();
     if (!Array.isArray(ids) || !ids.length || ids.some(id => !data.photos.some(p => p.id === id))) throw new Error('照片记录不存在，请刷新后重试。');
     patch=(await textModule).migrateEntityText('memory_point',patch);
-    const allowed = ['country', 'region', 'city', 'cityId', 'location', 'text', 'date', 'dateSource', 'latitude', 'longitude', 'locationSource', 'locationStatus', 'deletedAt'];
+    const allowed = ['country', 'region', 'city', 'cityId', 'text', 'date', 'dateSource', 'latitude', 'longitude', 'locationSource', 'locationStatus', 'deletedAt'];
     const safe = Object.fromEntries(Object.entries(patch).filter(([key]) => allowed.includes(key)));
-    for (const key of ['location', 'text', 'date']) if (key in safe && (typeof safe[key] !== 'string' || safe[key].length > 10000)) throw new Error('输入内容无效。');
+    for (const key of ['text', 'date']) if (key in safe && (typeof safe[key] !== 'string' || safe[key].length > 10000)) throw new Error('输入内容无效。');
     if (safe.date && (!/^\d{4}-\d{2}-\d{2}$/.test(safe.date) || Number.isNaN(Date.parse(safe.date)))) throw new Error('拍摄日期无效。');
     if ('deletedAt' in safe && safe.deletedAt !== null) safe.deletedAt = new Date().toISOString();
     data.photos = data.photos.map(p => ids.includes(p.id) ? { ...p, ...safe } : p);
@@ -109,12 +109,12 @@ class MemoryRepository {
     const previous = input.id ? data.photos.find(p => p.id === input.id && !p.deletedAt) : null;
     if (input.id && !previous) throw new Error('找不到这个记忆点。');
     const fields = {};
-    for (const key of ['title', 'location', 'text', 'date', 'time', 'country', 'region', 'city', 'cityId']) {
+    for (const key of ['title', 'text', 'date', 'time', 'country', 'region', 'city', 'cityId']) {
       const value = input[key] ?? '';
       if (typeof value !== 'string' || value.length > 10000) throw new Error('记忆点内容无效。');
       fields[key] = value.trim();
     }
-    if (!fields.title && !fields.location && !fields.text && !previous?.hash && !bytes) throw new Error('请填写地点、文字或添加照片。');
+    if (!fields.title && !fields.city && !fields.region && !fields.country && !fields.text && !previous?.hash && !bytes) throw new Error('请填写地点、文字或添加照片。');
     const hasCoords = input.latitude != null || input.longitude != null;
     if (hasCoords && !coordinates(input.latitude, input.longitude)) throw new Error('请输入有效的纬度和经度。');
     if (!['visited', 'wish'].includes(input.visitStatus)) throw new Error('请选择到访状态。');

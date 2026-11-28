@@ -71,12 +71,12 @@ export function matchesItem(type,item,state=emptySearch, definitions=entityTypes
    item=knowledgeEntity(type,item);
    const values=searchValues(type,item,definitions);
    const parsed=parseQuery(state.query);
+   const includeBody=type!=='book'||defaultEnabled({type,key:'content',defaultOn:true});
+   const keywords=includeBody?[...values,...Object.values(extra)]:values;
    if(parsed.structured){
      const fields=queryFields(type,item);
-     const includeBody=type!=='book'||defaultEnabled({type,key:'content',defaultOn:true})&&state.includeBodyKeywords!==false;
-     const keywords=includeBody?[...values,...Object.values(extra)]:values;
      if(parsed.error || evaluateQuery(parsed.tree,keywords,withPropertyKeys({...fields,...extra},type==='book'?'content':'text'))!==true)return false;
-   }else if(!textMatches(values,state.query))return false;
+   }else if(!textMatches(keywords,state.query))return false;
  }
  if(!f.from && !f.to)return true;
  const rawDate=item.date||item.startDate||item.completedAt||item.createdAt||'';
@@ -87,14 +87,9 @@ export function matchesItem(type,item,state=emptySearch, definitions=entityTypes
 export const hasSearch=state=>Boolean(state.query.trim()||Object.values(state.filters||{}).some(Boolean));
 
 export function matchesCatalogItem(item, state, definitions = entityTypes) {
- const parsed=parseQuery(state.query);
- if(parsed.structured && definitions[item.type]?.fullText && (state.filters?.fulltext==='yes'||parsed.fields.includes('content')||parsed.fields.includes('正文')))
-   return matchesItem(item.type,item,{...state,includeBodyKeywords:state.filters?.fulltext==='yes'},definitions,{'正文':item[definitions[item.type].fullText]});
- if (matchesItem(item.type, item, state, definitions)) return true;
- const field = definitions[item.type]?.fullText;
- return Boolean(field && state.filters?.fulltext === 'yes' &&
-   matchesItem(item.type, item, { ...state, query: '' }, definitions) &&
-   defaultEnabled({type:item.type,key:'content',defaultOn:true}) && textMatches([item[field]], state.query));
+ const body=definitions[item.type]?.fullText;
+ return matchesItem(item.type,item,state,definitions,body?{'正文':item[body]}:{});
+
 }
 
 // A query strategy receives normalized catalog entities and returns their matching subset.
@@ -117,9 +112,9 @@ export function queryRelatedEntities(items, state, edges) {
      const values=searchValues(item.type,record);
      const fields=queryFields(item.type,record);
      const body=entityTypes[item.type]?.fullText;
-     if(body && (state.filters?.fulltext==='yes'||parsed.fields.includes('content')||parsed.fields.includes('正文'))){
+     if(body){
        fields['正文']=record[body];
-       if(state.filters?.fulltext==='yes' && defaultEnabled({type:'book',key:'content',defaultOn:true}))values.push(record[body]);
+       if(defaultEnabled({type:'book',key:'content',defaultOn:true}))values.push(record[body]);
      }
      contexts.set(item,{values,fields:withPropertyKeys(fields,item.type==='book'?'content':'text')});
    }

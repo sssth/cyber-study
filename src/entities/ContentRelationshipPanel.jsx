@@ -27,7 +27,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
  const memberTypes = [...new Set(members.map(member => member.type))];
  const accepts = item => memberTypes.length > 0 && memberTypes.every(type => canRelate({ type }, item));
  const selectionOrigin = useRef(null);
- const search=useSearchScope({id:source?`${tab==='view'?'related':'relations'}:${source.key}`:'relations',label:tab==='view'?translate("i18n.linkedContent"):translate("i18n.availableContent"),priority:100,enabled:Boolean(source),searchHost:()=>dialog.current,filters:[{key:'type',label:translate("i18n.type"),options:Object.entries(contentTypes).filter(([type])=>accepts({key:'category',type}))},{key:'fulltext',label:translate("i18n.bookText"),options:[['yes',translate("i18n.includeFullBookText")]]}],onApply:()=>{if(tab!=='view')setTab('existing');setCategory('');}});
+ const search=useSearchScope({id:source?`${tab==='view'?'related':'relations'}:${source.key}`:'relations',label:tab==='view'?translate("i18n.linkedContent"):translate("i18n.availableContent"),priority:100,enabled:Boolean(source),searchHost:()=>dialog.current,filters:[{key:'type',label:translate("i18n.type"),options:Object.entries(contentTypes).filter(([type])=>accepts({key:'category',type}))}],onApply:()=>{if(tab!=='view')setTab('existing');setCategory('');}});
  const close=()=>{window.dispatchEvent(new Event('cyber-close-search'));requestId.current++;dialog.current?.close();setSource(null);restoreFocus(returnFocus.current);};
  // Restore the originating filter before comparing its results with the saved
  // selection. The relation panel has its own search scope while it is open.

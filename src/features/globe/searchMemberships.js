@@ -1,6 +1,7 @@
+import {placeName} from '../../../shared/placeName.js';
 // Resolve both directions once per dataset. Keep stored member IDs for exact lookup.
 export function searchMemberships(photos=[],journeys=[]){
- const parents=new Map(),names=new Map(photos.filter(p=>!p.deletedAt).map(p=>[p.id,p.title||p.location||p.filename]));
+ const parents=new Map(),names=new Map(photos.filter(p=>!p.deletedAt).map(p=>[p.id,p.title||placeName(p)||p.filename]));
  for(const j of journeys){
    if(j.deletedAt)continue;
    for(const id of j.pointIds||[]){

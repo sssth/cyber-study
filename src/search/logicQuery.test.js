@@ -6,12 +6,12 @@ import {parseQuery} from './logicQuery.js';
 import {scopeFields} from './queryFields.js';
 
 test('field NONE checks actual applicable data and preserves literal NONE',()=>{
- const rows=[{type:'book',title:'书'},{type:'memory_point',location:'  ',city:'杭州'},{type:'memory_point',location:'NONE'}];
+ const rows=[{type:'book',title:'书'},{type:'memory_point',country:'  ',city:'杭州'},{type:'memory_point',country:'NONE'}];
  const find=query=>rows.filter(item=>matchesCatalogItem(item,{query,filters:{}}));
- assert.deepEqual(find('地点：NONE AND NOT 城市:NONE'),[rows[1]]);
- assert.deepEqual(find('location:"NONE"'),[rows[2]]);
- assert.deepEqual(find('NOT 地点:NONE'),[rows[2]]);
- assert.ok(matchesCatalogItem(entityRecord('memory_point',{id:'p',location:'苏州'},'苏州'),{query:'名称:NONE',filters:{}}));
+ assert.deepEqual(find('国家：NONE AND NOT 城市:NONE'),[rows[1]]);
+ assert.deepEqual(find('country:"NONE"'),[rows[2]]);
+ assert.deepEqual(find('NOT 国家:NONE'),[rows[2]]);
+ assert.ok(matchesCatalogItem(entityRecord('memory_point',{id:'p',country:'苏州'},'苏州'),{query:'名称:NONE',filters:{}}));
 });
 test('OR, implicit AND, parentheses and NOT have deterministic precedence',()=>{
  const book={title:'活着',author:'余华',tags:['重读']};
@@ -25,8 +25,8 @@ test('menus respect collection scope, active mode and catalog full text',()=>{
  const names=(id,filters)=>scopeFields({id},filters).map(f=>f.name);
  assert.ok(names('library').includes('正文'));
  assert.ok(scopeFields({id:'entity-catalog'}).some(f=>f.type==='book'&&f.key==='content'));
- assert.ok(scopeFields({id:'global'},{fulltext:'yes'}).some(f=>f.type==='book'&&f.key==='content'));
- assert.deepEqual(names('music',{musicTarget:'artist'}),['歌手']);
+ assert.ok(scopeFields({id:'global'}).some(f=>f.type==='book'&&f.key==='content'));
+ assert.ok(names('music').includes('歌手'));
  assert.ok(names('movie').includes('观看状态'));
 });
 
@@ -40,7 +40,7 @@ test('stored property names group titles across entities and keep distinct text 
    assert.ok(matchesItem(type,{title:'海'},{query:'Title:海'}));
  }
  assert.equal(matchesItem('playlist',{title:'海'},{query:'book.title:海'}),false);
- const state=query=>({query,filters:{fulltext:'yes'}});
+ const state=query=>({query,filters:{}});
  assert.ok(matchesCatalogItem({type:'book',content:'海'},state('content:海')));
  assert.equal(matchesCatalogItem({type:'book',content:'海'},state('text:海')),false);
  assert.ok(matchesItem('diary',{text:'海'},state('text:海')));
@@ -54,19 +54,19 @@ test('field ownership uses the properties written by journey and annotation edit
  const rows=fieldMenuRows(fields,true);
  assert.equal(rows.find(row=>row.key==='tags').hint,'全部实体');
  assert.deepEqual(new Set(rows.filter(row=>row.key==='bookTitle').map(row=>row.group)),new Set(['摘录专属','批注专属','抄写作品专属']));
- assert.equal(rows.find(row=>row.key==='location').group,'记忆点专属');
+ assert.equal(rows.find(row=>row.key==='city').group,'记忆点专属');
  assert.equal(matchesItem('journey',{description:'旧记事'},{query:'旧记事'}),false);
 });
 
 test('menu order and actual keyword search agree with the collection scopes', async()=>{
  const {fieldMenuRows}=await import('./queryFields.js');
  const keys=id=>fieldMenuRows(scopeFields({id}),true).map(row=>row.key);
- const geo=['country','region','city','location'];
+ const geo=['country','region','city'];
  assert.deepEqual(keys('globe').slice(0,3),['tags','title','text']);
  const catalog=keys('entity-catalog');
  assert.deepEqual(catalog.slice(0,3),['tags','title','text']);
  assert.ok(!catalog.includes('type'));
- assert.deepEqual(catalog.slice(catalog.indexOf('country'),catalog.indexOf('country')+4),geo);
+ assert.deepEqual(catalog.slice(catalog.indexOf('country'),catalog.indexOf('country')+geo.length),geo);
  for(const [type,fields] of Object.entries({music:['album','genre'],playlist:['description'],journey:['note','description'],memory_point:['caption','filename']})){
    for(const key of fields)assert.equal(matchesCatalogItem({type,title:'名称',[key]:'测试词'},{query:'测试词',filters:{}}),false);
  }
@@ -106,7 +106,7 @@ test('typed bounds, date spellings, choices and missing fields in entity queries
  for(const q of ['score:FROM','score:FROM 8 TO 1','score:TO hello'])assert.ok(parseQuery(q).error,q);
  assert.ok(matchesItem('todo',{}, {query:'done:NO AND showOnBoard:YES'}));
  assert.ok(matchesItem('book',{readingRecord:{progress:0.6}}, {query:'readingStatus:在读'}));
- assert.ok(matchesItem('memory_point',{hash:'real'}, {query:'photo:YES AND location:NONE'}));
+ assert.ok(matchesItem('memory_point',{hash:'real'}, {query:'photo:YES AND country:NONE'}));
  assert.ok(matchesItem('diary',{photos:['saved']}, {query:'photo:YES'}));
  assert.ok(matchesCatalogItem({type:'book',content:'独特原文'},{query:'content:独特原文'}));
  assert.equal(match('想看'),false);
@@ -161,4 +161,18 @@ test('private provider choices belong to the selected entity',async()=>{
  assert.ok(!matchesItem('music',{provider:'qq'},{query:'playlist.provider:qq'}));
  assert.ok(matchesItem('music',{provider:'qq'},{query:'provider:qq'}));
  assert.ok(matchesItem('diary',{date:'2021-01-01'},{query:'diary.date:FROM 2021年1月1号'}));
+});
+
+test('catalog keywords follow the book content preference; explicit content always works',async()=>{
+ const {preferences}=await import('./typedFields.js');
+ const prefs=preferences(),previous=prefs.book;
+ const book={type:'book',title:'旅行',content:'杭州'};
+ try{
+   for(const enabled of [false,true]){
+     prefs.book={content:enabled};
+     assert.equal(matchesCatalogItem(book,{query:'旅行 杭州'}),enabled);
+     assert.equal(matchesCatalogItem(book,{query:'TYPE book AND 杭州'}),enabled);
+     assert.ok(matchesCatalogItem(book,{query:'content:杭州'}));
+   }
+ }finally{if(previous)prefs.book=previous;else delete prefs.book;}
 });

@@ -1,6 +1,15 @@
 import { contains } from './geographyMath.js';
 import { matchesItem } from '../../search/searchCore.js';
 
+import {parseQuery} from '../../search/logicQuery.js';
+
+function includesJourney(node,negated=false){
+  if(!node)return false;
+  if(node.op==='NOT')return includesJourney(node.a,!negated);
+  if(node.op)return includesJourney(node.a,negated)||includesJourney(node.b,negated);
+  return !negated && node.field==='type' && node.exact==='journey';
+}
+
 export function filterGlobeMemories(photos, journeys, search, region = null, geometry = null) {
   // Only the query and search mode apply here; obsolete date/status filters must not leak in.
   if (region) photos = photos.filter(p => {
@@ -9,10 +18,9 @@ export function filterGlobeMemories(photos, journeys, search, region = null, geo
   });
   const query = { query: search?.query || '', filters: {} };
   const activeJourneys = journeys.filter(j => !j.deletedAt);
-  if (search?.filters?.searchBy === 'journey') {
-    const visibleJourneys = activeJourneys.filter(j => matchesItem('journey', j, query));
-    const ids = new Set(visibleJourneys.flatMap(j => j.pointIds || []));
-    return { visibleJourneys, visiblePhotos: photos.filter(p => !p.deletedAt && ids.has(p.id)) };
-  }
-  return { visibleJourneys: activeJourneys, visiblePhotos: photos.filter(p => matchesItem('memory_point', p, query)) };
+  const journeySearch=includesJourney(parseQuery(query.query).tree);
+  const visibleJourneys=journeySearch?activeJourneys.filter(j=>matchesItem('journey',j,query)):activeJourneys;
+  const members=journeySearch?new Set(visibleJourneys.flatMap(j=>j.pointIds||[])):null;
+  const visiblePhotos=photos.filter(p=>!p.deletedAt && (members?.has(p.id)||matchesItem('memory_point',p,query)));
+  return {visibleJourneys,visiblePhotos,journeySearch};
 }

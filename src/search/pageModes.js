@@ -7,7 +7,7 @@ export function musicSearchFilters(tracks){
 }
 
 export function geographySearchFilters(){
- return [{key:'searchBy',label:t("i18n.searchBy2"),defaultLabel:t("i18n.byMemoryPin"),options:[['',t("i18n.byMemoryPin")],['journey',t("i18n.byTrip")]]}];
+ return [{key:'type',label:t("i18n.type"),options:[['memory_point',t("i18n.memoryPin")],['journey',t("i18n.trip")]]}];
 }
 
 export function readerSearchFilters(){
@@ -15,5 +15,5 @@ export function readerSearchFilters(){
 }
 
 export function globalSearchFilters(){
- return [{key:'type',label:t("i18n.contentType"),options:Object.entries(contentTypes)},{key:'fulltext',label:t("i18n.bookText"),options:[['yes',t("i18n.includeFullBookText")]]}];
+ return [{key:'type',label:t("i18n.contentType"),options:Object.entries(contentTypes)}];
 }

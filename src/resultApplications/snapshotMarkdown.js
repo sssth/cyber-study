@@ -1,3 +1,4 @@
+import {placeName} from '../../shared/placeName.js';
 import { translate } from '../i18n/index.js';
 import { contentTypes, entityTypes } from '../entities/registry.js';
 import chinese from '../../electron/i18n/zh-CN.json' with { type: 'json' };
@@ -17,9 +18,9 @@ export function snapshotMarkdown({entities,source,scope,time}){
     if(applied) lines.push('筛选 · '+translate(field.label)+'：'+translate(field.options?.find(([id])=>id===applied)?.[1] ?? applied));
   }
   lines.push('收录说明：仅含文字，不含附件。成员和来源名称是引用，不代表另收录了完整实体。');
-  const names=new Map(entities.map(({key,record})=>[key,record.title || record.location || record.filename]));
+  const names=new Map(entities.map(({key,record})=>[key,record.title || placeName(record) || record.filename]));
   entities.forEach(({type,record},index)=>{
-    const heading=value(record.title || record.bookTitle || record.location || record.date || record.text || record.quote).split('\n')[0].slice(0,80);
+    const heading=value(record.title || record.bookTitle || placeName(record) || record.date || record.text || record.quote).split('\n')[0].slice(0,80);
     lines.push('','## '+String(index+1).padStart(2,'0')+'｜'+chinese[contentTypes[type]]+(heading?'｜'+heading:''));
     const add=(label,input)=>{const body=value(input);if(body) lines.push('','**'+label+'**', '',body);};
     for(const pair of (entityTypes[type]?.snapshot || '').split(' ')){

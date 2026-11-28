@@ -4,7 +4,7 @@ import {typeNames as labels,additional,meanings} from './typedFields.js';
 const names = {
  tags:'标签', author:'作者', content:'正文', quote:'摘录原文', bookTitle:'来源书名', chapterTitle:'章节标题',
  annotation:'批注', text:'正文', mood:'心情', genres:'影片类型', artist:'歌手', album:'专辑', genre:'风格',
- description:'描述', note:'备注', location:'地点', country:'国家', city:'城市', caption:'说明', filename:'文件名'
+ description:'描述', note:'备注', country:'国家', city:'城市', caption:'说明', filename:'文件名'
 };
 const titles = {book:'书名',movie:'片名',playlist:'歌单名',music:'曲名',memory_point:'名称',journey:'旅途名',typing_work:'作品标题',memo:'便签标题'};
 function field(type,key) {
@@ -15,7 +15,7 @@ function field(type,key) {
 // Stable English spellings can be typed or pasted in either interface language.
 const aliases = {标签:'tags',作者:'author',正文:'text',摘录原文:'quote',来源书名:'bookTitle',章节标题:'chapterTitle',
  批注:'annotation',心情:'mood',影片类型:'genres',歌手:'artist',专辑:'album',风格:'genre',描述:'description',
- 备注:'note',地点:'location',国家:'country',城市:'city',说明:'caption',文件名:'filename',
+ 备注:'note',国家:'country',城市:'city',说明:'caption',文件名:'filename',
  书名:'book.title',片名:'movie.title',歌单名:'playlist.title',曲名:'music.title',名称:'memory_point.title',
  旅途名:'journey.title',作品标题:'typing_work.title',便签标题:'memo.title','电影.地区':'movie.region','记忆点.地区':'memory_point.region'};
 
@@ -60,7 +60,7 @@ for(const type of Object.keys(entityTypes)) {
 // Geographic region follows country; movie production region belongs with genres.
 const menuOrder = ['tags','title','text','bookTitle','chapterTitle',
  'author','content','mood','genres','movie.region','artist',
- 'country','region','city','location'];
+ 'country','region','city'];
 
 const commonKeys=['tags','title','text','photo','createdAt','updatedAt'];
 const types=Object.keys(entityTypes);
@@ -101,7 +101,7 @@ export function settingsFieldRows(fields,chinese){
 
 export function scopeFields(scope,filters={}) {
  const id=(scope.id||'').replace(/^projection:/,'');
- const all = type=>entityFields(type,filters.fulltext==='yes');
+ const all = type=>entityFields(type);
  if (/^(global$|entity-(catalog|graph|trash)$|related:|relations:)/.test(id))
    return (scope.filters?.find(f=>f.key==='type')?.options.map(([type])=>type) ?? Object.keys(entityTypes))
      .filter(type=>!filters.type||type===filters.type).flatMap(type=>entityFields(type,true));
@@ -112,14 +112,10 @@ export function scopeFields(scope,filters={}) {
  if(id==='diary' && scope.textOnly)return [field('diary','text')];
  if(id==='typewriter-original')return [field('typing_work','text')];
  if(id==='typewriter-source')return all('book');
- if(id==='music') {
-   const target=filters.musicTarget;
-   if(!target)return [...all('playlist'),...all('music')];
-   const fields=[field('playlist','title'),field('playlist','tags'),field('music','title'),field('music','artist'),field('music','tags')];
-   return fields.filter(f=>!target || (target==='playlist'?f.type==='playlist':f.type==='music' && f.key===(target==='artist'?'artist':'title')));
- }
+ if(id==='music')return [...all('playlist'),...all('music')];
  if(id==='memo')return (scope.entityView && scope.entityView!=='board'?[scope.entityView==='todo'?'todo':'memo']:['memo','todo'])
    .filter(type=>!filters.type||filters.type===type).flatMap(all);
- const types={movie:'movie',diary:'diary',typewriter:'typing_work',journey:'journey',globe:'memory_point','catalog-journey-points':'memory_point',geography:filters.searchBy==='journey'?'journey':'memory_point','projection-geography':filters.searchBy==='journey'?'journey':'memory_point'};
+ if(id==='geography'||id==='projection-geography')return [...all('memory_point'),...all('journey')];
+ const types={movie:'movie',diary:'diary',typewriter:'typing_work',journey:'journey',globe:'memory_point','catalog-journey-points':'memory_point'};
  return types[id]?all(types[id]):[];
 }
