@@ -8,7 +8,7 @@ export default function ParentMembershipPicker({type, parents, selectedIds, upda
   const legend = translate(playlist ? 'i18n.memberPlaylists' : 'i18n.memberJourneys');
   const scopeId = (workspaceHost ? 'projection:' : '') + type + '-membership';
   const search = useSearchScope({id:scopeId, label:legend, priority:workspaceHost ? 1050 : 70,
-    filters:[], hostKey:workspaceHost, searchHost:workspaceHost ? ()=>workspaceHost.querySelector('dialog[open]') || workspaceHost : undefined});
+    filters:[], hostKey:workspaceHost, searchHost:workspaceHost ? ()=>workspaceHost : undefined});
   const candidates = parents.filter(parent=>matchesItem(type,parent,search));
   useSearchCount(scopeId,candidates.length);
   const byId = new Map(parents.map(parent=>[parent.id,parent]));

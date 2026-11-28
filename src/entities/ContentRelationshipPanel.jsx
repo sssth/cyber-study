@@ -18,7 +18,7 @@ import { memoPosition } from '../features/memo/memoLayout.js';
 import { commandTargetMode, setCommandTargetMode } from '../ui/commandTarget.js';
 const emptyBooks=[];
 const destinations = [['diary', "i18n.todaySEntryAppendIfPresent"], ['memo', "i18n.memoNote"], ['todo', "i18n.toDo"]];
-const relatedPreview = item => item?.annotation || item?.quote || item?.text || item?.caption || item?.note || item?.description;
+const relatedPreview = item => item?.text || item?.annotation || item?.quote || item?.caption || item?.note || item?.description;
 
 export default function ContentRelationshipPanel({books=emptyBooks, onNavigate}){
  const dialog=useRef(null),returnFocus=useRef(null),requestId=useRef(0), editItem=useRef(null);
@@ -35,7 +35,7 @@ export default function ContentRelationshipPanel({books=emptyBooks, onNavigate})
    if (source || !selectionOrigin.current) return;
    const origin = selectionOrigin.current;
    selectionOrigin.current = null;
-   if (origin.searchId) window.dispatchEvent(new CustomEvent('cyber-open-search', { detail: { id: origin.searchId } }));
+   if (origin.searchId) window.dispatchEvent(new CustomEvent('cyber-open-search', { detail: { id: origin.searchId, focus: false } }));
    const frame = requestAnimationFrame(() => restoreSelection(origin.selection));
    return () => cancelAnimationFrame(frame);
  }, [source]);

@@ -17,6 +17,7 @@ const formerMovementArrows = { w: '↑', a: '←', s: '↓', d: '→' };
 export function shortcutGroups(scene) {
   return [
     ["i18n.general", 'global', [
+      ['openAI', 'i18n.openAIWindow', ['Shift+Cmd+D', 'Alt+Shift+D']],
       ['search', "i18n.searchEntities", ['Shift+Cmd+Z', 'Alt+Shift+Z']],
       ['createContent', "i18n.createEntity", ['Shift+Cmd+A', 'Alt+Shift+A']],
       ['snapshot', "i18n.saveEntitySnapshot", ['Shift+Cmd+S', 'Alt+Shift+S']],
@@ -46,7 +47,7 @@ export function shortcutGroups(scene) {
   ].filter(([, , actions]) => actions.length);
 }
 
-const storageKey = 'cyber-study.shortcuts.v2';
+const storageKey = 'cyber-study.shortcuts.v3';
 
 export function defaultShortcuts(groups) {
   return Object.fromEntries(groups.flatMap(([, , actions]) => actions.map(([id, , keys]) => [id, keys])));
@@ -57,6 +58,14 @@ export function loadShortcuts(groups) {
   let legacy;
   try {
     saved = JSON.parse(localStorage.getItem(storageKey));
+    if (!saved) {
+      saved = JSON.parse(localStorage.getItem('cyber-study.shortcuts.v2'));
+      const previous = saved?.openAI;
+      if (Array.isArray(previous) && previous.length === 1 && previous[0] === 'Shift+Cmd+D' &&
+          !Object.values(saved).some(keys => Array.isArray(keys) && keys.includes('Alt+Shift+D'))) {
+        saved.openAI = [...previous, 'Alt+Shift+D'];
+      }
+    }
   } catch {
     saved = null;
   }

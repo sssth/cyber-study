@@ -1,3 +1,4 @@
+import {calendarDay} from '../../search/typedFields.js';
 import { matchesItem } from '../../search/searchCore.js';
 
 export const movieFilters = [
@@ -12,7 +13,8 @@ export const movieFilters = [
 export function matchesMovie(movie, search) {
   const {from, to, watchStatus, ...filters} = search.filters;
   if (watchStatus && (movie.status || '想看') !== watchStatus) return false;
-  if ((from || to) && (!movie.watchedOn || movie.watchedOn < (from || '') || (to && movie.watchedOn > to))) return false;
+  const watched=calendarDay(movie.watchedOn);
+  if ((from || to) && (!watched || watched < (from || '') || (to && watched > to))) return false;
   for (const field of ['score','personalScore']) {
     const min = filters[field + 'Min'], max = filters[field + 'Max'];
     if (!min && !max) continue;

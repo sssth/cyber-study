@@ -80,7 +80,7 @@ export default function DiaryPanel({ onClose, navigationItem, editItem }) {
 
   const [mode, setMode] = useNavigationState('diary','mode',navigationItem?.type === 'diary' ? 'read' : 'write', { preferInitial:navigationItem?.type === 'diary' });
   useActivityTime('diary', mode === 'write' || Boolean(editItem));
-  const search=useSearchScope({id:'diary',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : dateFilters,onApply:()=>{}});
+  const search=useSearchScope({id:'diary',textOnly:mode==='write',label:translate("i18n.journal"),priority:10,filters:mode === 'write' ? [] : dateFilters,onApply:()=>{}});
   const [opened, setOpened] = useNavigationState('diary','opened',() => navigationItem?.type === 'diary' ? navigationItem.id : null, { preferInitial:navigationItem?.type === 'diary' });
   const [cropIndex,setCropIndex]=useState(null);
   const [editing, setEditing] = useState(() => editItem?.id ?? entries.find(entry => diaryDay(entry.date) === diaryDay())?.id ?? null);

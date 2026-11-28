@@ -15,8 +15,8 @@ import ContentActions from '../ContentActions.jsx';
 import { useState } from 'react';
 import { loadCities, nodeById } from './geography.js';
 
-const blank = { title: '', location: '', caption: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
-const label = p => p.title || p.location || p.filename || p.caption?.slice(0, 40) || translate("i18n.untitledMemoryPin");
+const blank = { title: '', location: '', text: '', date: '', time: '', country: '', region: '', city: '', cityId: '', latitude: '', longitude: '', visitStatus: 'wish' };
+const label = p => p.title || p.location || p.filename || p.text?.slice(0, 40) || translate("i18n.untitledMemoryPin");
 
 export default function MemoryEditor({ mode, photos, journeys = [], editJourney, onClose, error, busy, request, onBrowsePoints, initialPoint, onSaved, onDelete, searchState, workspaceHost }) {
   const order = useContentOrder();
@@ -25,7 +25,7 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
   const [photoError, setPhotoError] = useState('');
   const [readingPhoto, setReadingPhoto] = useState(false);
   const preview = useFilePreview(photoFile) || point.photo || point.thumbnail;
-  const [journey, setJourney] = useState(editJourney || { title: '', note: '', pointIds: [] });
+  const [journey, setJourney] = useState(editJourney || { title: '', text: '', pointIds: [] });
   const [originalJourneys] = useState(()=>journeys.filter(j=>j.pointIds?.includes(initialPoint?.id)).map(j=>j.id));
   const [selectedJourneys,setSelectedJourneys] = useState(originalJourneys);
   const [cities, setCities] = useState([]);
@@ -67,12 +67,12 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
   const candidates = active.filter(p => matchesItem('memory_point', p, searchState));
   const [journeyEditorOpen, setOpen] = useState(Boolean(editJourney));
   const setJourneyEditorOpen = open => {setOpen(open); if (!open && editJourney) onClose();};
-  if (mode === 'journey') { const editor = (<ActionWorkspace kind={journey.id ? "edit" : "create"} portalHost={workspaceHost} disabled={busy} onCreate={() => { setRemove(false); setJourney({ title: '', note: '', pointIds: [] }); }} label={translate("i18n.newTrip")} title={journey.id ? translate("i18n.editTrip") : translate("i18n.newTrip")} open={journeyEditorOpen} onOpenChange={setJourneyEditorOpen}><form className="stack-form" onSubmit={async e => { e.preventDefault(); if (await request('journey', journey)) setJourneyEditorOpen(false); }}>
+  if (mode === 'journey') { const editor = (<ActionWorkspace kind={journey.id ? "edit" : "create"} portalHost={workspaceHost} disabled={busy} onCreate={() => { setRemove(false); setJourney({ title: '', text: '', pointIds: [] }); }} label={translate("i18n.newTrip")} title={journey.id ? translate("i18n.editTrip") : translate("i18n.newTrip")} open={journeyEditorOpen} onOpenChange={setJourneyEditorOpen}><form className="stack-form" onSubmit={async e => { e.preventDefault(); if (await request('journey', journey)) setJourneyEditorOpen(false); }}>
       <WorkspaceFields><EntityTagsField type="journey" item={journey}/>
         {error && <p role="alert">{translateError(error)}</p>}
         <h3>{journey.id ? translate("i18n.editTrip") : translate("i18n.newTrip")}</h3>
         <label>{translate("i18n.tripName")}<input required maxLength={200} value={journey.title} onChange={e => setJourney({ ...journey, title: e.target.value })} /></label>
-        <label>{translate("i18n.tripDescription")}<textarea value={journey.note} onChange={e => setJourney({ ...journey, note: e.target.value })} /></label>
+        <label>{translate("i18n.tripDescription")}<textarea value={journey.text} onChange={e => setJourney({ ...journey, text: e.target.value })} /></label>
         <label>{translate("i18n.startDate")}<input type="date" value={journey.startDate||''} onChange={e=>setJourney({...journey,startDate:e.target.value})}/></label><label>{translate("i18n.endDate")}<input type="date" value={journey.endDate||''} onChange={e=>setJourney({...journey,endDate:e.target.value})}/></label>
         <OrderedMemberPicker legend={translate("i18n.addMemoryPin")} disabled={busy}
           candidates={candidates} selectedIds={journey.pointIds}
@@ -88,7 +88,7 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
           const result = await request('journey', { id: journey.id, remove: true });
           if (!result || result.canceled) return;
           setRemove(false);
-          setJourney({ title: '', note: '', pointIds: [] });
+          setJourney({ title: '', text: '', pointIds: [] });
           setJourneyEditorOpen(false);
         }}>{translate("i18n.deleteTrip")}</button>
       </> : <>
@@ -125,7 +125,7 @@ export default function MemoryEditor({ mode, photos, journeys = [], editJourney,
       <div className="globe-toolbar" hidden={!matches.length}>{matches.map(c => <button key={c.id} type="button" onClick={() => {
         setPoint({ ...point, location: c.name, city: c.name, cityId: c.id, country: nodeById.get(c.country_id)?.name || '', region: nodeById.get(c.region_id)?.name || '', latitude: c.latitude, longitude: c.longitude }); setQuery(c.name); setSearching(false);
       }}>{c.name} · {[nodeById.get(c.country_id)?.name, nodeById.get(c.region_id)?.name].filter(Boolean).join(' / ')}</button>)}</div>
-      <label>{translate("i18n.memoryNotes")}<textarea value={point.caption} onChange={e => set('caption', e.target.value)} /></label>
+      <label>{translate("i18n.memoryNotes")}<textarea value={point.text} onChange={e => set('text', e.target.value)} /></label>
       <label>{translate("i18n.visitStatus2")}<select value={point.visitStatus} onChange={e => set('visitStatus', e.target.value)}><option value="visited">{translate("i18n.visited")}</option><option value="wish">{translate("i18n.wantToVisit")}</option></select></label>
       <label>{translate("i18n.date")}<input type="date" value={point.date || ''} onChange={e => set('date', e.target.value)} /></label>
       <ImageFileField label={translate("i18n.nativePhotos")} accept=".jpg,.jpeg,.png,.webp,.heic,.heif"

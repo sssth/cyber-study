@@ -1,3 +1,4 @@
+import {geographySearchFilters} from '../../search/pageModes.js';
 import { translate } from '../../i18n/index.js';
 import { useNavigationState } from '../../ui/useNavigationState.js';
 import {setSearch} from '../../search/searchStore.js';
@@ -23,7 +24,7 @@ export default function useGeography(issue, enabled=true, scope='geography', ini
   const [worldFeatures,setWorldFeatures]=useState([]);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [revision, setRevision] = useState(0);
   useEffect(()=>{let active=true;loadRegions(null).then(rows=>{if(active)setWorldFeatures(rows)}).catch(()=>{});return()=>{active=false}},[revision]);
-  const search=useSearchScope({id:scope,label:translate("i18n.memoryPin"),priority:scope.startsWith('projection')?1020:20,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,enabled,exactCount:true,filters:[{key:'searchBy',label:translate("i18n.searchBy2"),defaultLabel:translate("i18n.byMemoryPin"),options:[['',translate("i18n.byMemoryPin")],['journey',translate("i18n.byTrip")]]}]});
+  const search=useSearchScope({id:scope,label:translate("i18n.memoryPin"),priority:scope.startsWith('projection')?1020:20,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost:undefined,enabled,exactCount:true,filters:geographySearchFilters()});
   const query=search.query;const setQuery=query=>setSearch(scope,{query,filters:{}});const [limit,setLimit]=useState(40);
   useEffect(() => { let active = true; loadCities().then(rows => { if (active) setCities(rows); }).catch(() => { if(active) setError(translate("i18n.couldNotLoadCitiesTryAgain")); }); return () => { active = false; }; }, [revision]);
   useEffect(() => {

@@ -1,7 +1,7 @@
-import {termsOf,normalize} from '../../search/searchCore.js';
+import {highlightTerms,normalize} from '../../search/searchCore.js';
 // Keep offsets in the original text even when normalization changes glyph width.
 export function readingMatches(text, query) {
- const terms=[...new Set(termsOf(query))];if(!terms.length)return [];
+ const terms=[...new Set(highlightTerms(text,query,'content'))];if(!terms.length)return [];
  let normalized='',offset=0;const starts=[],ends=[];
  for(const char of text){const value=normalize(char);for(let i=0;i<value.length;i++){starts.push(offset);ends.push(offset+char.length);}normalized+=value;offset+=char.length;}
  const found=new Map();

@@ -26,7 +26,7 @@ test('import, duplicate detection, reopen, confirm location, trash and restore p
   assert.equal((await reopened.load()).photos[0].latitude, 0);
   assert.equal((await reopened.add(Buffer.from('photo'))).inTrash, true);
   await reopened.update([record.id], { deletedAt: null });
-  assert.equal((await reopened.load()).photos[0].caption, 'equator');
+  assert.equal((await reopened.load()).photos[0].text, 'equator');
   assert.equal((await reopened.load()).photos[0].locationStatus, 'confirmed');
 });
 test('migration is idempotent and never accepts legacy random coordinates', async t => {
@@ -56,7 +56,7 @@ test('full backup restores into empty library, preserves trash, and merges witho
   assert.ok((await target.load()).photos[0].deletedAt);
   await target.update([record.id], { caption: 'newer edit' });
   assert.equal((await target.restore(folder)).added, 0);
-  assert.equal((await target.load()).photos[0].caption, 'newer edit');
+  assert.equal((await target.load()).photos[0].text, 'newer edit');
 });
 test('damaged backup and path traversal hash rejected without changing library', async t => {
   const { root, repo } = await fixture(t);
@@ -178,4 +178,20 @@ test('point-side edits save the same journey stops atomically and preserve other
   assert.equal(saved.photos[0].title,'Renamed');
   await assert.rejects(repo.savePoint({...change,title:'Unsaved',addJourneys:['missing']}));
   assert.deepEqual(await repo.load(),saved);
+});
+
+test('old globe text migrates on disk for points, journeys and recycled journeys',async t=>{
+ const {root,repo}=await fixture(t);
+ const file=path.join(root,'library','library.json');
+ await fs.mkdir(path.dirname(file),{recursive:true});
+ const trip={id:'j',title:'旅行',note:'行程说明',pointIds:['p']};
+ await fs.writeFile(file,JSON.stringify({version:2,migrations:[],photos:[{id:'p',location:'',locationStatus:'pending',date:'',caption:'照片说明'}],journeys:[trip],deletedJourneys:[{...trip,id:'old'}]}));
+ await Promise.all([repo.load(),repo.load()]);
+ const data=JSON.parse(await fs.readFile(file));
+ assert.equal(data.photos[0].text,'照片说明');
+ assert.ok(!('caption' in data.photos[0]));
+ for(const row of [...data.journeys,...data.deletedJourneys]){
+   assert.equal(row.text,'行程说明');
+   assert.ok(!('note' in row));
+ }
 });

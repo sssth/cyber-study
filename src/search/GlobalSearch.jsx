@@ -1,14 +1,19 @@
+import {globalSearchFilters} from './pageModes.js';
 import { translate } from '../i18n/index.js';
 import useResultSource, {resultEntities} from '../results/useResultSource.js';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {useSearchCount,useSearchScope} from './useSearchScope.jsx';
-import {queryEntities,searchValues,hasSearch} from './searchCore.js';
+import {queryRelatedEntities,searchValues,hasSearch} from './searchCore.js';
 import { contentTypes } from '../entities/registry.js';
 import { readCatalog } from '../entities/readCatalog.js';
 
+import {graphEdges} from '../entities/edges.js';
+import {loadSpaceData} from '../data/spaceStorage.js';
+import {parseQuery} from './logicQuery.js';
+
 export default function GlobalSearch({books,enabled,onOpen}){
  const [visible,setVisible]=useState(false),[items,setItems]=useState([]),[loading,setLoading]=useState(false),[error,setError]=useState(''),[limit,setLimit]=useState(40),[revision,setRevision]=useState(0);
- const state=useSearchScope({id:'global',label:translate("i18n.entireStudy"),priority:0,enabled,filters:[{key:'type',label:translate("i18n.contentType"),options:Object.entries(contentTypes)},{key:'fulltext',label:translate("i18n.bookText"),options:[['yes',translate("i18n.includeFullBookText")]]}],onApply:()=>{setVisible(true);setLimit(40);}});
+ const state=useSearchScope({id:'global',relatedSearch:true,label:translate("i18n.entireStudy"),priority:0,enabled,filters:globalSearchFilters(),onApply:()=>{setVisible(true);setLimit(40);}});
  useEffect(()=>{if(!enabled)setVisible(false);},[enabled]);
  useEffect(()=>{const change=e=>{setVisible(e.detail.id==='global');setLimit(40);};window.addEventListener('cyber-search-visibility',change);return()=>window.removeEventListener('cyber-search-visibility',change);},[]);
  useEffect(() => {
@@ -37,7 +42,11 @@ export default function GlobalSearch({books,enabled,onOpen}){
   return () => window.removeEventListener('cyber-content-changed', refresh);
  }, [visible, enabled]);
 
- const results=queryEntities(items,state).sort((a,b)=>{const q=state.query.trim().toLowerCase();return Number(b.title.toLowerCase()===q)-Number(a.title.toLowerCase()===q)||a.title.localeCompare(b.title,'zh-CN');});
+ const parsed=parseQuery(state.query,true);
+ const expand=parsed.related;
+ const titleTerm=parsed.tree?.op==='RELATED' && parsed.tree.a.value || state.query.trim().toLowerCase();
+ const edges=useMemo(()=>expand?graphEdges(items,loadSpaceData('content-relations',[])):[],[expand,items,revision]);
+ const results=queryRelatedEntities(items,state,edges).sort((a,b)=>{return Number(b.title.toLowerCase()===titleTerm)-Number(a.title.toLowerCase()===titleTerm)||a.title.localeCompare(b.title,'zh-CN');});
  useResultSource({ scopeId: 'global', priority:0,enabled,loading:visible&&hasSearch(state)&&loading,plain:!visible||!hasSearch(state),matches:visible&&hasSearch(state)?results:[]});
  useSearchCount('global',loading?null:results.length);
  if(!visible||!enabled||!hasSearch(state)||(!loading&&!error&&!results.length))return null;

@@ -1,3 +1,4 @@
+import {loadReaderState} from '../library/storage.js';
 import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
@@ -11,7 +12,7 @@ import { usePageBackMatcher } from '../../ui/useEscapeBack.js';
 import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus,dateFilters} from '../../search/useSearchScope.jsx';
-import {matchesItem,textMatches,hasSearch,termsOf} from '../../search/searchCore.js';
+import {matchesItem,highlightTerms} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
 import { createPortal } from 'react-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -129,13 +130,14 @@ export default function TypewriterPanel({ onClose, importedBooks = [], initialSo
     selectedChapterId = matchingChapter?.id ?? (savedChapter === '全文' || savedChapter === '整本书' ? 'whole' : 'saved-source');
     if (selectedChapterId === 'saved-source') chapterOptions.push({ id: 'saved-source', title: savedChapter || translate("i18n.selectedText") });
   }
-  const visibleBooks = bookOptions.filter(option => matchesItem('book',option,sourceSearch));
+  const sourceReading=sourceSearch.query?loadReaderState().books:{};
+  const visibleBooks = bookOptions.filter(option => matchesItem('book',{...option,readingRecord:sourceReading[option.id]},sourceSearch));
   useSearchCount('typewriter-source', visibleBooks.length);
   const selected=source||{bookId,bookTitle:book?.title||'',chapterTitle:chapterId==='whole'?'全文':chapters.find(c=>c.id===chapterId)?.text||'',text:blocks.filter(b=>chapterId==='whole'||chapterByBlock.get(b.id)===chapterId).map(b=>b.text).join('\n')};
   const storedTitle = selected.title || `${selected.bookTitle} · ${selected.chapterTitle}`;
   const selectedTitle = displayWorkTitle(selected, chapters.find(chapter => chapter.id === selectedChapterId));
   const originalParts=useMemo(()=>{
-    const terms=termsOf(writingSearch.query).sort((a,b)=>b.length-a.length);
+    const terms=highlightTerms(selected.text,writingSearch.query).sort((a,b)=>b.length-a.length);
     if(!terms.length)return [{text:selected.text,match:false}];
     const pattern=new RegExp(terms.map(term=>term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'giu');
     const parts=[];let cursor=0;

@@ -1,3 +1,4 @@
+import {searchMemberships} from '../features/globe/searchMemberships.js';
 import { parseMarkdownContent } from '../features/library/markdownReader.js';
 import { indexChapters } from '../features/library/readerPosition.js';
 import { loadKnowledge } from '../features/library/knowledgeStore.js';
@@ -24,7 +25,7 @@ export function buildCatalog({ books = [], globe = {}, definitions = entityTypes
     }
     return {...note,chapterTitle:chapters.get(book.id).get(blockId)};
   });
-  const context = { books, globe, notes, list };
+  const context = { books, globe:searchMemberships(globe.photos,globe.journeys), notes, list };
   const result = new Map();
   for (const [type, definition] of Object.entries(definitions)) {
     for (const item of definition.read(context)) {

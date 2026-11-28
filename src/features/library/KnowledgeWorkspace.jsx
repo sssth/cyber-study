@@ -1,4 +1,4 @@
-import { entityTags } from '../../entities/tags.js';
+import {knowledgeEntity} from '../../data/knowledgeRecords.js';
 import EntityTagsField from '../../entities/EntityTagsField.jsx';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { translate, translateError } from '../../i18n/index.js';
@@ -11,7 +11,7 @@ import { useNavigationState, useNavigationScroll } from '../../ui/useNavigationS
 import { excerptRange } from './excerptRange.js';
 import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope} from '../../search/useSearchScope.jsx';
-import {matchesItem,textMatches,hasSearch} from '../../search/searchCore.js';
+import {searchValues,queryFields,matchFields,hasSearch} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
 import PagedItems from '../../ui/PagedItems.jsx';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -58,7 +58,16 @@ function KnowledgeWorkspace({ editItem, shelfMenu, navigationItem, onStartCopy, 
   const filtered = entries.filter(({ note, items, chapter }) =>
     (!search.filters.excerptType || excerptAppearance(note).excerptType === search.filters.excerptType) &&
     (!bookId || note.bookId === bookId) && (!search.filters.id||items.some(i=>i.id===search.filters.id)) &&
-    (!search.query.trim() || textMatches([note.bookTitle,chapter,note.quote,entityTags('excerpt',note),...items.flatMap(item=>[item.annotation,item.annotation ? entityTags('annotation',item) : []])],search.query)));
+    (!search.query.trim() || (() => {
+      const records=[['excerpt',note],...items.filter(n=>n.annotation).map(n=>['annotation',n])];
+      const fields={},values=[];
+      for(const [type,row] of records){
+        const item={...knowledgeEntity(type,row),chapterTitle:chapter};
+        values.push(...searchValues(type,item));
+        for(const [key,value] of Object.entries(queryFields(type,item)))(fields[key]??=[]).push(value);
+      }
+      return matchFields(values,fields,search.query);
+    })()));
   useSearchCount('knowledge',filtered.length);
   useLayoutEffect(() => {
     if (!editItem || detailKey) window.dispatchEvent(new Event('cyber-close-search'));

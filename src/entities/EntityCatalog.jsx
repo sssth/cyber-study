@@ -6,7 +6,7 @@ import { orderCatalog, orderType, reorderVisible } from '../data/contentOrder.js
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { contentTypes } from './registry.js';
 import { readCatalog } from './readCatalog.js';
-import { hasSearch, queryEntities } from '../search/searchCore.js';
+import { hasSearch, queryRelatedEntities } from '../search/searchCore.js';
 import { useSearchCount, useSearchScope } from '../search/useSearchScope.jsx';
 import useResultSource from '../results/useResultSource.js';
 import { FeaturePanel } from '../features/ui.jsx';
@@ -15,6 +15,7 @@ import DisplayViewMenu from '../ui/DisplayViewMenu.jsx';
 import { useNavigationState } from '../ui/useNavigationState.js';
 import { loadSpaceData } from '../data/spaceStorage.js';
 import { graphEdges } from './edges.js';
+import { parseQuery } from '../search/logicQuery.js';
 import EntityGraph from '../resultApplications/EntityGraph.jsx';
 import StatisticsPage from './StatisticsPage.jsx';
 import RecycleBin from './RecycleBin.jsx';
@@ -42,7 +43,7 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   const entityView = !trash && !stats;
   const searchId = stats ? 'entity-statistics' : trash ? 'entity-trash' : view === 'graph' ? 'entity-graph' : 'entity-catalog';
   const search = useSearchScope({
-    id: searchId, label: stats ? translate("i18n.statistics") : trash ? translate("i18n.recycleBin") : view === 'graph' ? translate("i18n.relationshipGraph") : translate("i18n.allItems"), priority: 55,
+    id: searchId, relatedSearch: entityView, label: stats ? translate("i18n.statistics") : trash ? translate("i18n.recycleBin") : view === 'graph' ? translate("i18n.relationshipGraph") : translate("i18n.allItems"), priority: 55,
     filters: stats ? [] : [{ key: 'type', label: translate("i18n.itemType"), options: Object.entries(contentTypes) }]
   });
   useEffect(() => {
@@ -67,7 +68,10 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   }, [books, revision, editingOpen]);
   const order = useContentOrder();
   const ordered = useMemo(() => orderCatalog(catalog ?? [], order), [catalog,order]);
-  const results = useMemo(() => hasSearch(search) ? queryEntities(ordered, search) : ordered, [ordered,search]);
+  const expand = entityView && parseQuery(search.query,true).related;
+  const needEdges = expand || view === 'graph';
+  const edges = useMemo(() => needEdges ? graphEdges(catalog ?? [], loadSpaceData('content-relations', [])) : [], [needEdges,catalog,revision]);
+  const results = useMemo(() => hasSearch(search) ? queryRelatedEntities(ordered, search, edges) : ordered, [ordered,search,edges]);
   const grouped = view === 'grouped';
   const layoutOrder = useMemo(() => {
     const slots = { ...order.slots };
@@ -111,7 +115,6 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
     }
     finishDrag();
   }
-  const edges = useMemo(() => view === 'graph' ? graphEdges(catalog ?? [], loadSpaceData('content-relations', [])) : [], [view,catalog,revision]);
   useSearchCount(!entityView ? "entity-catalog" : searchId, catalog ? results.length : null);
   const resultSet = { allowGroupRelations: true, priority: 55, scopeId: searchId, matches: entityView ? results : [], blocked: !entityView, loading: !catalog };
   useResultSource(resultSet);
@@ -128,7 +131,7 @@ export default function EntityCatalog({ books, editing, onEdit, onOpen, onCreate
   return <FeaturePanel scopeId="catalog" tipPage={entityView && view !== "graph" ? "catalog" : view} hasMenu wide title="i18n.knowledgeBase" scrollContext={view} onClose={onClose}>
     <DisplayViewMenu label={translate("i18n.knowledgeBaseView")} options={[['grouped',translate('i18n.groupByType')],['list',translate("i18n.allItems")],['graph',translate("i18n.relationshipGraph")],['trash',translate("i18n.recycleBin")],['statistics',translate("i18n.statistics")]]} value={view} onChange={setView}/>
     {entityView && createTypes.map(([type, definition]) => <ContentCommand key={type} kind="create" label={translate(definition.create === true ? definition.label : definition.create)} run={() => onCreate(type)} />)}
-    {stats ? <StatisticsPage catalog={catalog} partial={partial} search={search}/> : trash ? <RecycleBin search={search} revision={revision} onBooksChanged={editorProps.onBooksChanged}/> : view === 'graph' && catalog ? <EntityGraph editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :
+    {stats ? <StatisticsPage catalog={catalog} partial={partial} search={search}/> : trash ? <RecycleBin search={search} revision={revision} onBooksChanged={editorProps.onBooksChanged}/> : view === 'graph' && catalog ? <EntityGraph expandedSearch={expand} editing={editing} search={search} items={ordered} matches={resultSet.matches} edges={edges} onOpen={onOpen} onEdit={onEdit}/> :
     <section className={grouped ? "entity-catalog catalog-columns" : "entity-catalog"} data-scroll-memory={grouped ? "catalog-columns" : undefined} aria-label={translate("i18n.items")}>
     {!catalog ? <p role="status">{translate("i18n.loadingItems")}</p> : <>
       {grouped ? types.filter(type => groups.has(type)).map(type => (

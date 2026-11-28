@@ -94,6 +94,7 @@ export default function CommandToolbar({ shortcuts }) {
             {translate(label)}
           </button>;
         })}
+
       </div>
       {expanded && status.mode && <span className="command-target-hint" role="status">
         {status.mode === 'edit' ? translate("i18n.selectAnItemToEdit") : translate("i18n.selectAnItemToLink")}

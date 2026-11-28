@@ -18,7 +18,19 @@ export default function MapProjection({shortcuts,disabled,onOpen,onActiveChange}
   const [request,setRequest]=useState(null),[data,setData]=useState(null),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
   const globeBack = useRef(null);
   const dialog=useRef(null),latest=useRef();latest.current={shortcuts,disabled,onOpen,onActiveChange,request,isPageBack};
-  const close=()=>{const old=latest.current.request;if(!old)return;window.dispatchEvent(new Event('cyber-close-search'));setRequest(null);onActiveChange(false);requestAnimationFrame(()=>{restoreFocus(old.focus);if(old.searchId)window.dispatchEvent(new CustomEvent('cyber-open-search',{detail:{id:old.searchId}}));});};
+  const close = () => {
+    const old = latest.current.request;
+    if (!old) return;
+    window.dispatchEvent(new Event('cyber-close-search'));
+    setRequest(null);
+    onActiveChange(false);
+    requestAnimationFrame(() => {
+      if (document.activeElement === document.body) restoreFocus(old.focus);
+      if (old.searchId) window.dispatchEvent(new CustomEvent('cyber-open-search', {
+        detail: { id: old.searchId, focus: false }
+      }));
+    });
+  };
   const closeRef=useRef(close);closeRef.current=close;
   useEffect(()=>{
     const getSource = () => {

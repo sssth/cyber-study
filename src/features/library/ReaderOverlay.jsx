@@ -1,3 +1,4 @@
+import {readerSearchFilters} from '../../search/pageModes.js';
 import useImmersiveTools from '../../ui/useImmersiveTools.js';
 import useActivityTime from '../../ui/useActivityTime.js';
 import { captureExcerptSelection } from './excerptRange.js';
@@ -141,7 +142,7 @@ function ReaderOverlay({
     return () => { active = false; };
   }, [desktop, importState, onBooksChanged]);
   const scopeId=mode==='reading'?`book:${activeBookId}`:'library';
-  const search=useSearchScope({id:scopeId,label:mode==='reading'?translate("i18n.currentBook0", allBooks.find(b=>b.id===activeBookId)?.title||''):translate("i18n.libraryFullTextSearch"),priority:30,enabled:mode==='reading'||libraryView!=='excerpts',exactCount:mode==='reading',hostKey:paged,autoFocus:!(mode==='reading'&&paged),searchHost:()=>mode==='reading'&&paged?overlayRef.current?.querySelector('.reader-search-slot'):null,filters:mode==='reading'?[{key:'context',label:translate("i18n.excerptRange"),defaultLabel:translate("i18n.paragraph"),options:[['paragraph',translate("i18n.paragraph")],['sentence',translate("i18n.sentence")],['chapter',translate("i18n.chapter")]]}]:bookFilters});
+  const search=useSearchScope({id:scopeId,label:mode==='reading'?translate("i18n.currentBook0", allBooks.find(b=>b.id===activeBookId)?.title||''):translate("i18n.libraryFullTextSearch"),priority:30,enabled:mode==='reading'||libraryView!=='excerpts',exactCount:mode==='reading',hostKey:paged,autoFocus:!(mode==='reading'&&paged),searchHost:()=>mode==='reading'&&paged?overlayRef.current?.querySelector('.reader-search-slot'):null,filters:mode==='reading'?readerSearchFilters():bookFilters});
   const query=search.query;
   const parseBook = useMemo(() => {
     const cache = new Map();

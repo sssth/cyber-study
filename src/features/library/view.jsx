@@ -17,7 +17,7 @@ function AnnotationEditor({ item, onClose }) {
   useActivityTime('reading');
   return <ActionWorkspace command={false} showTrigger={false} kind="edit" title={translate('i18n.editAnnotation')}
     open onOpenChange={open => { if (!open) onClose(); }}>
-    <Annotation editOnly note={item} onSaved={onClose} onCancel={onClose}
+    <Annotation editOnly note={{...item,annotation:item.annotation ?? item.text}} onSaved={onClose} onCancel={onClose}
       onDelete={() => { removeExcerptAnnotation(item); onClose(); }} />
   </ActionWorkspace>;
 }

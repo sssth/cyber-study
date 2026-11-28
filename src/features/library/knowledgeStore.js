@@ -1,3 +1,4 @@
+import {readingNote} from '../../data/knowledgeRecords.js';
 import { excerptKey } from '../../data/excerptKey.js';
 export { excerptKey };
 import { createId, loadSpaceData, saveSpaceData } from '../../data/spaceStorage.js';
@@ -10,7 +11,8 @@ const fallback = {
 export function loadKnowledge() {
   const data = loadSpaceData('knowledge', fallback);
   return {
-    notes: Array.isArray(data.notes) ? data.notes.map(note =>
+    ...data,
+    notes: Array.isArray(data.notes) ? data.notes.map(readingNote).map(note =>
       Object.hasOwn(excerptTypes, note.excerptType) ? note : { ...note, excerptType: 'highlight' }
     ) : [],
     projects: Array.isArray(data.projects) ? data.projects : []

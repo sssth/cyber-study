@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { editActivationProps } from '../ui/editGesture.js';
 import { contentTypes } from '../entities/registry.js';
 import { graphLayout, nodeWidth, nodeHeight } from './entityGraph.js';
+import { includeDirectNeighbors } from '../search/relatedQuery.js';
 import { relationLabels } from '../entities/edges.js';
 import { useNavigationState } from '../ui/useNavigationState.js';
 
@@ -19,7 +20,7 @@ function edgePath(a,b) {
   return `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`;
 }
 
-export default function EntityGraph({items, matches, search, edges, editing, onOpen, onEdit}) {
+export default function EntityGraph({items, matches, search, edges, expandedSearch, editing, onOpen, onEdit}) {
   const [selection,select] = useNavigationState('entity-graph','selection',null);
   const [local,setLocal] = useNavigationState('entity-graph','local',false);
   const [zoom,setZoom] = useNavigationState('entity-graph','zoom',1);
@@ -37,14 +38,10 @@ export default function EntityGraph({items, matches, search, edges, editing, onO
   };
   const filtered = matches.length !== items.length;
   const context = useMemo(()=>{
+    if (expandedSearch) return matches;
     if (!filtered) return items;
-    const hits=new Set(matches.map(item=>item.key)), visible=new Set(hits);
-    for (const {from,to} of edges) {
-      if (hits.has(from)) visible.add(to);
-      if (hits.has(to)) visible.add(from);
-    }
-    return items.filter(item=>visible.has(item.key));
-  },[matches,items,edges,filtered]);
+    return includeDirectNeighbors(items,matches,edges);
+  },[matches,items,edges,filtered,expandedSearch]);
   const lookup=useMemo(()=>new Map(context.map(item=>[item.key,item])),[context]);
   const selected=lookup.get(selection);
   const available=useMemo(()=>edges.filter(edge=>lookup.has(edge.from)&&lookup.has(edge.to)),[edges,lookup]);

@@ -1,3 +1,4 @@
+import {encodeCollection} from './knowledgeRecords.js';
 import { storeCollection, changeArchived, archivePlaylists } from './recycleStorage.js';
 const prefix = 'cyber-study.space.v1';
 
@@ -5,7 +6,13 @@ export function loadSpaceData(key, fallback) {
   try {
     const raw = globalThis.localStorage?.getItem(`${prefix}.${key}`);
     if (!raw) return structuredClone(fallback);
-    const parsed = JSON.parse(raw);
+    let parsed = JSON.parse(raw);
+    // Upgrade in one localStorage write. A quota failure still leaves the old data readable.
+    const migrated=encodeCollection(key,parsed);
+    if(migrated!==parsed){
+      parsed=migrated;
+      try { if(globalThis.localStorage.getItem(prefix+'.'+key)===raw)globalThis.localStorage.setItem(prefix+'.'+key,JSON.stringify(parsed)); } catch { /* Retry on the next load. */ }
+    }
     if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : structuredClone(fallback);
     if (fallback && typeof fallback === 'object') {
       return { ...structuredClone(fallback), ...(parsed ?? {}) };

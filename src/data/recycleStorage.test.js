@@ -35,7 +35,7 @@ test('playlist restore reuses surviving songs and preserves per-track order', ()
   assert.deepEqual(read('music'), [{ id: 's', playlists: [] }]);
   assert.equal(read('recycle').length, 1);
   change(read('recycle')[0], 'restore');
-  assert.deepEqual(read('playlists'), [list]);
+  assert.deepEqual(read('playlists'), [{id:list.id,title:list.title,text:'notes'}]);
   assert.deepEqual(read('music')[0].playlists, [{ id: 'p', position: 7 }]);
 });
 test('excerpt and annotation sharing an ID restore separately', () => {
@@ -46,9 +46,9 @@ test('excerpt and annotation sharing an ID restore separately', () => {
   const [excerpt, annotation] = read('recycle');
   assert.throws(() => change(annotation, 'restore'));
   change(excerpt, 'restore');
-  assert.equal(read('knowledge').notes[0].annotation, '');
+  assert.equal(read('knowledge').notes[0].comment.text, '');
   change(annotation, 'restore');
-  assert.deepEqual(read('knowledge').notes, [note]);
+  assert.deepEqual(read('knowledge').notes, [{id:'e',bookId:'b',excerpt:{text:'quote'},comment:{text:'annotation'}}]);
 });
 test('archive failure rolls back deletion', () => {
   const { storage, read, save } = fixture();

@@ -109,7 +109,7 @@ export function entityMetrics(items, now) {
     books: books.length, inProgress: books.filter(value => value === 'reading').length, finished: books.filter(value => value === 'finished').length,
     excerpts: excerpts.length, underlines: excerpts.filter(note => note.excerptType === 'underline').length,
     highlights: excerpts.filter(note => excerptAppearance(note).excerptType === 'highlight').length, bookmarks: excerpts.filter(note => note.excerptType === 'bookmark').length,
-    annotations: count('annotation'), annotationCharacters: byType('annotation').reduce((sum, item) => sum + characterCount(item.annotation), 0),
+    annotations: count('annotation'), annotationCharacters: byType('annotation').reduce((sum, item) => sum + characterCount(item.text ?? item.annotation), 0),
     newExcerpts: byType('excerpt').filter(item => recent(item.createdAt)).length,
     newAnnotations: byType('annotation').filter(item => recent(item.annotationCreatedAt ?? item.createdAt)).length,
     songs: count('music'), playlists: count('playlist'), orphanSongs: byType('music').filter(item => !item.playlists?.length).length,

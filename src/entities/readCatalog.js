@@ -14,7 +14,7 @@ export async function readCatalog(books) {
   }
   const overrides = loadReaderState().books;
   const library = books.map(book => ({
-    ...book, title: overrides[book.id]?.customTitle || book.title,
+    ...book, readingRecord:overrides[book.id], title: overrides[book.id]?.customTitle || book.title,
     author: overrides[book.id]?.customAuthor ?? book.author
   }));
   return { items: buildCatalog({ books: library, globe }), partial };

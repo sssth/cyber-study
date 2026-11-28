@@ -1,6 +1,6 @@
 import { translate, translateError, translateFixedText } from '../../i18n/index.js';
 import { WorkspaceActions } from '../ui.jsx';
-import { textMatches } from '../../search/searchCore.js';
+import { matchesItem } from '../../search/searchCore.js';
 import { useEffect, useState } from 'react';
 
 export const musicPlatformNames = { qq: 'QQ 音乐', netease: '网易云音乐', spotify: 'Spotify' };
@@ -25,7 +25,7 @@ function SourceAccount({ provider, onImport, importing, search }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
   const [failures, setFailures] = useState([]);
-  const visiblePlaylists=playlists.filter(list=>(!search?.filters?.provider||search.filters.provider===provider)&&textMatches([list.title],search?.query??''));
+  const visiblePlaylists=playlists.filter(list=>(!search?.filters?.provider||search.filters.provider===provider)&&matchesItem('playlist',{...list,provider},{query:search?.query??''}));
 
   const loadPlaylists = async () => {
     const { playlists: list } = await musicRequest(provider, 'playlists');

@@ -1,4 +1,5 @@
 // Store a separate entry for each entity, including annotations that share an excerpt's note ID.
+import {encodeCollection,readingNote} from './knowledgeRecords.js';
 import { excerptKey } from './excerptKey.js';
 
 const types = { movies: 'movie', diary: 'diary', typewriter: 'typing_work', memo: 'memo', music: 'music', playlists: 'playlist' };
@@ -6,7 +7,8 @@ function entries(key, data) {
   if (key === 'knowledge') {
     const groups = new Set();
     const result = [];
-    for (const record of data?.notes ?? []) {
+    for (const row of data?.notes ?? []) {
+      const record=readingNote(row);
       const group = excerptKey(record);
       if (!groups.has(group)) {
         result.push({ type: 'excerpt', record: { ...record, annotation: '' } });
@@ -56,12 +58,12 @@ export function archivePlaylists(storage, prefix, ids) {
   const updated = tracks.map(track => track.playlists ? { ...track, playlists: track.playlists.filter(list => !ids.has(list.id)) } : track);
   const links = read('content-relations').filter(link => !deleted.has(link.fromId) && !deleted.has(link.toId));
   commit(storage, [['music', updated], ['playlists', playlists.filter(list => !ids.has(list.id))], ['content-relations', links], ['recycle', trash]]
-    .map(([key, value]) => [prefix + '.' + key, JSON.stringify(value)]));
+    .map(([key, value]) => [prefix + '.' + key, JSON.stringify(encodeCollection(key,value))]));
 }
 
 export function storeCollection(storage, prefix, key, value) {
   const name = prefix + '.' + key;
-  const next = JSON.stringify(value);
+  const next = JSON.stringify(encodeCollection(key,value));
   const previous = storage.getItem(name);
   if (previous === next) return;
   if ((!types[key] && key !== 'knowledge') || !previous) { storage.setItem(name, next); return; }
@@ -89,7 +91,7 @@ export function storeCollection(storage, prefix, key, value) {
   const kept = JSON.parse(links || '[]').filter(link => !keys.has(link.fromId) && !keys.has(link.toId));
   const archive = JSON.parse(trash || '[]');
   for (const item of removed) archive.push({ ...item, token: crypto.randomUUID(), collection: item.type === 'playlist' ? 'playlists' : key, time: Date.now() });
-  const writes = [[name, next], [trashKey, JSON.stringify(archive)]];
+  const writes = [[name, next], [trashKey, JSON.stringify(encodeCollection('recycle',archive))]];
   if (links) writes.push([linksKey, JSON.stringify(kept)]);
   commit(storage, writes);
 }
@@ -97,16 +99,18 @@ export function storeCollection(storage, prefix, key, value) {
 export function changeArchived(storage, prefix, token, action) {
   const trashKey = prefix + '.recycle';
   const previous = storage.getItem(trashKey);
-  const archive = JSON.parse(previous || '[]');
+  const archive = encodeCollection('recycle',JSON.parse(previous || '[]'));
   const entry = archive.find(item => item.token === token);
   if (!entry) throw Error('回收站记录已变化，请刷新。');
-  const { collection, record, type } = entry;
+  const { collection, type } = entry;
+  const record=collection==='knowledge'?readingNote(entry.record):entry.record;
   const nextArchive = JSON.stringify(archive.filter(item => item !== entry));
   if (action === 'purge') { storage.setItem(trashKey, nextArchive); return; }
   if (action !== 'restore') throw Error('回收站操作无效。');
   const key = prefix + '.' + collection;
   const data = JSON.parse(storage.getItem(key) || (collection === 'knowledge' ? '{"notes":[],"projects":[]}' : '[]'));
   if (collection === 'knowledge') {
+    data.notes=data.notes.map(readingNote);
     const existing = data.notes.find(note => note.id === record.id);
     if (existing && type === 'annotation' && !existing.annotation) existing.annotation = record.annotation;
     else if (!existing) {
@@ -123,7 +127,7 @@ export function changeArchived(storage, prefix, token, action) {
     }
     data.unshift(record);
   }
-  const writes = [[trashKey, nextArchive], [key, JSON.stringify(data)]];
+  const writes = [[trashKey, nextArchive], [key, JSON.stringify(encodeCollection(collection,data))]];
   if (type === 'playlist' && entry.members?.length) {
     const members = new Map(entry.members.map(member => [member.id, member.membership]));
     const musicKey = prefix + '.music';
@@ -133,7 +137,7 @@ export function changeArchived(storage, prefix, token, action) {
         track.playlists = [...(track.playlists ?? []), members.get(track.id)];
       }
     }
-    writes.push([musicKey, JSON.stringify(tracks)]);
+    writes.push([musicKey, JSON.stringify(encodeCollection('music',tracks))]);
   }
   commit(storage, writes);
 }

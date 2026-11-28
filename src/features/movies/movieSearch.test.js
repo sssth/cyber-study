@@ -11,3 +11,10 @@ test('movie ranges include zero and endpoints and use the viewing date', () => {
     assert.equal(matches({...film,...change}), false);
   }
 });
+
+test('watch status only restricts results through the status filter',()=>{
+ const film={title:'测试影片',status:'想看'};
+ assert.equal(matchesMovie(film,{query:'想看',filters:{}}),false);
+ assert.equal(matchesMovie(film,{query:'测试',filters:{watchStatus:'想看'}}),true);
+ assert.equal(matchesMovie(film,{query:'测试',filters:{watchStatus:'看过'}}),false);
+});

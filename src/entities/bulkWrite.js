@@ -28,7 +28,9 @@ function normalized(values) {
   for (const key of ['genres', 'tags']) {
     if (key in patch) patch[key] = patch[key].split(/[,，、]/).map(s => s.trim()).filter(Boolean).slice(0, key === 'tags' ? 5 : undefined);
   }
-  if ('tripNote' in patch) { patch.note = patch.tripNote; delete patch.tripNote; }
+  for(const field of ['review','tripNote','caption','note','description']){
+    if(field in patch){patch.text=patch[field];delete patch[field];}
+  }
   return patch;
 }
 

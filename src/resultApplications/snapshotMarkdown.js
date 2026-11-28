@@ -10,7 +10,8 @@ function value(input){
 export function snapshotMarkdown({entities,source,scope,time}){
   const lines=['# 书房快照','','截取时间：'+new Date(time).toLocaleString('zh-CN',{timeZoneName:'short'}),'截取范围：'+(source.detail?'对象详情':'结果列表')+' · '+entities.length+' 项','来源界面：'+(source.label || scope?.label || '书房')];
   if(source.position) lines.push('截取时的阅读位置：'+source.position);
-  if(scope?.state?.query) lines.push('搜索词：'+scope.state.query);
+  const expression=scope?.state?.expression ?? scope?.state?.query;
+  if(expression) lines.push('搜索词：'+expression);
   for(const field of scope?.filters || []){
     const applied=scope.state?.filters?.[field.key];
     if(applied) lines.push('筛选 · '+translate(field.label)+'：'+translate(field.options?.find(([id])=>id===applied)?.[1] ?? applied));
@@ -23,12 +24,12 @@ export function snapshotMarkdown({entities,source,scope,time}){
     const add=(label,input)=>{const body=value(input);if(body) lines.push('','**'+label+'**', '',body);};
     for(const pair of (entityTypes[type]?.snapshot || '').split(' ')){
       const [key,label]=pair.split(':');
-      add(type === 'book' && key === 'content' && record.chapterTitle ? '本章正文' : label, record[key]);
+      add(type === 'book' && key === 'content' && record.chapterTitle ? '本章正文' : label, key==='text' && type==='excerpt' ? record.text ?? record.quote : record[key]);
     }
     add('标签',record.tags);
     if(type==='excerpt') add('摘要', [...new Set([record.summary, ...(record.notes || []).map(note => note.summary)].filter(Boolean))].join('\n\n'));
-    if(type==='excerpt') add('用户批注（不是原作者的话）',record.notes?.map(note=>note.annotation).filter(Boolean).join('\n\n') || record.annotation || (record.notes?'无批注':'本次未包含批注'));
-    if(type==='annotation') add('用户批注',record.annotation || record.text);
+    if(type==='excerpt') add('用户批注（不是原作者的话）',record.notes?.map(note=>note.annotation).filter(Boolean).join('\n\n') || record.comment?.text || record.annotation || (record.notes?'无批注':'本次未包含批注'));
+    if(type==='annotation'){add('被批注的原文',record.excerpt?.text ?? record.quote);add('用户批注',record.text ?? record.annotation);}
     if(type==='todo') add('完成状态',record.done?'已完成':'未完成');
     if(type==='typing_work') add('抄写状态',({completed:'已完成',in_progress:'进行中',not_started:'未开始'})[record.status]);
     if(type==='memory_point') add('到访状态',({visited:'去过',wish:'想去'})[record.visitStatus]);

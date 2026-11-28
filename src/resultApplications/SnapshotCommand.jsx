@@ -20,7 +20,10 @@ export default function SnapshotCommand({shortcuts,disabled,projection}){
         if(!snapshot.entities.length){notice(translateError(snapshot.message));return;}
         const time=Date.now(),markdown=snapshotMarkdown({...snapshot,source,scope:source.scope,time});
         if(!window.cyberStudy?.snapshots) throw Error(translate("i18n.openTheDesktopAppToSaveA"));
-        const name=await window.cyberStudy.snapshots.save({time,markdown});
+        const saved=window.cyberStudy.snapshots.save({time,markdown});
+        // Bind the pending save to the conversation on the page that took the snapshot.
+        window.dispatchEvent(new CustomEvent('cyber-snapshot-attachment',{detail:{saved}}));
+        const name=await saved;
         window.dispatchEvent(new Event('snapshots-changed'));notice(translate("i18n.snapshotSaved")+name);
       } catch(error){notice(translate("i18n.snapshotCouldNotBeSaved")+translateError(error.message));}
     };

@@ -30,7 +30,7 @@ export default function MemoBoard({ onClose, editItem }) {
   const [readingImage, setReadingImage] = useState(false);
   const [editingMemo, setMemo] = useState(() => editItem ? items.find(item => item.id === editItem.id) : null);
   const setEditingMemo = value => { setMemo(value); if (!value && editItem) onClose(); };
-  const search=useSearchScope({id:'memo',label:translate("i18n.memoBoard"),priority:10,filters:[{key:'type',label:translate("i18n.type"),options:[['memo',translate("i18n.note")],['todo',translate("i18n.toDo")]]},{key:'status',label:translate("i18n.toDoStatus"),options:[['open',translate("i18n.incomplete")],['done',translate("i18n.completed")]]}, ...(view === 'board' ? [] : [{key:'boardVisibility',label:'i18n.showOnBoard',options:[['shown','i18n.yes'],['hidden','i18n.no']]}])]});
+  const search=useSearchScope({id:'memo',entityView:view,label:translate("i18n.memoBoard"),priority:10,filters:[{key:'type',label:translate("i18n.type"),options:[['memo',translate("i18n.note")],['todo',translate("i18n.toDo")]]},{key:'status',label:translate("i18n.toDoStatus"),options:[['open',translate("i18n.incomplete")],['done',translate("i18n.completed")]]}, ...(view === 'board' ? [] : [{key:'boardVisibility',label:'i18n.showOnBoard',options:[['shown','i18n.yes'],['hidden','i18n.no']]}])]});
 
   useEffect(() => {
     const refresh = event => {

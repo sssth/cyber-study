@@ -87,8 +87,8 @@ test('batch writes only patch selected records and support mixed collection dele
   const options = { completed() {} };
   await writeSelection([item('movie', 'a'), item('movie', 'b')], { review: 'shared' }, false, options);
   const movies = loadSpaceData('movies', []);
-  assert.deepEqual(movies[0], { id: 'a', title: 'A', region: ['one'], review: 'shared' });
-  assert.equal(movies[1].review, 'shared');
+  assert.deepEqual(movies[0], { id: 'a', title: 'A', region: ['one'], text: 'shared' });
+  assert.equal(movies[1].text, 'shared');
   assert.deepEqual(movies[2], { id: 'c', title: 'C' });
   await writeSelection([item('diary', 'a'), item('movie', 'a')], {}, true, options);
   assert.deepEqual(loadSpaceData('diary', []), []);

@@ -7,7 +7,7 @@ test('snapshot freezes complete filtered records in order, retaining distinct ty
  const note={id:'1',quote:'摘录',tags:['阅读']};const excerpts=resultEntities('excerpt',[note]);
  const result=captureEntities({entities:[...excerpts,...excerpts,...resultEntities('annotation',[note])]});
  note.tags.push('changed');assert.deepEqual(result.entities.map(item=>item.key),['excerpt:1','annotation:1']);
- assert.deepEqual(result.entities[0].record,{id:'1',quote:'摘录',tags:['阅读']});
+ assert.deepEqual(result.entities[0].record,{id:'1',text:'摘录',comment:{text:''},tags:['阅读']});
  for(const source of [undefined,{blocked:true},{plain:true},{loading:true},{entities:[]}]) assert.ok(captureEntities(source).message);
 });
 const photos=['a','b','c','d'].map(id=>({id,latitude:0,longitude:0,locationStatus:'confirmed'}));

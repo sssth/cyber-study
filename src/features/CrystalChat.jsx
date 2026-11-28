@@ -1,3 +1,4 @@
+import CrystalExpression from './CrystalExpression.jsx';
 import { translate, translateError } from '../i18n/index.js';
 import { useState, useRef, useEffect } from 'react';
 import { FeaturePanel } from './ui.jsx';
@@ -7,6 +8,7 @@ import { replyPlayback } from './replyPlayback.js';
 import { defaultChatKeys, matchesShortcut } from '../data/shortcuts.js';
 
 export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys }) {
+  const [tab,setTab]=useState('snapshot');
   const [settings, setSettings] = useState(null);
   const [messages, setMessages] = useState([]);
   const [partial, setPartial] = useState('');
@@ -117,7 +119,9 @@ export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys
   const setupMessage = settingsError || (provider && !provider.hasApiKey
     ? translate("i18n.providerApiKey", provider.name) : '');
   return <FeaturePanel scopeId="crystal" title="i18n.aiChat" onClose={onClose}>
-    <div className="crystal-layout">
+    <div className="crystal-workspace">
+      <nav className="crystal-pages" aria-label={translate('i18n.aiChat')}>{[['snapshot','i18n.snapshot'],['expression','i18n.expressionAI']].map(([id,label])=><button type="button" key={id} aria-pressed={id===tab} onClick={()=>setTab(id)}>{translate(label)}</button>)}</nav>
+    {tab==='expression'?<CrystalExpression shortcuts={shortcuts}/>:<div className="crystal-layout">
       <aside className="crystal-library" aria-label={translate("i18n.snapshotFiles")}>
         {translate(libraryStatus)}
         {files.map(name=><button key={name} type="button" draggable onDragStart={event=>{event.dataTransfer.setData(dragType,name);event.dataTransfer.effectAllowed='copy';}} onClick={()=>attach(name)}>{name}</button>)}
@@ -143,6 +147,7 @@ export default function CrystalChat({ open, onClose, shortcuts = defaultChatKeys
           onKeyDown={composerKeyDown} />
           <button disabled={!canSend} aria-describedby={setupMessage ? "crystal-setup-message" : undefined}>{translate("i18n.send")}</button></div>
       </form>
-    </div></div>
+    </div></div>}
+    </div>
   </FeaturePanel>;
 }

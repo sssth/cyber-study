@@ -14,8 +14,9 @@ export function currentResultSource(application) {
     .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
 }
 
+import {knowledgeEntity} from '../data/knowledgeRecords.js';
 export const resultEntities = (type, records) => records.filter(Boolean).map(record => ({
-  id: record.id, deletedAt: record.deletedAt, type, key: entityKey(type, record.id), record
+  id: record.id, deletedAt: record.deletedAt, type, key: entityKey(type, record.id), record:knowledgeEntity(type,record)
 }));
 
 export function resultInput(source, application) {

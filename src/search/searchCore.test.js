@@ -36,3 +36,29 @@ test('each registered entity type matches a manually assigned tag', async () => 
    assert.ok(matchesItem(type, {id:'tag-test',tags:['我的分类']}, {query:'我的分类'}), type);
  }
 });
+
+test('RELATED expands filtered matches across types in either direction, once', async () => {
+ const {queryRelatedEntities} = await import('./searchCore.js');
+ const items = [
+   ['book','杭州'], ['movie','杭州'], ['memo','桥'], ['music','雨'], ['journey','关联 RELATED']
+ ].map(([type,title])=>({type,title,key:type+':1',id:'1'}));
+ const edges = [[0,2],[3,0],[2,3],[2,1],[2,4],[2,0]].map(([a,b])=>({from:items[a].key,to:items[b].key}));
+ const find = (query,filters={}) => queryRelatedEntities(items,{query,filters},edges).map(item=>item.type);
+ assert.deepEqual(find('title:杭州 RELATED',{type:'book'}),['book','memo','music']);
+ assert.deepEqual(find('杭州 RELATED'),['book','movie','memo','music']);
+ assert.deepEqual(find('杭州'),['book','movie']);
+ assert.deepEqual(find('北京 RELATED'),[]);
+ assert.deepEqual(find('"关联"'),['journey']);
+ assert.deepEqual(find('title:关联'),['journey']);
+ assert.deepEqual(find('关联'),['journey']);
+ assert.deepEqual(find('"RELATED"'),['journey']);
+ assert.deepEqual(find('title:RELATED'),['journey']);
+ assert.deepEqual(find('RELATED'),[]);
+ assert.deepEqual(find('桥 OR 雨 RELATED'),['book','memo','music']);
+ assert.deepEqual(find('(桥 OR 雨) RELATED'),['book','movie','memo','music','journey']);
+ assert.deepEqual(find('桥 AND 杭州 RELATED'),['memo']);
+ assert.deepEqual(find('NOT 杭州 RELATED'),['journey']);
+ assert.deepEqual(find('NOT 桥 AND 雨 OR 杭州'),['book','movie','music']);
+ assert.deepEqual(find('桥 RELATED AND 雨 RELATED'),['book','memo','music']);
+ assert.deepEqual(find('(杭州 RELATED) RELATED'),[]);
+});

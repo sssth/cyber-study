@@ -1,3 +1,4 @@
+import {searchMemberships} from './searchMemberships.js';
 import PagedItems from '../../ui/PagedItems.jsx';
 import {cropStyle} from '../PhotoCrop.jsx';
 import { removeEntityRelations } from '../../entities/contentRelations.js';
@@ -34,13 +35,14 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const isPageBack = usePageBackMatcher();
   const scopeId = name => projection ? `projection:${name}` : name;
   const searchTarget = ['journey', 'memory_point'].includes(navigationItem?.type) ? navigationItem : null;
-  const [photos, setPhotos] = useState(initialData?.photos || []);
+  const [photoRecords, setPhotos] = useState(initialData?.photos || []);
   useEffect(() => {
     const refresh = ({ detail }) => { setPhotos(detail.photos); setJourneys(detail.journeys); setViewerPhotos(null); };
     window.addEventListener('cyber-bulk-globe', refresh);
     return () => window.removeEventListener('cyber-bulk-globe', refresh);
   }, []);
-  const [journeys, setJourneys] = useState(initialData?.journeys || []);
+  const [journeyRecords, setJourneys] = useState(initialData?.journeys || []);
+  const {photos,journeys}=useMemo(()=>searchMemberships(photoRecords,journeyRecords),[photoRecords,journeyRecords]);
   const [editorVersion, setEditorVersion] = useState(0);
   const [initialPoint, setInitialPoint] = useState(null);
   const createReturnMode = useRef(null);
@@ -55,7 +57,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
   const [message, setMessage] = useState('');
   const [report, setReport] = useState([]);
   const [reportOpen,setReportOpen] = useState(false);
-  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost.querySelector('dialog[open]')||workspaceHost:undefined,filters:dateFilters});
+  const search=useSearchScope({id:scopeId(mode==='journey'?'journey':'globe'),label:mode==='journey'?translate("i18n.trip"):translate("i18n.memoryPin"),priority:projection?1010:10,hostKey:workspaceHost,searchHost:workspaceHost?()=>workspaceHost:undefined,filters:dateFilters});
   const query=search.query;
   const [viewId, setViewId] = useNavigationState(scopeId('globe'),'viewId',null, { remember:false });
   const closeViewer = useRef(null), returnFocus = useRef(null), initialized = useRef(false);
@@ -208,7 +210,7 @@ export default function GlobePanel({ onClose, navigationItem, initialPlace, work
       <ContentCommand label={translate("i18n.editMemoryPin")} run={() => { dismiss(); editPoint(viewed); }} /><ContentActions surface=".globe-photo-viewer" type="memory_point" id={viewed.id} title={viewed.location} preview={false}/>
       <button ref={closeViewer} className="memory-detail-close" aria-label={translate("i18n.closeMemoryDetails")} onClick={dismiss}>×</button>
       <div data-scroll-memory={`memory-detail-${viewed.id}`} className={`memory-detail-layout ${viewed.visitStatus === 'wish' ? 'memory-detail-wish' : ''}`}>{viewed.visitStatus !== 'wish' && <div className="memory-detail-photo">{viewed.photo ? <img src={viewed.photo} alt={viewed.title || viewed.location || translate("i18n.memoryPhoto")} /> : <span>{translate("i18n.noPhoto")}</span>}</div>}
-      <section className="memory-detail-copy">{viewed.visitStatus !== 'wish' && <><h2>{viewed.title || viewed.location || translate("i18n.untitledMemory")}</h2><p>{viewed.city || viewed.location || viewed.region || viewed.country || translate("i18n.noPlaceSpecified")} · {viewed.date || translate("i18n.unknownDate")} · {viewed.visitStatus === 'wish' ? translate("i18n.wantToVisit") : translate("i18n.visited")}</p></>}<p className="memory-detail-description">{viewed.caption || translate("i18n.noDescriptionYet")}</p></section></div>
+      <section className="memory-detail-copy">{viewed.visitStatus !== 'wish' && <><h2>{viewed.title || viewed.location || translate("i18n.untitledMemory")}</h2><p>{viewed.city || viewed.location || viewed.region || viewed.country || translate("i18n.noPlaceSpecified")} · {viewed.date || translate("i18n.unknownDate")} · {viewed.visitStatus === 'wish' ? translate("i18n.wantToVisit") : translate("i18n.visited")}</p></>}<p className="memory-detail-description">{viewed.text || translate("i18n.noDescriptionYet")}</p></section></div>
     </div>}
   </FeaturePanel>;
 }

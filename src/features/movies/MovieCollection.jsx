@@ -20,7 +20,7 @@ function MovieField({ label, hint, ...input }) {
   </label>;
 }
 
-const movieDraft = { title: '', url: '', status: '想看', poster: '', douban: '', score: '', region: '', genres: '', tags: '', personalScore: '', review: '', watchedOn: '' };
+const movieDraft = { title: '', url: '', status: '想看', poster: '', douban: '', score: '', region: '', genres: '', tags: '', personalScore: '', text: '', watchedOn: '' };
 
 function movieStatus(status) {
   return translate({ '想看': "i18n.wantToWatch", '在看': "i18n.watching", '看过': "i18n.watched" }[status] ?? (status || "i18n.wantToWatch"));
@@ -145,7 +145,7 @@ export default function MovieCollection({ onClose, editItem }) {
         ...details,
         photoCrop: details.poster && details.poster !== current.poster ? null : current.photoCrop,
         personalScore: current.personalScore,
-        review: current.review,
+        text: current.text,
         watchedOn: current.watchedOn,
         douban: `https://movie.douban.com/subject/${subjectId}/`
       }));
@@ -197,7 +197,7 @@ export default function MovieCollection({ onClose, editItem }) {
     }
     const record = {
       ...draft, title: draft.title.trim(), url: url?.href ?? '', poster: localPosters[draft.poster] || poster?.href || '', douban: douban?.href ?? '',
-      score, personalScore, review: draft.review ?? '', watchedOn,
+      score, personalScore, text: draft.text ?? '', watchedOn,
       region: splitMovieRegions(draft.region), genres: splitMovieLabels(draft.genres), tags: splitMovieLabels(draft.tags).slice(0, 5)
     };
     const next = editing ? movies.map((movie) => movie.id === editing ? { ...movie, ...record } : movie)
@@ -240,7 +240,7 @@ export default function MovieCollection({ onClose, editItem }) {
           <label>{translate("i18n.rating")}<input {...field('score')} inputMode="decimal" placeholder={translate("i18n.doubanRating")} /></label>
         </div>
         <MovieField label={translate("i18n.type")} {...field('genres')} aria-label={translate("i18n.genres")} hint="i18n.genresSeparatedByCommas" />
-        <label>{translate("i18n.review")}<textarea {...field('review')} rows={6} placeholder={translate("i18n.optionalViewingNotes")} /></label>
+        <label>{translate("i18n.review")}<textarea {...field('text')} rows={6} placeholder={translate("i18n.optionalViewingNotes")} /></label>
         <label>{translate("i18n.watchStatus")}<select {...field('status')} aria-label={translate("i18n.watchStatus")}><option value="想看">{translate("i18n.wantToWatch")}</option><option value="在看">{translate("i18n.watching")}</option><option value="看过">{translate("i18n.watched")}</option></select></label>
         <label>{translate("i18n.personalRating")}<input {...field('personalScore')} type="number" min="0" max="10" step="0.1" placeholder={translate("i18n.optional010")} /></label>
         <label>{translate("i18n.watchDate")}<input {...field('watchedOn')} type="date" /></label>

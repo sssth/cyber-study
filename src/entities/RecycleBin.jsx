@@ -1,3 +1,4 @@
+import {knowledgeEntity} from '../data/knowledgeRecords.js';
 import { toggleVisibleIds } from './entitySelection.js';
 import { ContentCommand } from '../features/ContentCommands.jsx';
 import { ActionWorkspace, WorkspaceActions, WorkspaceFields } from '../features/ui.jsx';
@@ -19,7 +20,7 @@ async function readBin() {
       rows.push({ type, record, token: type + ':' + record.id, time: Date.parse(record.deletedAt) });
     }
   }
-  return rows.sort((a,b) => b.time - a.time).map(entry => ({
+  return rows.map(entry=>({...entry,record:knowledgeEntity(entry.type,entry.record)})).sort((a,b) => b.time - a.time).map(entry => ({
     ...entry.record, ...entry, deletedAt: undefined,
     title: entityTypes[entry.type]?.title?.(entry.record) || entry.record.title || entry.record.text?.slice(0,40) || t('i18n.untitled')
   }));

@@ -56,7 +56,12 @@ export function ActionWorkspace({ kind = 'create', label = "i18n.new", title = l
     : showTrigger && <div className="secondary-action"><button ref={trigger} type="button" onClick={() => change(true)}>{translate(label)}</button></div>}
     {createPortal(<EditSurface ref={dialog} data-bulk-editor={bulk || undefined} data-edit-active={bulk || undefined} tabIndex={bulk ? -1 : undefined} data-create-workspace={command && !editing ? true : undefined} aria-label={translate(title)}
       onCancel={event => { event.preventDefault(); change(false); }}
-      onClose={() => { if (!dialog.current?.open) { change(false); restoreFocus(previousFocus.current); } }}>
+      onClose={() => {
+        if (dialog.current?.open) return;
+        change(false);
+        const focused = document.activeElement;
+        if (focused === document.body || dialog.current?.contains(focused)) restoreFocus(previousFocus.current);
+      }}>
       <header><h2>{translate(title)}</h2><button type="button" onClick={() => change(false)}>{translate("i18n.backToContent")}</button></header>
       <div className="workspace-content">{children}</div>
     </EditSurface>, portalHost || document.body)}</>;

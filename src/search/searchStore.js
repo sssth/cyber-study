@@ -65,7 +65,7 @@ export function suspendSearch(id, draft) {
 }
 export function resumeSearch(id) {
   const remembered = rememberedSearches.get(id);
-  const withPreferences=state=>id?.startsWith('book:')?{...state,filters:{...state.filters,context:savedReadingContext()}}:state;
+  const withPreferences=state=>state.expression===undefined&&id?.startsWith('book:')?{...state,filters:{...state.filters,context:savedReadingContext()}}:state;
   const applied = withPreferences(remembered?.applied || getSearch(id));
   if (remembered?.location) locations.set(id, remembered.location);
   setSearch(id, applied);

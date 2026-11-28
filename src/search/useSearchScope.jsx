@@ -10,7 +10,8 @@ export function useSearchScope(config){
  useEffect(() => {
    const update = () => refresh(value => value + 1);
    window.addEventListener('cyber-entity-tags-changed', update);
-   return () => window.removeEventListener('cyber-entity-tags-changed', update);
+   window.addEventListener('cyber-search-fields-changed',update);
+   return () => {window.removeEventListener('cyber-entity-tags-changed', update);window.removeEventListener('cyber-search-fields-changed',update);};
  }, []);
  return useMemo(() => ({ ...state }), [state,tagRevision]);
 }

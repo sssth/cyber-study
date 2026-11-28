@@ -1,3 +1,4 @@
+import {musicSearchFilters} from '../../search/pageModes.js';
 import ImageFileField from '../ImageFileField.jsx';
 import ParentMembershipPicker from '../../ui/ParentMembershipPicker.jsx';
 import OrderedMemberPicker from '../../ui/OrderedMemberPicker.jsx';
@@ -18,7 +19,7 @@ import { useNavigationState } from '../../ui/useNavigationState.js';
 import { WorkspaceActions, WorkspaceFields } from '../ui.jsx';
 import { ContentCommand } from '../ContentCommands.jsx';
 import {useSearchCount,useSearchScope,SearchStatus} from '../../search/useSearchScope.jsx';
-import {matchesItem,textMatches,hasSearch} from '../../search/searchCore.js';
+import {matchesItem,matchFields,hasSearch} from '../../search/searchCore.js';
 import ContentActions from '../ContentActions.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { MusicSources, musicPlatformNames, musicRequest } from './MusicSources.jsx';
@@ -174,14 +175,21 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
     }
     return [...merged.values()];
   };
-  const search=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:catalogItem?.type==='playlist'?30:10,enabled:open||catalogItem?.type==='playlist',filters:[{key:'musicTarget',label:translate("i18n.searchBy"),options:[['song',translate("i18n.trackName")],['artist',translate("i18n.artistName")],['playlist',translate("i18n.playlistName")]]},{key:'provider',label:translate("i18n.platform"),options:[...new Set(tracks.map(t=>t.provider).filter(Boolean))].map(v=>[v,musicPlatformNames[v]||v])}]});
+  const search=useSearchScope({id:'music',label:translate("i18n.allPlaylistsAndTracks"),priority:catalogItem?.type==='playlist'?30:10,enabled:open||catalogItem?.type==='playlist',filters:musicSearchFilters(tracks)});
+  function trackMatches(track) {
+    const target=search.filters.musicTarget;
+    if(!target)return matchesItem('music',track,{query:search.query});
+    const fields=target==='artist'?{'歌手':track.artist}:target==='song'?{'曲名':track.title}:
+      {'曲名':track.title,'歌手':track.artist,'标签':entityTags('music',track)};
+    return matchFields(Object.values(fields),fields,search.query);
+  }
   const filteredLists = new Map();
   for(const [id,title] of playlists) {
     if (search.filters.playlistId && id !== search.filters.playlistId) continue;
     const songs=tracksInPlaylist(id);
     const list=savedPlaylists.find(p=>p.id===id)??songs.find(t=>t.playlists?.some(p=>p.id===id))?.playlists?.find(p=>p.id===id)??{title};
-    const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&textMatches([list.title, entityTags('playlist', {...list,id})],search.query);
-    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&textMatches(search.filters?.musicTarget==='artist'?[t.artist]:search.filters?.musicTarget==='song'?[t.title]:[t.title,t.artist,entityTags('music',t)],search.query))||!search.query.trim()));
+    const titleHit=!['song','artist'].includes(search.filters?.musicTarget)&&Boolean(search.query.trim())&&matchesItem('playlist',{...list,id,trackNames:songs.map(t=>t.title)},{query:search.query});
+    const matching=songs.filter(t=>matchesItem('music',t,{...search,query:''})&&(titleHit||(search.filters?.musicTarget!=='playlist'&&trackMatches(t))||!search.query.trim()));
     const provider=list.provider||(['qq','netease','spotify'].includes(id.split(':')[0])?id.split(':')[0]:null);
     if(!hasSearch(search)||(search.filters.playlistId && !search.query.trim() && !search.filters.provider)||matching.length||(titleHit&&(!search.filters?.provider||provider===search.filters.provider))) filteredLists.set(id,{title,songs:matching,record:{...list,id,trackNames:songs.map(track=>track.title)}});
   }
@@ -193,8 +201,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   const candidateTracks = tracks.filter(track => {
     if (playlistMatches && !playlistMatches.has(track.id)) return false;
     if (!matchesItem('music',track,{...search,query:''})) return false;
-    const fields = search.filters.musicTarget === 'artist' ? [track.artist] : search.filters.musicTarget === 'song' ? [track.title] : [track.title,track.artist,entityTags('music',track)];
-    return playlistMatches || textMatches(fields,search.query);
+    return playlistMatches || trackMatches(track);
   });
   const pickingSongs = musicEditor?.type === 'playlist' || (open && musicView !== 'player' && createOpen && createMusicType === 'playlist');
   useSearchCount('music',pickingSongs ? candidateTracks.length : new Set([...filteredLists.values()].flatMap(list=>list.songs.map(t=>t.id))).size);
@@ -368,7 +375,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
   },[musicEditor?.id,musicEditor?.type]);
 
   const savePlaylist = (provider, list, imported, positions) => {
-    setSavedPlaylists(items=>{const id=`${provider}:${list.id}`;const previous=items.find(p=>p.id===id);return [...items.filter(p=>p.id!==id),{...previous,id,title:previous?.title??list.title,description:previous?.description??'',provider,sourceId:String(list.id),cover:list.cover||previous?.cover||'',createdAt:previous?.createdAt??new Date().toISOString()}];});
+    setSavedPlaylists(items=>{const id=`${provider}:${list.id}`;const previous=items.find(p=>p.id===id);return [...items.filter(p=>p.id!==id),{...previous,id,title:previous?.title??list.title,text:previous?.text??'',provider,sourceId:String(list.id),cover:list.cover||previous?.cover||'',createdAt:previous?.createdAt??new Date().toISOString()}];});
     setTracks(items => mergeMusicPlaylist(items, provider, list, imported, positions));
   };
 
@@ -686,7 +693,7 @@ export default function MusicPlayer({ catalogItem, onCatalogClose, navigation, o
                   <label>{translate("i18n.name")}<input value={listTitle} onChange={e=>setListTitle(e.target.value)}/></label>
                   <SongMemberPicker tracks={tracks} candidates={candidateTracks} selectedIds={listSelection} updateIds={setListSelection}/>
                   <WorkspaceActions><button type="button" disabled={!listTitle.trim()} onClick={()=>{
-                    const list={id:createId('playlist'),title:listTitle.trim(),memberOrder:true,description:'',provider:null,sourceId:null,createdAt:new Date().toISOString()};
+                    const list={id:createId('playlist'),title:listTitle.trim(),memberOrder:true,text:'',provider:null,sourceId:null,createdAt:new Date().toISOString()};
                     setSavedPlaylists(items=>[...items,list]);
                     setTracks(items=>updatePlaylistMembers(items,list,listSelection,[]));
                     setPlaylistFilter(list.id);
@@ -764,7 +771,7 @@ function SongMemberPicker({tracks,candidates,...props}) {
 function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarning,tracks,candidates,members,playlistRecords,playlistLabels}) {
   const [originalIds] = useState(()=>(entity.type==='playlist' ? members : entity.playlists ?? []).map(item=>item.id));
   const [selectedIds,setSelectedIds] = useState(originalIds);
-  const [draft,setDraft]=useState({title:entity.title??'',artist:entity.artist??'',note:entity.note??'',description:entity.description??'',showSource:entity.showSource!==false});
+  const [draft,setDraft]=useState({title:entity.title??'',artist:entity.artist??'',text:entity.text??'',showSource:entity.showSource!==false});
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const [coverFile,setCoverFile]=useState(null);
   const cover=useMusicCover(entity);
@@ -775,13 +782,13 @@ function MusicEntityEditor({entity,onClose,onSave,onDelete,onCache,storageWarnin
     <form className="stack-form" onSubmit={async e=>{e.preventDefault();if(busy||!draft.title.trim())return;setBusy(true);setError('');try{
       let coverAssetId=entity.coverAssetId;
       if(coverFile){const record=await globalThis.ContentAssets.repository('cyber-study-content-assets-v1').add(`${entity.type}:${entity.id}`,[coverFile]);coverAssetId=record.imageAssetIds.at(-1);}
-      const values=entity.type==='playlist'?{title:draft.title.trim(),description:draft.description,showSource:draft.showSource}:{title:draft.title.trim(),artist:draft.artist,note:draft.note,showSource:draft.showSource};
+      const values=entity.type==='playlist'?{title:draft.title.trim(),text:draft.text,showSource:draft.showSource}:{title:draft.title.trim(),artist:draft.artist,text:draft.text,showSource:draft.showSource};
       await onSave({...values,coverAssetId,photoCrop},selectedIds,originalIds);
       if(coverFile)window.dispatchEvent(new Event('cyber-content-changed'));
     }catch(failure){setError(failure.message);}finally{setBusy(false);}}}>
       <WorkspaceFields><EntityTagsField type={entity.type === 'playlist' ? 'playlist' : 'music'} item={entity}/>
         {field('title',translate("i18n.name"))}
-        {entity.type==='playlist'?field('description',translate("i18n.description")):<>{field('artist',translate("i18n.artist"))}{field('note',translate("i18n.notes"))}</>}
+        {entity.type==='playlist'?field('text',translate("i18n.description")):<>{field('artist',translate("i18n.artist"))}{field('text',translate("i18n.notes"))}</>}
         <label>{translate("i18n.showSourcePrefix")}<input type="checkbox" checked={draft.showSource} onChange={e=>setDraft(d=>({...d,showSource:e.target.checked}))}/></label>
         <ImageFileField label={translate("i18n.cover")} disabled={busy} onChange={e=>{setCoverFile(e.target.files[0]??null);setPhotoCrop(null);setError('');}}>
         {(replacement || cover) && <PhotoCrop src={replacement || cover} ratio={1} value={photoCrop} onChange={setPhotoCrop}/>}

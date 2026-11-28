@@ -1,5 +1,6 @@
 import { removeEntityRelations } from '../../entities/contentRelations.js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {bookCoverAssets} from './bookCover.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteLegacyBook, loadBooks } from './bookStore.js';
 
 async function loadLibrary() {
@@ -36,6 +37,21 @@ async function loadLibrary() {
 
 export default function useBookLibrary() {
   const [books, setBooks] = useState([]);
+  const [covers,setCovers]=useState(new Map());
+  useEffect(()=>{
+    let version=0;
+    const refresh=async()=>{
+      const token=++version;
+      try{
+        const rows=await bookCoverAssets.listItems();
+        if(token===version)setCovers(new Map(rows.filter(r=>r.id.startsWith('book:')&&r.imageAssetIds?.length).map(r=>[r.id.slice(5),r.imageAssetIds.at(-1)])));
+      }catch(error){console.warn('无法读取书籍封面索引',error);}
+    };
+    refresh();
+    window.addEventListener('cyber-content-changed',refresh);
+    return ()=>{version++;window.removeEventListener('cyber-content-changed',refresh);};
+  },[]);
+  const indexedBooks=useMemo(()=>books.map(b=>covers.has(b.id)?{...b,coverAssetId:covers.get(b.id)}:b),[books,covers]);
   const [warnings, setWarnings] = useState([]);
   const loading = useRef(null);
   const deletedDuringLoad = useRef(new Set());
@@ -78,5 +94,5 @@ export default function useBookLibrary() {
     removeEntityRelations('book:' + id);
   }, []);
 
-  return { books, warnings, updateBooks, removeBook };
+  return { books:indexedBooks, warnings, updateBooks, removeBook };
 }

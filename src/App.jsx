@@ -9,6 +9,7 @@ import ResultApplications from './resultApplications/ResultApplications.jsx';
 import BulkEntityCommands from './entities/BulkEntityCommands.jsx';
 import useMenuSwitch from './ui/useMenuSwitch.js';
 import UsageTips from './ui/UsageTips.jsx';
+import AIWindow from './ui/AIWindow.jsx';
 import CommandToolbar from './features/CommandToolbar.jsx';
 import ContentCommands, { ContentCommand } from './features/ContentCommands.jsx';
 import UnifiedSearch from './search/UnifiedSearch.jsx';
@@ -34,6 +35,7 @@ import ManualOperations from './features/ManualOperations.jsx';
 import ManualOverview from './features/ManualOverview.jsx';
 import { DisplayCloseButton } from './ui/DisplayControls.jsx';
 import LanguageSelect from './features/LanguageSelect.jsx';
+import SearchFieldSettings from './search/SearchFieldSettings.jsx';
 import ShortcutSettings from './features/ShortcutSettings.jsx';
 import { loadShortcuts, saveShortcuts, shortcutGroups } from './data/shortcuts.js';
 import ProfilerHud from './ui/ProfilerHud.jsx';
@@ -59,7 +61,7 @@ function App() {
 }
 
 function Study({ shortcuts, setShortcuts }) {
-  useLanguage();
+  const language=useLanguage();
   const isPageBack = usePageBackMatcher();
   const [sceneSettled, setSceneSettled] = useState(false);
   const markSceneSettled = useCallback(() => setSceneSettled(true), []);
@@ -138,6 +140,7 @@ function Study({ shortcuts, setShortcuts }) {
     catch { setGraphicsError("i18n.graphicsSettingsWereAppliedButCouldNot2"); }
   };
   const [tipsEnabled, setTipsEnabled] = useMenuSwitch('cyber-study.usage-tips.enabled');
+  const [aiRailEnabled,setAiRailEnabled]=useMenuSwitch('cyber-study.ai-rail.enabled');
   const [toolbarEnabled, setToolbarEnabled] = useMenuSwitch('cyber-study.command-toolbar.enabled');
   const [menuOpen, setMenuOpen] = useState(false);
   useLayoutEffect(() => {
@@ -147,7 +150,9 @@ function Study({ shortcuts, setShortcuts }) {
 
   const [catalogEditor, setCatalogEditor] = useState(null);
   useEffect(() => { if (activeFeature !== 'knowledge' || readerOpen) setCatalogEditor(null); }, [activeFeature, readerOpen]);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [settingsPage,setSettingsPage]=useState(null);
+  const shortcutsOpen=settingsPage!==null;
+  const setShortcutsOpen=open=>setSettingsPage(open?'shortcuts':null);
   const updateShortcuts = (bindings) => {
     try {
       saveShortcuts(bindings);
@@ -326,7 +331,8 @@ function Study({ shortcuts, setShortcuts }) {
               </div>
             </div>
           </dialog>
-          {menuOpen && shortcutsOpen && (
+          {menuOpen && settingsPage==='fields' && <SearchFieldSettings onBack={()=>{setSettingsPage(null);menuButton.current?.focus();}}/>}
+          {menuOpen && settingsPage==='shortcuts' && (
             <ShortcutSettings groups={groups} bindings={shortcuts} onChange={updateShortcuts} onBack={() => {
               setShortcutsOpen(false);
               menuButton.current?.focus();
@@ -351,8 +357,10 @@ function Study({ shortcuts, setShortcuts }) {
               <button type="button" aria-haspopup="dialog" onClick={() => { setMenuOpen(false); setManualTab(0); manual.current.showModal(); setManualOpen(true); }}>{translate("i18n.userGuide")}</button>
               <button type="button" onClick={() => setGraphicsOpen(true)}>{translate("i18n.graphicsAndPerformance")}</button>
               <div className="room-menu-preferences">
+                <button type="button" onClick={()=>setSettingsPage('fields')}>{language==='zh-CN'?'搜索字段':'Search fields'}</button>
                 <button type="button" onClick={() => setShortcutsOpen(true)}>{translate("i18n.keyboardShortcuts")}</button>
                 <button type="button" role="switch" aria-label={translate("i18n.featureButtons")} aria-checked={toolbarEnabled} onClick={() => setToolbarEnabled(!toolbarEnabled)}>{translate("i18n.featureButtons")} · {translate(toolbarEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
+                <button type="button" role="switch" aria-label="AI" aria-checked={aiRailEnabled} onClick={()=>setAiRailEnabled(!aiRailEnabled)}>AI · {translate(aiRailEnabled?'i18n.tipsOn':'i18n.tipsOff')}</button>
                 <button type="button" role="switch" aria-label={translate("i18n.usageTips")} aria-checked={tipsEnabled} onClick={() => setTipsEnabled(!tipsEnabled)}>{translate("i18n.usageTips")} · {translate(tipsEnabled ? "i18n.tipsOn" : "i18n.tipsOff")}</button>
                 <LanguageSelect />
               </div>
@@ -372,6 +380,7 @@ function Study({ shortcuts, setShortcuts }) {
       <UnifiedSearch viewKey={searchView} shortcuts={shortcuts} disabled={contentCommandsDisabled}/>
       <UsageTips enabled={tipsEnabled} paused={Boolean(menuOpen || manualOpen || calibration || !sceneSettled && !readerOpen && !activeFeature)}
         roomPage={!readerOpen && !activeFeature && 'room'} />
+      {!menuOpen&&!manualOpen&&!shortcutsOpen&&!graphicsOpen&&!calibration&&<AIWindow viewKey={searchView} shortcuts={shortcuts} showLauncher={aiRailEnabled}/>}
       {showCommandToolbar && <CommandToolbar shortcuts={shortcuts} />}
       <GlobalSearch books={importedBooks} enabled={!readerOpen&&!activeFeature&&!manualOpen&&!shortcutsOpen&&!graphicsOpen&&!calibration} onOpen={openGlobalResult}/>
       <ContentRelationshipPanel books={importedBooks} onNavigate={visitRelation} />

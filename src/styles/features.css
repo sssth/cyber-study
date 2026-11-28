@@ -1521,3 +1521,27 @@ button.admin-card.copying-work-card:focus-visible { outline:2px solid var(--cyan
 .memo-image-title,.catalog-note-preview { max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 
 .entity-image-field input[type="file"] { width:100%; min-width:0; box-sizing:border-box; }
+
+.search-query-menu,.search-query-hint{position:absolute;inset:100% 0 auto;margin-top:4px;padding:6px;background:#202b35;color:#edf3f7;border:1px solid #66727d;border-radius:8px;z-index:3}
+.search-query-menu{display:grid;max-height:min(36vh,300px);overflow:hidden}
+.search-query-menu button{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:7px 10px;text-align:left;color:inherit;background:transparent;border:0;border-radius:4px}
+.search-query-menu button:hover,.search-query-menu button[aria-selected=true]{background:#405467}
+.search-query-menu small{color:#d0dae3}
+.search-query-menu{grid-template-columns:minmax(max-content,0.78fr) minmax(0,1.5fr);align-items:stretch;gap:6px}
+.search-query-column{min-width:0;min-height:0;display:flex;flex-direction:column;gap:2px}
+.search-query-options{max-height:min(29vh,240px);min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;align-content:start;gap:2px}
+.search-query-column+ .search-query-column{border-inline-start:1px solid #66727d;padding-inline-start:6px}
+.search-query-column strong{flex:none;background:#202b35;padding:4px 8px;font-size:.8rem}
+.search-query-column button{width:100%;gap:4px;flex-wrap:wrap}
+.search-query-column:first-child button{white-space:nowrap;flex-wrap:nowrap}
+.search-query-column button span small{margin-inline-start:5px}
+.search-query-column button:disabled{opacity:.48;cursor:default}
+.search-query-menu>small{grid-column:1/-1}
+
+.field-settings-list{display:grid;gap:2px}
+.field-settings-list label{display:flex;gap:10px;align-items:center;padding:6px 8px;cursor:pointer}
+.field-settings-list label:hover{background:#ffffff10}
+.field-settings-list label span{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+.field-settings-list code{font-size:.82em;opacity:.76;overflow-wrap:anywhere}
+
+.search-field-group-title{margin:4px 0 0;padding:5px 8px;font-size:.8rem;font-weight:600;color:var(--muted);border-bottom:1px solid var(--panel-border)}

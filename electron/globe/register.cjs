@@ -59,7 +59,7 @@ function registerGlobe(getWindow) {
             if (typeof old.photo !== 'string' || !/^data:image\/[a-z0-9.+-]+;base64,/i.test(old.photo) || old.photo.length > 112 * 1024 * 1024) throw new Error('旧照片内容无效。');
             const migrationKey = hash(Buffer.from(JSON.stringify(old)));
             const result = await repo.add(Buffer.from(old.photo.split(',')[1], 'base64'), {
-              location: String(old.location || ''), caption: String(old.caption || ''), date: String(old.date || ''), dateSource: old.dateSource || 'legacy-unconfirmed', createdAt: old.createdAt || new Date().toISOString()
+              location: String(old.location || ''), text: String(old.text || old.caption || ''), date: String(old.date || ''), dateSource: old.dateSource || 'legacy-unconfirmed', createdAt: old.createdAt || new Date().toISOString()
             }, migrationKey);
             report.push({ name: `旧照片 ${index + 1}`, status: result.skipped ? '已迁移' : '成功' });
           } catch (error) { report.push({ name: `旧照片 ${index + 1}`, status: '失败', reason: error.message }); }

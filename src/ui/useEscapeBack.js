@@ -15,6 +15,8 @@ export function blocksPageBack() {
 
 export function matchesPageBack(event, keys = defaultBackKeys) {
   if (event.repeat || event.nativeEvent?.isComposing || event.isComposing) return false;
+  if (event.key==='Escape' && event.target?.closest?.('.expression-assistant')) return false;
+  if (event.key==='Escape' && event.target?.closest?.('.unified-search')?.querySelector('.search-query-menu')) return false;
   if (typingTarget(event.target) && event.key !== 'Escape' && !/^F\d+$/.test(event.key) &&
     !event.ctrlKey && !event.metaKey && !event.altKey) return false;
   return matchesShortcut(event, keys);

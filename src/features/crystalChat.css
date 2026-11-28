@@ -26,3 +26,15 @@
 
 .crystal-setup { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
 .crystal-setup small { flex:1 1 240px; margin:0; font-size:13px; }
+
+.feature-overlay:has(.crystal-workspace) {padding:48px clamp(12px,4vw,48px) 18px;}
+.feature-body:has(> .crystal-workspace) {overflow:hidden;}
+.crystal-workspace {height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;}
+.crystal-pages,.crystal-targets,.crystal-expression footer {display:flex;gap:8px;flex-wrap:wrap;}
+.crystal-pages button[aria-pressed=true] {border-color:#719f9c;color:#b4eadd;}
+.crystal-layout {min-height:0;}
+.crystal-expression {width:min(850px,100%);min-height:0;margin:0 auto;display:flex;flex-direction:column;gap:12px;overflow:auto;}
+.crystal-targets label {display:grid;gap:4px;min-width:0;color:var(--muted);font-size:13px;}
+.crystal-targets select {max-width:100%;min-width:9em;}
+.crystal-expression textarea {box-sizing:border-box;width:100%;resize:vertical;}
+.crystal-expression footer {justify-content:flex-end;}

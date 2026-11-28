@@ -1,4 +1,4 @@
-import { normalize, termsOf } from '../../search/searchCore.js';
+import { normalize, highlightTerms } from '../../search/searchCore.js';
 
 export function diarySearchRanges(text, query) {
   const starts = [], ends = [];
@@ -10,7 +10,7 @@ export function diarySearchRanges(text, query) {
     offset += character.length;
   }
   const matches = [];
-  for (const term of new Set(termsOf(query))) {
+  for (const term of new Set(highlightTerms(text,query))) {
     let from = 0, index;
     while (term && (index = normalized.indexOf(term, from)) !== -1) {
       matches.push([starts[index], ends[index + term.length - 1]]);
